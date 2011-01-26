@@ -1,0 +1,3 @@
+[submodule "gxp"]
+	path = gxp
+	url = git://github.com/opengeo/gxp.git
