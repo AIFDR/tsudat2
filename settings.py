@@ -1,7 +1,9 @@
 # Django settings for tsudat2 project.
+import os
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+SERVE_MEDIA = True
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
@@ -19,6 +21,11 @@ DATABASES = {
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
+
+GEOSERVER_BASE_URL="http://localhost:8080/geoserver/"
+GEOSERVER_CREDENTIALS = "admin", "geoserver" 
+
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -78,9 +85,16 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'tsudat2.urls'
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
+    os.path.join(PROJECT_ROOT,"templates"),
+)
+
+STATIC_URL = '/static/'
+
+STATICFILES_DIRS = (
+        os.path.join(PROJECT_ROOT, 'media/'),
+        os.path.join(PROJECT_ROOT, 'externals/openlayers/'),
+        os.path.join(PROJECT_ROOT, 'externals/geoext/'),
+        os.path.join(PROJECT_ROOT, 'externals/gxp/'),
 )
 
 INSTALLED_APPS = (
@@ -91,5 +105,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.gis',
+    'staticfiles',
+    'proxy',
     'tsudat',
 )
