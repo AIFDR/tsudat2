@@ -49,10 +49,17 @@ class HazardPoint(models.Model):
     
     objects = models.GeoManager()
 
+    def __unicode__(self):
+        return str(self.tsudat_id)
+
 class HazardPointDetail(models.Model):
     hazard_point = models.ForeignKey(HazardPoint)
     return_period = models.IntegerField(choices=RETURN_PERIOD_CHOICES)
-    wave_height = models.FloatField() # Min 0, Max 10
+    wave_height = models.FloatField(null=True, blank=True) # Min 0, Max 10
+    color = models.CharField(max_length=8, null=True, blank=True)
+
+    def __unicode__(self):
+        return str(self.pk)
 
 class SourceZone(models.Model):
     tsudat_id = models.PositiveIntegerField()
@@ -61,18 +68,40 @@ class SourceZone(models.Model):
     
     objects = models.GeoManager()
 
+    def __unicode__(self):
+        return self.name
+
+class SubFault(models.Model):
+    tsudat_id = models.PositiveIntegerField()
+    source_zone = models.ForeignKey(SourceZone)
+    geom = models.PointField()
+    dip = models.FloatField( null=True, blank=True)
+    strike = models.PositiveIntegerField(null=True, blank=True) # 0-360
+    
+    objects = models.GeoManager()
+
+    def __unicode__(self):
+        return str(self.tsudat_id)
+
 class Event(models.Model):
     tsudat_id = models.PositiveIntegerField()
     source_zone = models.ForeignKey(SourceZone)    
+    sub_faults = models.ManyToManyField(SubFault)
     magnitude = models.FloatField() # 0.0 - 10.0
     probability = models.FloatField() # 0.000001 - 1.0
     slip = models.FloatField() # in meters
+
+    def __unicode__(self):
+        return int(self.tsudat_id)
 
 class Project(models.Model):
     name = models.CharField(max_length=50)
     geom = models.PolygonField()
     
     objects = models.GeoManager()
+
+    def __unicode__(self):
+        return self.name
 
 class Scenario(models.Model):
     name = models.CharField(max_length=50)
@@ -90,12 +119,18 @@ class Scenario(models.Model):
     default_friction_value = models.FloatField()
     model_setup = models.CharField(max_length=1, choices=MODEL_SETUP_CHOICES)
 
+    def __unicode__(self):
+        return self.name
+
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=20)
     geom = models.PointField()
     
     objects = models.GeoManager()
+
+    def __unicode__(self):
+        return self.project + ' ' + self.name
 
 class InternalPolygon(models.Model):
     project = models.ForeignKey(Project)
@@ -115,11 +150,3 @@ class ProjectDataSet(models.Model):
     dataset = models.ForeignKey(DataSet)
     ranking = models.PositiveIntegerField() # 1 = lowest resolution -> Highest
 
-class SubFault(models.Model):
-    tsudat_id = models.PositiveIntegerField()
-    source_zone = models.ForeignKey(SourceZone)
-    geom = models.PointField()
-    dip = models.FloatField( null=True, blank=True)
-    strike = models.PositiveIntegerField(null=True, blank=True) # 0-360
-    
-    objects = models.GeoManager()
