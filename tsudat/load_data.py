@@ -74,6 +74,18 @@ def load_events():
             event.save()
         count += 1
 
+def load_event_subfaults():
+    event_sub_fault_file = open('../data/event_subfaults.csv')
+    for line in event_sub_fault_file.readlines():
+        print line
+        parts = line.strip().split(',')
+        num_sf = len(parts)-1
+        event = Event.objects.get(tsudat_id=int(parts[0]))
+        for i in range(1,num_sf):
+            sf = SubFault.objects.get(tsudat_id=int(parts[i]))
+            event.sub_faults.add(sf)
+        event.save()
+
 def load_wave_heights(file):
     if(file == 'color'):
         wave_heights_file = open('../data/wave_heights_color.txt')
@@ -121,6 +133,7 @@ def load_wave_heights(file):
 #load_source_zones()
 #load_subfaults()
 #load_sz_geom()
-load_events()
+#load_events()
+load_event_subfaults()
 #load_wave_heights('values')
 #load_wave_heights('color')
