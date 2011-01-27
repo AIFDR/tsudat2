@@ -18,6 +18,7 @@ urlpatterns = patterns('',
     (r'^admin/', include(admin.site.urls)),
     (r'^proxy/', 'proxy.views.proxy'),
     (r'^geoserver/','proxy.views.geoserver'),
+    (r'^tsudat/', include('tsudat.urls')),
 )
 
 if settings.SERVE_MEDIA:
