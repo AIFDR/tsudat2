@@ -92,7 +92,7 @@ class Event(models.Model):
     slip = models.FloatField() # in meters
 
     def __unicode__(self):
-        return int(self.tsudat_id)
+        return str(self.tsudat_id)
 
 class Project(models.Model):
     name = models.CharField(max_length=50)
