@@ -66,6 +66,12 @@ def load_events():
             slip = float(parts[4])
             num_sf = int(parts[5])
             print id, sz, prob, mag, slip, num_sf
+            event = Event(tsudat_id = id,
+                    source_zone = sz,
+                    probability = prob,
+                    magnitude = mag,
+                    slip = slip)
+            event.save()
         count += 1
 
 def load_wave_heights(file):
