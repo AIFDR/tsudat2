@@ -26,6 +26,8 @@ RETURN_PERIOD_CHOICES = (
     (100000, '100000 years'),
 )
 
+RETURN_PERIODS = [ rp for (rp, _) in RETURN_PERIOD_CHOICES]
+
 IP_TYPE_CHOICES = (
     (1, 'Mesh Resolution'),
     (2, 'Mesh Friction'),
@@ -94,6 +96,11 @@ class Event(models.Model):
     def __unicode__(self):
         return str(self.tsudat_id)
 
+class EventWaveHeight(models.Model):
+    event = models.ForeignKey(Event)
+    hazard_point = models.ForeignKey(HazardPoint)
+    wave_height = models.FloatField()
+
 class Project(models.Model):
     name = models.CharField(max_length=50)
     geom = models.PolygonField()
@@ -149,4 +156,3 @@ class ProjectDataSet(models.Model):
     project = models.ForeignKey(Project)
     dataset = models.ForeignKey(DataSet)
     ranking = models.PositiveIntegerField() # 1 = lowest resolution -> Highest
-
