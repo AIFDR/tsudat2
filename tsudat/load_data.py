@@ -1,11 +1,15 @@
-import sys, traceback
-from django.contrib.gis.geos import *
-from django.core.exceptions import ObjectDoesNotExist
+import os, sys, traceback
 import re
 
-from tsudat2.tsudat.models import *
-
 sys.path.append("../")
+sys.path.append("../../")
+os.environ['DJANGO_SETTINGS_MODULE'] = "tsudat2.settings"
+
+from django.contrib.gis.geos import *
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import connection, transaction
+
+from tsudat2.tsudat.models import *
 
 def load_hazard_points():
     hp_file = open('../data/hazard.points', 'r')
@@ -77,14 +81,62 @@ def load_events():
 def load_event_subfaults():
     event_sub_fault_file = open('../data/event_subfaults.csv')
     for line in event_sub_fault_file.readlines():
-        print line
+        print line.strip()
         parts = line.strip().split(',')
-        num_sf = len(parts)-1
         event = Event.objects.get(tsudat_id=int(parts[0]))
-        for i in range(1,num_sf):
-            sf = SubFault.objects.get(tsudat_id=int(parts[i]))
+        sub_faults = parts[1:]
+        for sf in sub_faults: 
+            sf = SubFault.objects.get(tsudat_id=int(sf))
             event.sub_faults.add(sf)
         event.save()
+
+@transaction.commit_manually
+def load_event_wave_heights():
+    event_wave_heights_file = open('../data/event_hp_wh.csv')
+    counter = index = count = 0
+    thinned_hps = []
+    valid_hps = [] 
+    event_id_mapping = {}
+    hp_id_mapping = {}
+    
+    cursor = connection.cursor()
+   
+    current_hp_id = None
+
+    for line in event_wave_heights_file.xreadlines():
+        parts = line.strip().split(',')
+        try:
+            hp_tsudat_id = int(parts[1])
+            if not hp_tsudat_id in thinned_hps:
+                if not hp_tsudat_id in valid_hps:
+                    hp = HazardPoint.objects.get(tsudat_id=hp_tsudat_id)
+                    hp_id_mapping[hp_tsudat_id] = hp.id 
+                    valid_hps.append(hp_tsudat_id)
+                event_tsudat_id = int(parts[0])
+                if(event_tsudat_id in event_id_mapping):
+                    event = event_id_mapping[event_tsudat_id]
+                else:
+                    event = Event.objects.get(tsudat_id=int(parts[0]))
+                    event_id_mapping[event_tsudat_id] = event.id
+                    event = None
+                wh = float(parts[2])
+                sql ="insert into tsudat_eventwaveheight (hazard_point_id, event_id, wave_height) VALUES (%i, %i, %f)" % (hp_id_mapping[hp_tsudat_id], event_id_mapping[event_tsudat_id], wh)
+                print sql
+                cursor.execute(sql)
+                if(hp_tsudat_id != current_hp_id):
+                    print "Committing Hazard Point %s" % (hp_tsudat_id)
+                    transaction.commit()
+                    current_hp_id = hp_tsudat_id
+                count += 1
+        except ObjectDoesNotExist:
+            # Hazard Points are 'thinned'
+            thinned_hps.append(int(parts[1]))
+            #print thinned_hps
+        counter += 1
+        index += 1
+        if(counter >= 100):
+            #print "%s (%s)" % (index, count)
+            counter = 0
 
 def load_wave_heights(file):
     if(file == 'color'):
@@ -134,6 +186,7 @@ def load_wave_heights(file):
 #load_subfaults()
 #load_sz_geom()
 #load_events()
-load_event_subfaults()
+#load_event_subfaults()
 #load_wave_heights('values')
 #load_wave_heights('color')
+load_event_wave_heights()
