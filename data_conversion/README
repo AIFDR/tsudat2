@@ -1,0 +1,54 @@
+This directory contains the programs used to extract PTHA data from TsuDAT1
+so it can be inserted into the TsuDAT2 database.
+
+To run this you need to have the TsuDAT1 data available somewhere.  Change
+the path in the line in the Makefile that starts "DATAPATH=" to contain the path
+to a TsuDAT1 "Tsu-DAT_Data" directory.  Then run "make" which will execute
+all "make_*.py" programs.
+
+The programs run and their output are described below.
+
+make_event_2_subfaults.py
+-------------------------
+Program to create a file containing event ID to subfault ID mapping.  The
+file produced is 'make_event_2_subfaults.csv' which contains the event ID
+in column 1 and a list of subfault IDs in columns 2, 3, etc.
+
+make_event_hp_wh.py
+-------------------
+Program that writes Tfile data as a file 'event_hp_wh.csv`', which contains
+rows: <eventID>,<hazard_pointID>,<wave_height>.
+
+make_subfaultid_2_zonename.py
+-----------------------------
+Program that writes a file 'subfaultid_2_zonename.csv' that contains a mapping 
+of subfault ID to zone name (<subfaultID>,<zone_nae>).
+
+make_wh_cc_hp_file.py
+---------------------
+Program that reads the 'o_amp_green' file which contains a matrix with return
+period and hazard point ID axes that contains the wave height.  The output is a
+copy of 'o_amp_green' with a colour-code string replacing the wave height
+values.  The file written is called "o_amp_green.cc".
+
+make_zonename_2_subfault_posn.py
+--------------------------------
+A program that writes a file 'zonename_2_subfault_posn.csv' containing CSV data
+"<zone_name>,<posn>,<posn>,..." where a <posn> is:  <lon>:<lat>.  This specifies
+every subfault position for a zone.
+
+run_all.py
+----------
+Is a program that runs all the above conversion programs in series.
+You can change the path to mounted data here and it is passed to each
+conversion program.
+
+
+ursapi.py
+---------
+is a module used to access URS data.  This file and the one following are
+part of the URSAPI system.
+
+util.py
+-------
+a utility module for ursapi.py above.
