@@ -94,6 +94,7 @@ def load_event_subfaults():
 def load_event_wave_heights():
     event_wave_heights_file = open('../data/event_hp_wh.csv')
     counter = index = count = 0
+    finished_hps = []
     thinned_hps = []
     valid_hps = [] 
     event_id_mapping = {}
@@ -103,11 +104,16 @@ def load_event_wave_heights():
    
     current_hp_id = None
 
+    finished = EventWaveHeight.objects.values('hazard_point').distinct()
+    for x in finished:
+        hp = HazardPoint.objects.get(id=x['hazard_point'])
+        finished_hps.append(hp.tsudat_id) 
+
     for line in event_wave_heights_file.xreadlines():
         parts = line.strip().split(',')
         try:
             hp_tsudat_id = int(parts[1])
-            if not hp_tsudat_id in thinned_hps:
+            if not hp_tsudat_id in thinned_hps and not hp_tsudat_id in finished_hps:
                 if not hp_tsudat_id in valid_hps:
                     hp = HazardPoint.objects.get(tsudat_id=hp_tsudat_id)
                     hp_id_mapping[hp_tsudat_id] = hp.id 
@@ -135,7 +141,7 @@ def load_event_wave_heights():
         counter += 1
         index += 1
         if(counter >= 100):
-            #print "%s (%s)" % (index, count)
+            print "%s (%s)" % (index, count)
             counter = 0
 
 def load_wave_heights(file):
