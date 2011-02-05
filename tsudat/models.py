@@ -85,6 +85,12 @@ class SubFault(models.Model):
     def __unicode__(self):
         return str(self.tsudat_id)
 
+class SubFaultDetail(models.Model):
+    hazard_point = models.ForeignKey(HazardPoint)
+    sub_fault = models.ForeignKey(SubFault)
+    return_period = models.IntegerField(choices=RETURN_PERIOD_CHOICES)
+    contribution = models.FloatField()
+
 class Event(models.Model):
     tsudat_id = models.PositiveIntegerField()
     source_zone = models.ForeignKey(SourceZone)    
