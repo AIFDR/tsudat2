@@ -19,8 +19,8 @@ import re
 # default mount path - can be overridden by sys.argv[1]
 DataPath = '/media/537510fd-c89e-442d-8be0-3163f1bbe59b/Tsu-DAT_Data'
 
-# derived paths to file(s)
-OutputFile = './make_event_2_subfaults.csv'
+# output filename
+OutputFile = './event_2_subfaults.csv'
 
 # generate 're' pattern for 'any number of spaces'
 SpacesPattern = re.compile(' +')

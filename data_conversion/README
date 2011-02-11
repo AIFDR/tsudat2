@@ -3,16 +3,17 @@ so it can be inserted into the TsuDAT2 database.
 
 To run this you need to have the TsuDAT1 data available somewhere.  Change
 the path in the line in the Makefile that starts "DATAPATH=" to contain the path
-to a TsuDAT1 "Tsu-DAT_Data" directory.  Then run "make" which will execute
-all "make_*.py" programs.
+to a TsuDAT1 "Tsu-DAT_Data" directory.  This path shoud point to a directory
+containing the directory 'earthquake_data' as well as files such as 'return_periods.txt'.
+Then run "make" which will execute all "make_*.py" programs.
 
 The programs run and their output are described below.
 
 make_event_2_subfaults.py
 -------------------------
 Program to create a file containing event ID to subfault ID mapping.  The
-file produced is 'make_event_2_subfaults.csv' which contains the event ID
-in column 1 and a list of subfault IDs in columns 2, 3, etc.
+file produced is 'event_2_subfaults.csv' which contains the event ID in
+column 1 and a list of subfault IDs in columns 2, 3, etc.
 
 make_event_hp_wh.py
 -------------------
