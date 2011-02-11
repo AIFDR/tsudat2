@@ -17,7 +17,7 @@ import glob
 
 
 # default mount path - can be overridden by sys.argv[1]
-DataPath = '/media/537510fd-c89e-442d-8be0-3163f1bbe59b'
+DataPath = '/media/Tsu-DAT 1.0/Tsu-DAT_Data'
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
 
     # step through all 'make_*.py" files
     for name in files:
-        cmd = './%s %s' % (name, DataPath)
+        cmd = './%s "%s"' % (name, DataPath)
         print(cmd)
         os.system(cmd)
 
