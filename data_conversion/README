@@ -19,6 +19,7 @@ make_event_hp_wh.py
 -------------------
 Program that writes Tfile data as a file 'event_hp_wh.csv', which contains
 rows: <eventID>,<hazard_pointID>,<wave_height>.
+Rows with a zero waveheight or zero probability are not written.
 
 make_hp_rp_fid_cc.py
 --------------------
