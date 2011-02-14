@@ -1,3 +1,4 @@
+import sys, traceback
 import simplejson
 
 from django.shortcuts import render_to_response
@@ -12,6 +13,33 @@ geoj = GeoJSON.GeoJSON()
 
 def index(request):
     return render_to_response('tsudat/index.html')
+
+def return_period(request):
+    if not "wh" in request.GET: 
+        return HttpResponse('Wave Height must be specified', status=400) 
+    elif not "whd" in request.GET: 
+        return HttpResponse('Wave Height Delta must be specified', status=400) 
+    elif not "hp" in request.GET: 
+        return HttpResponse('Hazard Point must be specified', status=400)
+    else:
+        try:
+            hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
+        except:
+            return HttpResponse('Invalid Hazard Point', status=400) 
+        try:
+            wh = float(request.GET.get('wh'))
+            whd = float(request.GET.get('whd'))
+            hpd = HazardPointDetail.objects.filter(hazard_point=hp, wave_height__gte=wh-whd, wave_height__lte=wh+whd).order_by('return_period')
+            length = len(hpd)
+            if(length == 0):
+                # Should handle for this and pick a return period that is 'close'
+                return HttpResponse('No return periods in range', status=400)
+            for h in hpd:
+                print h.return_period
+            return HttpResponse(serializers.serialize("json", [hpd[int(length/2)]], fields=('return_period')))
+        except:
+            traceback.print_exc(file=sys.stdout)
+            return HttpResponse('Unexpected Error', status=500)
 
 def return_periods(request):
     return HttpResponse(simplejson.dumps(RETURN_PERIOD_CHOICES))
@@ -29,7 +57,7 @@ def hazard_points(request):
         inner join tsudat_hazardpointdetail on tsudat_hazardpoint.id = tsudat_hazardpointdetail.hazard_point_id 
         where tsudat_hazardpointdetail.return_period = 100;
         '''
-        return HttpResponse("not yet", status_code=501)
+        return HttpResponse("not yet", status=501)
     else:
         hp = HazardPoint.objects.all()
         djf = Django.Django(geodjango="geom", properties=['tsudat_id'])
@@ -39,13 +67,33 @@ def source_zones(request):
     # Currently the geom fields are not populated
     return HttpResponse(serializers.serialize("json", SourceZone.objects.all(), fields=('id', 'tsudat_id','name')))
 
+def source_zone(request):
+    if "sf" in request.GET:
+        try:
+            sf = SubFault.objects.get(tsudat_id=int(request.GET.get('sf')))
+            return HttpResponse(serializers.serialize("json", [sf.source_zone]))
+        except:
+            # ToDo catch individual errors
+            return HttpResponse('Error', status=400)
+    else:
+        return HttpResponse('Sub Fault must be specified', status=400)
+
+
 def sub_faults(request):
     if "sz" in request.GET:
         try:
             sz = SourceZone.objects.get(id=int(request.GET.get('sz')))
             sf = SubFault.objects.filter(source_zone = sz)
         except:
-            return HttpResponse("invalid source zone", status_code=404)
+            return HttpResponse("invalid source zone", status=404)
+    elif "event" in request.GET:
+        try:
+            event = Event.objects.get(tsudat_id=int(request.GET.get("event")))
+            print event
+            return HttpResponse(serializers.serialize("json", event.sub_faults.all()))
+        except:
+            # ToDo catch individual errors
+            return HttpResponse('Error', status=400)
     else:
         sf = SubFault.objects.all()
         # How do we serialize the source_zone properly   
@@ -53,5 +101,56 @@ def sub_faults(request):
     return HttpResponse(geoj.encode(djf.decode(sf)))
 
 def events(request):
-    # Will *never* get all events like this.
-    return HttpResponse(serializers.serialize("json", Event.objects.all()))
+    if not "wh" in request.GET: 
+        return HttpResponse('Wave Height must be specified', status=400) 
+    elif not "whd" in request.GET: 
+        return HttpResponse('Wave Height Delta must be specified', status=400) 
+    elif not "hp" in request.GET: 
+        return HttpResponse('Hazard Point must be specified', status=400)
+    elif not "sz" in request.GET: 
+        return HttpResponse('Source Zone must be specified', status=400)
+    else:
+        try:
+            hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
+        except:
+            return HttpResponse('Invalid Hazard Point', status=400) 
+        try:
+            sz = SourceZone.objects.get(tsudat_id=int(request.GET.get('sz')))
+        except:
+            return HttpResponse('Invalid Hazard Point', status=400) 
+        try:
+            wh = float(request.GET.get('wh'))
+            whd = float(request.GET.get('whd'))
+        except:
+            return HttpResponse('Invalid Wave Height or Delta', status=400) 
+        try:
+            ewh = EventWaveHeight.objects.filter(event__source_zone=sz, hazard_point=hp, wave_height__gte=wh-whd, wave_height__lte=wh+whd)
+            print len(ewh)
+            return HttpResponse(serializers.serialize("json", ewh))
+        except:
+            traceback.print_exc(file=sys.stdout) 
+            return HttpResponse('Unexpected Error', status=400) 
+
+def wave_height(request):
+    if not "rp" in request.GET: 
+        return HttpResponse('Return Period must be specified', status=400) 
+    elif not "hp" in request.GET: 
+        return HttpResponse('Hazard Point must be specified', status=400) 
+    else:
+        try:
+            hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
+        except:
+            return HttpResponse('Invalid Hazard Point', status=400) 
+        try:
+            if(int(request.GET.get('rp')) not in RETURN_PERIODS):
+                return HttpResponse('Invalid Return Period', status=400) 
+            else:
+                rp = int(request.GET.get('rp'))
+        except:
+            return HttpResponse('Invalid Return Period', status=400) 
+        try:
+            hpd = HazardPointDetail.objects.get(hazard_point=hp, return_period=rp)
+            return HttpResponse(serializers.serialize("json", [hpd]))
+        except:
+            traceback.print_exc(file=sys.stdout) 
+            return HttpResponse('Unexpected Error', status=500)
