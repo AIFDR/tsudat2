@@ -37,27 +37,40 @@ def main():
     out_fd = open(OutputFile, 'wb')
 
     # make mask for a points file      
-    input_mask = os.path.join(DataPath, 'deag_points', 'points_*_*.txt')
+    input_mask = os.path.join(DataPath, 'earthquake_data', 'hazmap_files',
+                              'deag', 'DP-grn-rp-*')
 
     # get all files matching mask in the directory
     count = 0
     for fname in glob.glob(input_mask):
         count += 1
 
-        # get hpID and rpID from filename
+        # get hpID from filename
         basename = os.path.basename(fname)
-        (_, hpID, rpID) = basename.split('_')
-        (rpID, _) = rpID.split('.')
+        (_, _, _, hpID) = basename.split('-')
+        hpID = int(hpID)
 
         # get data from this file
         fd = open(fname, 'r')
         lines = fd.readlines()
         fd.close()
 
-        # step thtough data, get sfID and colour_code, write data
-        for line in lines:
-            (_, _, cc, sfID) = SpacesPattern.split(line)
-            out_fd.write('%s,%s,%s,%s\n' % (hpID, rpID, sfID.strip(), cc))
+        # get header line, split out return periods
+        header = lines[0].strip()
+        lines = lines[1:]
+
+        return_periods = SpacesPattern.split(header)[3:]
+        return_periods = [int(float(rp)) for rp in return_periods]
+
+        # step through data, get subfaultID and contribution for each RP
+        for (sfid, line) in enumerate(lines):
+            # get just the return_periods
+            (_, _, contribs) = SpacesPattern.split(line.strip(), maxsplit=2)
+            contribs = SpacesPattern.split(contribs.strip())
+            for (rp, contrib) in zip(return_periods, contribs):
+                contrib = float(contrib)
+                if contrib > 0.0:
+                    out_fd.write('%s,%d,%d,%s\n' % (hpID, rp, sfid, contrib))
 
         print '%d' % count,
         sys.stdout.flush()

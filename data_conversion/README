@@ -19,14 +19,17 @@ make_event_hp_wh.py
 -------------------
 Program that writes Tfile data as a file 'event_hp_wh.csv', which contains
 rows: <eventID>,<hazard_pointID>,<wave_height>.
+
 Rows with a zero waveheight or zero probability are not written.
 
 make_hp_rp_fid_cc.py
 --------------------
 Writes a file "hp_rp_fid_cc.csv" that contains 'deag' data which specifies the
-colour_coding for each subfault for all combinations of hazard point and return
+ciontribution for each subfault for all combinations of hazard point and return
 period.  The file contains rows:
-<hpID>,<rpID>,<sfltID>,<colour code string>
+<hpID>,<rpID>,<sfltID>,<contrib>
+
+Note: we do not write rows for which <contrib> is 0.0.
 
 make_hp_sflt_rp_wh.py
 ---------------------
