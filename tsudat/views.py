@@ -1,9 +1,11 @@
 import sys, traceback
 import simplejson
+import geojson
 
 from django.shortcuts import render_to_response
 from django.http import HttpResponse
 from django.core import serializers
+from django.views.decorators.csrf import csrf_exempt, csrf_response_exempt
 
 from vectorformats.Formats import Django, GeoJSON
 
@@ -154,3 +156,20 @@ def wave_height(request):
         except:
             traceback.print_exc(file=sys.stdout) 
             return HttpResponse('Unexpected Error', status=500)
+
+@csrf_exempt
+def project(request, id=None):
+    if id == None and request.method == "POST":
+        data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+        p = Project()
+        p.from_json(data)
+        djf = Django.Django(geodjango="geom", properties=['name'])
+        return HttpResponse(geoj.encode(djf.decode([p])))
+    elif id != None and id != "all":
+        p = Project.objects.get(pk=id)
+        djf = Django.Django(geodjango="geom", properties=['name'])
+        return HttpResponse(geoj.encode(djf.decode([p])))
+    else:
+        projects = Project.objects.all()
+        djf = Django.Django(geodjango="geom", properties=['name'])
+        return HttpResponse(geoj.encode(djf.decode(projects)))
