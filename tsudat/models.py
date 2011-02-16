@@ -1,3 +1,6 @@
+import sys,traceback
+import geojson
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.db import models
 
 # Incomplete list
@@ -115,6 +118,18 @@ class Project(models.Model):
 
     def __unicode__(self):
         return self.name
+
+    def from_json(self, data):
+        try:
+            geom = GEOSGeometry(str(data.geometry))
+            name = data.__dict__['properties']['name']
+            self.geom = geom
+            self.name = name
+            self.save()
+            return self
+        except:
+            traceback.print_exc(file=sys.stdout) 
+        return None
 
 class Scenario(models.Model):
     name = models.CharField(max_length=50)
