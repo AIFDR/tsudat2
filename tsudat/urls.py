@@ -9,4 +9,6 @@ urlpatterns = patterns('tsudat.views',
     (r'^sub_faults/$', 'sub_faults'),
     (r'^events/$', 'events'),
     (r'^wave_height/$', 'wave_height'),
+    (r'^project/$', 'project'),
+    (r'^project/(?P<id>[0-9]+)/$', 'project'),
 )
