@@ -1,9 +1,9 @@
 import sys,traceback
 import geojson
 from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.gdal import SpatialReference
 from django.contrib.gis.db import models
 
-# Incomplete list
 RETURN_PERIOD_CHOICES = (
     (10, '10 years'),
     (25, '25 years'),
@@ -35,6 +35,7 @@ IP_TYPE_CHOICES = (
     (1, 'Mesh Resolution'),
     (2, 'Mesh Friction'),
     (3, 'Area of Interest'),
+    (4, 'Area of Significance'),
 )
 
 DATASET_TYPE_CHOICES = (
@@ -122,6 +123,13 @@ class Project(models.Model):
     def from_json(self, data):
         try:
             geom = GEOSGeometry(str(data.geometry))
+            if(hasattr(data.geometry.crs, 'properties')):
+                crs = data.geometry.crs.properties['name']
+                srs = SpatialReference(crs)
+                print srs
+                geom.set_srid(srs.srid)
+                geom.transform(4326)
+            print geom
             name = data.__dict__['properties']['name']
             self.geom = geom
             self.name = name
@@ -167,6 +175,31 @@ class InternalPolygon(models.Model):
     value = models.FloatField() # MR = Int MF = Float
     
     objects = models.GeoManager()
+    
+    def from_json(self, data):
+        try:
+            geom = GEOSGeometry(str(data.geometry))
+            if(hasattr(data.geometry.crs, 'properties')):
+                crs = data.geometry.crs.properties['name']
+                srs = SpatialReference(crs)
+                print srs
+                geom.set_srid(srs.srid)
+                geom.transform(4326)
+            print geom
+            type = data.__dict__['properties']['type']
+            project_id = data.__dict__['properties']['project_id']
+            value = data.__dict__['properties']['value']
+            print type, project_id, value
+            self.geom = geom
+            self.type = int(type)
+            self.value = float(value)
+            project = Project.objects.get(id=int(project_id))
+            self.project = project
+            self.save()
+            return self
+        except:
+            traceback.print_exc(file=sys.stdout) 
+        return None
 
 class DataSet(models.Model):
     # ForeignKey to geonode.Layer
