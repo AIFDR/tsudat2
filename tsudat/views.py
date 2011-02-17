@@ -38,7 +38,7 @@ def return_period(request):
                 return HttpResponse('No return periods in range', status=400)
             return HttpResponse(serializers.serialize("json", [hpd[int(length/2)]], fields=('return_period')))
         except:
-            traceback.print_exc(file=sys.stdout)
+            #traceback.print_exc(file=sys.stdout)
             return HttpResponse('Unexpected Error', status=500)
 
 def return_periods(request):
@@ -89,7 +89,6 @@ def sub_faults(request):
     elif "event" in request.GET:
         try:
             event = Event.objects.get(tsudat_id=int(request.GET.get("event")))
-            print event
             return HttpResponse(serializers.serialize("json", event.sub_faults.all()))
         except:
             # ToDo catch individual errors
@@ -125,10 +124,9 @@ def events(request):
             return HttpResponse('Invalid Wave Height or Delta', status=400) 
         try:
             ewh = EventWaveHeight.objects.filter(event__source_zone=sz, hazard_point=hp, wave_height__gte=wh-whd, wave_height__lte=wh+whd)
-            print len(ewh)
             return HttpResponse(serializers.serialize("json", ewh))
         except:
-            traceback.print_exc(file=sys.stdout) 
+            #traceback.print_exc(file=sys.stdout) 
             return HttpResponse('Unexpected Error', status=400) 
 
 def wave_height(request):
@@ -152,7 +150,7 @@ def wave_height(request):
             hpd = HazardPointDetail.objects.get(hazard_point=hp, return_period=rp)
             return HttpResponse(serializers.serialize("json", [hpd]))
         except:
-            traceback.print_exc(file=sys.stdout) 
+            #traceback.print_exc(file=sys.stdout) 
             return HttpResponse('Unexpected Error', status=500)
 
 @csrf_exempt
@@ -178,14 +176,15 @@ def internal_polygon(request, id=None):
     if id == None and request.method == "POST":
         try:
             data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
-            print data
             ip = InternalPolygon()
             ip.from_json(data)
             djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
             return HttpResponse(geoj.encode(djf.decode([ip])))
             return HttpResponse("")
         except:
-            traceback.print_exc(file=sys.stdout) 
+            return HttpResponse('Unexpected Error', status=500)
+            #traceback.print_exc(file=sys.stdout) 
+	    
     elif id != None and id != "all":
         ip = InternalPolygon.objects.get(pk=id)
         djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
@@ -205,9 +204,10 @@ def gauge_point(request, id=None):
             gp.from_json(data)
             djf = Django.Django(geodjango="geom", properties=['project_id','name'])
             return HttpResponse(geoj.encode(djf.decode([gp])))
-            return HttpResponse("")
         except:
-            traceback.print_exc(file=sys.stdout) 
+	    # Todo catch specific errors and return proper http response code and message
+            return HttpResponse('Unexpected Error', status=500)
+            #traceback.print_exc(file=sys.stdout) 
     elif id != None and id != "all":
         gp = GaugePoint.objects.get(pk=id)
         djf = Django.Django(geodjango="geom", properties=['project_id','name'])
@@ -227,7 +227,9 @@ def scenario(request, id=None):
             scenario.from_json(data)
             return HttpResponse(serializers.serialize("json", [scenario]))
         except:
-            traceback.print_exc(file=sys.stdout)
+	    # Todo catch specific errors and return proper http response code and message
+            return HttpResponse('Unexpected Error', status=500)
+            #traceback.print_exc(file=sys.stdout)
     elif id != None and id != "all":
         scenario = Scenario.objects.get(pk=id)
         return HttpResponse(serializers.serialize("json", [scenario]))

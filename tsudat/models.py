@@ -126,17 +126,17 @@ class Project(models.Model):
             if(hasattr(data.geometry.crs, 'properties')):
                 crs = data.geometry.crs.properties['name']
                 srs = SpatialReference(crs)
-                print srs
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
-            print geom
             name = data.__dict__['properties']['name']
             self.geom = geom
             self.name = name
             self.save()
             return self
         except:
-            traceback.print_exc(file=sys.stdout) 
+	    # ToDo catch errors specifically and return message/code in json
+	    pass
+            #traceback.print_exc(file=sys.stdout) 
         return None
 
 class Scenario(models.Model):
@@ -159,23 +159,29 @@ class Scenario(models.Model):
         return self.name
 
     def from_json(self, data):
-        data = data['fields']
-        self.name = data['name']
-        self.project = Project.objects.get(pk=int(data['project']))
-        self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
-        self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
-        self.return_period = int(data['return_period'])
-        self.wave_height = float(data['wave_height'])
-        self.wave_height_delta = float(data['wave_height_delta'])
-        self.event = Event.objects.get(pk=int(data['event'])) 
-        self.start_time = int(data['start_time'])
-        self.end_time = int(data['end_time'])
-        self.initial_tidal_stage = float(data['initial_tidal_stage'])
-        self.smoothing_param = float(data['smoothing_param'])
-        self.default_friction_value = float(data['default_friction_value'])
-        self.model_setup = data['model_setup']
-        self.save()
-        return self
+	try:
+       	    data = data['fields']
+            self.name = data['name']
+            self.project = Project.objects.get(pk=int(data['project']))
+            self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
+            self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
+            self.return_period = int(data['return_period'])
+            self.wave_height = float(data['wave_height'])
+            self.wave_height_delta = float(data['wave_height_delta'])
+            self.event = Event.objects.get(pk=int(data['event'])) 
+            self.start_time = int(data['start_time'])
+            self.end_time = int(data['end_time'])
+            self.initial_tidal_stage = float(data['initial_tidal_stage'])
+            self.smoothing_param = float(data['smoothing_param'])
+            self.default_friction_value = float(data['default_friction_value'])
+            self.model_setup = data['model_setup']
+            self.save()
+            return self
+        except:
+	    # ToDo catch errors specifically and return message/code in json
+	    pass
+            #traceback.print_exc(file=sys.stdout) 
+	return None
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
@@ -190,11 +196,9 @@ class GaugePoint(models.Model):
     def from_json(self, data):
         try:
             geom = GEOSGeometry(str(data.geometry))
-            print geom
             if(hasattr(data.geometry.crs, 'properties')):
                 crs = data.geometry.crs.properties['name']
                 srs = SpatialReference(crs)
-                print srs
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
             project_id = data.__dict__['properties']['project_id']
@@ -206,7 +210,9 @@ class GaugePoint(models.Model):
             self.save()
             return self
         except:
-            traceback.print_exc(file=sys.stdout) 
+	    # ToDo catch errors specifically and return message/code in json
+	    pass
+            #traceback.print_exc(file=sys.stdout) 
         return None
 
 class InternalPolygon(models.Model):
@@ -223,14 +229,11 @@ class InternalPolygon(models.Model):
             if(hasattr(data.geometry.crs, 'properties')):
                 crs = data.geometry.crs.properties['name']
                 srs = SpatialReference(crs)
-                print srs
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
-            print geom
             type = data.__dict__['properties']['type']
             project_id = data.__dict__['properties']['project_id']
             value = data.__dict__['properties']['value']
-            print type, project_id, value
             self.geom = geom
             self.type = int(type)
             self.value = float(value)
@@ -239,7 +242,9 @@ class InternalPolygon(models.Model):
             self.save()
             return self
         except:
-            traceback.print_exc(file=sys.stdout) 
+	    # ToDo catch errors specifically and return message/code in json
+	    pass
+            #traceback.print_exc(file=sys.stdout) 
         return None
 
 class DataSet(models.Model):
