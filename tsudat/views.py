@@ -173,3 +173,25 @@ def project(request, id=None):
         projects = Project.objects.all()
         djf = Django.Django(geodjango="geom", properties=['name'])
         return HttpResponse(geoj.encode(djf.decode(projects)))
+
+@csrf_exempt
+def internal_polygon(request, id=None):
+    if id == None and request.method == "POST":
+        try:
+            data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+            print data
+            ip = InternalPolygon()
+            ip.from_json(data)
+            djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+            return HttpResponse(geoj.encode(djf.decode([ip])))
+            return HttpResponse("")
+        except:
+            traceback.print_exc(file=sys.stdout) 
+    elif id != None and id != "all":
+        ip = InternalPolygon.objects.get(pk=id)
+        djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+        return HttpResponse(geoj.encode(djf.decode([ip])))
+    else:
+        ips = InternalPolygon.objects.all()
+        djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+        return HttpResponse(geoj.encode(djf.decode(ips)))
