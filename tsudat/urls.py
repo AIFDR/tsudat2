@@ -13,4 +13,8 @@ urlpatterns = patterns('tsudat.views',
     (r'^project/(?P<id>[0-9]+)/$', 'project'),
     (r'^internal_polygon/$', 'internal_polygon'),
     (r'^internal_polygon/(?P<id>[0-9]+)/$', 'internal_polygon'),
+    (r'^gauge_point/$', 'gauge_point'),
+    (r'^gauge_point/(?P<id>[0-9]+)/$', 'gauge_point'),
+    (r'^scenario/$', 'scenario'),
+    (r'^scenario/(?P<id>[0-9]+)/$', 'scenario'),
 )

@@ -158,6 +158,25 @@ class Scenario(models.Model):
     def __unicode__(self):
         return self.name
 
+    def from_json(self, data):
+        data = data['fields']
+        self.name = data['name']
+        self.project = Project.objects.get(pk=int(data['project']))
+        self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
+        self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
+        self.return_period = int(data['return_period'])
+        self.wave_height = float(data['wave_height'])
+        self.wave_height_delta = float(data['wave_height_delta'])
+        self.event = Event.objects.get(pk=int(data['event'])) 
+        self.start_time = int(data['start_time'])
+        self.end_time = int(data['end_time'])
+        self.initial_tidal_stage = float(data['initial_tidal_stage'])
+        self.smoothing_param = float(data['smoothing_param'])
+        self.default_friction_value = float(data['default_friction_value'])
+        self.model_setup = data['model_setup']
+        self.save()
+        return self
+
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
     name = models.CharField(max_length=20)
@@ -166,7 +185,29 @@ class GaugePoint(models.Model):
     objects = models.GeoManager()
 
     def __unicode__(self):
-        return self.project + ' ' + self.name
+        return str(self.project) + ' ' + self.name
+    
+    def from_json(self, data):
+        try:
+            geom = GEOSGeometry(str(data.geometry))
+            print geom
+            if(hasattr(data.geometry.crs, 'properties')):
+                crs = data.geometry.crs.properties['name']
+                srs = SpatialReference(crs)
+                print srs
+                geom.set_srid(srs.srid)
+                geom.transform(4326)
+            project_id = data.__dict__['properties']['project_id']
+            name = data.__dict__['properties']['name']
+            self.geom = geom
+            self.name = name
+            project = Project.objects.get(id=int(project_id))
+            self.project = project
+            self.save()
+            return self
+        except:
+            traceback.print_exc(file=sys.stdout) 
+        return None
 
 class InternalPolygon(models.Model):
     project = models.ForeignKey(Project)

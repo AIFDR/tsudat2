@@ -36,8 +36,6 @@ def return_period(request):
             if(length == 0):
                 # Should handle for this and pick a return period that is 'close'
                 return HttpResponse('No return periods in range', status=400)
-            for h in hpd:
-                print h.return_period
             return HttpResponse(serializers.serialize("json", [hpd[int(length/2)]], fields=('return_period')))
         except:
             traceback.print_exc(file=sys.stdout)
@@ -176,6 +174,7 @@ def project(request, id=None):
 
 @csrf_exempt
 def internal_polygon(request, id=None):
+    #TODO: GET polygons for project_id and/or type
     if id == None and request.method == "POST":
         try:
             data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
@@ -195,3 +194,43 @@ def internal_polygon(request, id=None):
         ips = InternalPolygon.objects.all()
         djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
         return HttpResponse(geoj.encode(djf.decode(ips)))
+
+@csrf_exempt
+def gauge_point(request, id=None):
+    #TODO: GET gauge points for project_id and/or type
+    if id == None and request.method == "POST":
+        try:
+            data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+            gp = GaugePoint()
+            gp.from_json(data)
+            djf = Django.Django(geodjango="geom", properties=['project_id','name'])
+            return HttpResponse(geoj.encode(djf.decode([gp])))
+            return HttpResponse("")
+        except:
+            traceback.print_exc(file=sys.stdout) 
+    elif id != None and id != "all":
+        gp = GaugePoint.objects.get(pk=id)
+        djf = Django.Django(geodjango="geom", properties=['project_id','name'])
+        return HttpResponse(geoj.encode(djf.decode([gp])))
+    else:
+        gps = GaugePoint.objects.all()
+        djf = Django.Django(geodjango="geom", properties=['project_id','name'])
+        return HttpResponse(geoj.encode(djf.decode(gps)))
+
+@csrf_exempt
+def scenario(request, id=None):
+    #TODO: GET scenarios for a project (other params?) 
+    if id == None and request.method == "POST":
+        try:
+            data = simplejson.loads(request.raw_post_data) 
+            scenario = Scenario()
+            scenario.from_json(data)
+            return HttpResponse(serializers.serialize("json", [scenario]))
+        except:
+            traceback.print_exc(file=sys.stdout)
+    elif id != None and id != "all":
+        scenario = Scenario.objects.get(pk=id)
+        return HttpResponse(serializers.serialize("json", [scenario]))
+    else:
+        scenarios = Scenario.objects.all()
+        return HttpResponse(serializers.serialize("json", scenarios))
