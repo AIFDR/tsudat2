@@ -39,6 +39,8 @@ IP_TYPE_CHOICES = (
 )
 
 DATASET_TYPE_CHOICES = (
+    ('U', 'UNKNOWN'),
+    ('G', 'GEBCO'),
     ('L', 'LIDAR'),
     ('S', 'SRTM'),
 )
@@ -248,11 +250,27 @@ class InternalPolygon(models.Model):
         return None
 
 class DataSet(models.Model):
-    # ForeignKey to geonode.Layer
-    type = models.CharField(max_length=1, choices=DATASET_TYPE_CHOICES)
+    geonode_layer_uuid = models.CharField(max_length=36)
+    data_type = models.CharField(max_length=1, choices=DATASET_TYPE_CHOICES)
     resolution = models.PositiveIntegerField() 
+    geom = models.PolygonField()
+    objects = models.GeoManager()
 
 class ProjectDataSet(models.Model):
     project = models.ForeignKey(Project)
     dataset = models.ForeignKey(DataSet)
     ranking = models.PositiveIntegerField() # 1 = lowest resolution -> Highest
+
+    def from_json(self, data):
+	try:
+       	    data = data['fields']
+            self.project = Project.objects.get(pk=int(data['project']))
+            self.dataset = DataSet.objects.get(pk=int(data['dataset'])) 
+            self.ranking = int(data['ranking'])
+            self.save()
+            return self
+        except:
+	    # ToDo catch errors specifically and return message/code in json
+	    pass
+            #traceback.print_exc(file=sys.stdout) 
+	return None
