@@ -5,6 +5,8 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 SERVE_MEDIA = True
 
+SITEURL = "http://tsudat.dev.opengeo.org/"
+
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )
@@ -19,11 +21,22 @@ DATABASES = {
         'PASSWORD': 'tsudat',                  # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    },
+    'geonode': {
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
+        'NAME': 'geonode',                      # Or path to database file if using sqlite3.
+        'USER': 'geonode',                      # Not used with sqlite3.
+        'PASSWORD': 'BedxfLPt',                  # Not used with sqlite3.
+        'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '5432',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
 
-GEOSERVER_BASE_URL="http://localhost:8080/geoserver/"
+GEOSERVER_BASE_URL="http://localhost:8080/geoserver-geonode-dev/"
 GEOSERVER_CREDENTIALS = "admin", "geoserver" 
+GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
+GEONETWORK_CREDENTIALS = "admin", 'admin'
+
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -88,6 +101,10 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT,"templates"),
 )
 
+
+STATIC_ROOT = os.path.abspath(os.path.dirname(__file__))
+#STATIC_ROOT = os.path.join(PROJECT_ROOT,"media")
+
 STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
@@ -108,4 +125,5 @@ INSTALLED_APPS = (
     'staticfiles',
     'proxy',
     'tsudat',
+    'geonode.maps',
 )
