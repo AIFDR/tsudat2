@@ -6,8 +6,11 @@ from django.shortcuts import render_to_response
 from django.http import HttpResponse
 from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt, csrf_response_exempt
+from django.core.exceptions import ObjectDoesNotExist
 
 from vectorformats.Formats import Django, GeoJSON
+
+from geonode.maps.models import *
 
 from tsudat.models import *
 
@@ -200,7 +203,7 @@ def gauge_point(request, id=None):
     if id == None and request.method == "POST":
         try:
             data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
-            gp = GaugePoint()
+            gp = GaugePoint.encode(djf.decode(data))
             gp.from_json(data)
             djf = Django.Django(geodjango="geom", properties=['project_id','name'])
             return HttpResponse(geoj.encode(djf.decode([gp])))
@@ -236,3 +239,84 @@ def scenario(request, id=None):
     else:
         scenarios = Scenario.objects.all()
         return HttpResponse(serializers.serialize("json", scenarios))
+
+@csrf_exempt
+def data_set(request, id=None):
+    if("project_id" in request.GET):
+    	project = Project.objects.get(id=int(request.GET.get('project_id')))
+        project_geom = project.geom
+	ds = DataSet.objects.filter(geom__intersects=project_geom)
+	return HttpResponse(serializers.serialize("json", ds))
+    elif id != None and id != "all":
+        data_set = DataSet.objects.get(pk=id)
+        return HttpResponse(serializers.serialize("json", [data_set]))
+    else:
+	#Update from GeoNode Database
+	coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+	for layer in coverage_layers:
+		try:
+			ds = DataSet.objects.get(geonode_layer_uuid=layer.uuid)
+			#update existing?
+		except ObjectDoesNotExist:
+			ds = DataSet()
+			ds.geonode_layer_uuid = layer.uuid
+			ds.data_type = 'U'
+			ds.resolution = 0
+			geom_wkt = layer.geographic_bounding_box
+			if(geom_wkt.find('EPSG') != -1):
+				epsg = (geom_wkt.split(';')[0].split('=')[1])
+                		geom = GEOSGeometry(geom_wkt.split(';')[1])
+				srs = SpatialReference(epsg)
+                		geom.set_srid(srs.srid)
+                		geom.transform(4326)
+				ds.geom = geom
+			else:
+				ds.geom = GEOSGeometry(geom_wkt)
+			ds.save()
+        data_sets = DataSet.objects.all()
+        return HttpResponse(serializers.serialize("json", data_sets))
+
+@csrf_exempt
+def project_data_set(request, id=None):
+    if id == None and request.method == "POST":
+        try:
+            data = simplejson.loads(request.raw_post_data) 
+            project_data_set = ProjectDataSet()
+            project_data_set.from_json(data)
+            return HttpResponse(serializers.serialize("json", [project_data_set]))
+        except:
+	    # Todo catch specific errors and return proper http response code and message
+            return HttpResponse('Unexpected Error ' + str(sys.exc_info()[0]), status=500)
+            #traceback.print_exc(file=sys.stdout)
+    elif id != None and id != "all":
+        project_data_set = ProjectDataSet.objects.get(pk=id)
+        return HttpResponse(serializers.serialize("json", [project_data_set]))
+    else:
+        project_data_sets = ProjectDataSet.objects.all()
+        return HttpResponse(serializers.serialize("json", project_data_sets))
+
+def layer(request, uuid=None):
+	if(uuid != None):
+		layer = Layer.objects.using('geonode').get(uuid=uuid)
+		return HttpResponse(serializers.serialize("json", [layer]))
+	if("project_id" in request.GET):
+		coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+		project = Project.objects.get(id=int(request.GET.get('project_id')))
+		project_geom = project.geom
+		project_area_layers = []
+		for layer in coverage_layers:
+			geom_wkt = layer.geographic_bounding_box
+			if(geom_wkt.find('EPSG') != -1):
+				epsg = (geom_wkt.split(';')[0].split('=')[1])
+                		geom = GEOSGeometry(geom_wkt.split(';')[1])
+				srs = SpatialReference(epsg)
+                		geom.set_srid(srs.srid)
+                		geom.transform(4326)
+			else:
+				geom = GEOSGeometry(geom_wkt)
+			if(geom.intersects(project_geom)):
+				project_area_layers.append(layer)
+		return HttpResponse(serializers.serialize("json", project_area_layers))
+	else:
+		coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+		return HttpResponse(serializers.serialize("json", coverage_layers))
