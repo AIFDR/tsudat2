@@ -30,7 +30,7 @@ Ext.onReady(function() {
                 ptype: "gxp_osmsource"
             },
             local: {
-                url: "/geoserver/wms",
+                url: "/geoserver-geonode-dev/wms",
                 ptype: "gxp_wmssource"
             },
         },
