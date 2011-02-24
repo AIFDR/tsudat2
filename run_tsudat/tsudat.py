@@ -1,8 +1,9 @@
 """
 Run an ANUGA simulation.
 
-Data received from TsuDAT2 UI through project.py.
-This may change, but for now ...
+usage:  run_tsudat(json_data)
+
+where 'json_data' is the path to the jsaon data file from the UI.
 """
 
 import setup_model
@@ -18,23 +19,30 @@ log.log_logging_level = log.DEBUG
 
 import project
 
+def adorn_project(json_data):
+    """Adorn the project object with data from json file."""
 
-################################################################################
+    pass
 
-if __name__ == '__main__':
-    import sys
 
-    def excepthook(type, value, tb):
-        """Application exception hook routine."""
+def excepthook(type, value, tb):
+    """Exception hook routine."""
 
-        msg = '\n' + '='*80 + '\n'
-        msg += 'Uncaught exception:\n'
-        msg += ''.join(traceback.format_exception(type, value, tb))
-        msg += '='*80 + '\n'
-        log.critical(msg)
-        sys.exit(1)
+    msg = '\n' + '='*80 + '\n'
+    msg += 'Uncaught exception:\n'
+    msg += ''.join(traceback.format_exception(type, value, tb))
+    msg += '='*80 + '\n'
+    log.critical(msg)
+    #sys.exit(1)
+
+
+def run_tsudat(json_data):
+    """"Run ANUGA using data from the json data file."""
+
 
     def dump_project_py():
+        """Debug routine - dump project attributes to the log."""
+
         log.info('#'*90)
         log.info('#'*90)
         # list all project.* attributes
@@ -46,6 +54,9 @@ if __name__ == '__main__':
 
     # plug our exception handler into the python system
     sys.excepthook = excepthook
+
+    # get json data and adorn project object with it's data
+    adorn_project(json_data)
 
     # run the tsudat simulation
     dump_project_py()
@@ -67,3 +78,12 @@ if __name__ == '__main__':
        log.info('~'*90)
        get_timeseries.get_timeseries()
 
+
+if __name__ == '__main__':
+    import sys
+
+    if len(sys.argv) != 2:
+        print('usage: %s <json_data>' % sys.argv[0])
+        sys.exit(10)
+
+    run_tsudat(sys.argv[1])
