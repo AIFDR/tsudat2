@@ -1,0 +1,17 @@
+The code here is used to run an ANUGA simulation.
+
+The front-end should create some sort of data file containing all
+the UI data such as username, project, tide, etc.  This data contains 
+boolean flags (such as 'extract depth of the water' from step 4),
+lists of filenames for elevation, meshes, etc.
+
+The code under tsudat.py must merge the data values into it's own 
+fixed set of assumptions (currently in project.py) and run the
+simulation.
+
+It is planned to pull all the code in files such as build_elevation.py
+into tsudat.py.  These files are separate at the moment just because 
+they originally were separate.
+
+The get_timeseries.py code currently fails with a time sequence error.
+Not worried about this art the moment.

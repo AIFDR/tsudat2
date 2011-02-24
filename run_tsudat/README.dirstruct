@@ -1,0 +1,106 @@
+A program has been written to create a new ANUGA directory structure.
+It is named 'mk_tsudat_dir.py'.  Use the 'tree' command to get a dump
+of the generated directory:
+$ ./mk_tsudat_dir.py fred trial /tmp/xyzzy project scenario 12345
+$ tree /tmp/xyzzy
+/tmp/xyzzy
+`-- fred
+    `-- project
+        |-- boundaries
+        |   |-- 12345
+        |   |   |-- event.lst
+        |   |   `-- scenario
+        |   |-- landward_boundary.csv
+        |   `-- urs_order.csv
+        |-- gauges
+        |   `-- gauges_final.csv
+        |-- meshes
+        |   `-- scenario.msh
+        |-- outputs
+        |   |-- 20110224_112717_build_fred
+        |   `-- 20110224_112717_run_trial_12345
+        |       `-- scenario
+        |-- polygons
+        `-- topographies
+            |-- scenario_combined_elevation.pts
+            `-- scenario_combined_elevation.txt
+
+
+
+Current ANUGA directory structure
+=================================
+
+Below, $UPPERCASE is some fixed value from the environment
+and $lowercase is a project.py value or something derived from a project.py value.
+
+$INUNDATIONHOME
+    'data'
+        $state (user-defined string in project.py)
+            $scenario_folder (user-defined string in project.py)
+                'anuga'
+                    'topographies'
+                        $scenario_name+'_combined_elevation.pts'
+                        $scenario_name+'_combined_elevation.txt'
+                    'polygons'
+                    'boundaries'
+                        $event_number
+                            $scenario_name
+                            'event.lst'
+                        'landward_boundary.csv'
+                        'urs_order.csv'
+                    'outputs'
+                        $time+'_build_'+$user
+                        $time+'_run_'+$comment	# comment = setup+tide+eventID (user-defined)
+                            $scenario_name
+                    'gauges'
+                        'gauges_final.csv'
+                    'meshes'
+                        $scenario_name+'.msh'
+
+$MUXHOME
+    'mux'
+        <all the MUX files>
+
+
+Proposed TsuDAT2 run directory structure
+========================================
+
+As before, $UPPERCASE is some fixed value from the configuration
+and $lowercase is a UI value or something derived from a UI value.
+
+$TSUDATHOME		# some pre-defined place
+    $user		# user name from login
+        $project	# project name from login
+            'topographies'
+                $scenario_name+'_combined_elevation.pts'
+                $scenario_name+'_combined_elevation.txt'
+            'polygons'
+            'boundaries'
+                $event_number
+                    $scenario_name
+                    'event.lst'
+                'landward_boundary.csv'
+                'urs_order.csv'
+            'outputs'
+                $time+'_build_'+$user	# could remove this
+                $time+'_run_'+$comment	# comment = setup+eventID??
+                    $scenario_name
+            'gauges'
+                'gauges_final.csv'
+            'meshes'
+                $scenario_name+'.msh'
+
+$MUXHOME		# some pre-defined place
+    'mux'
+        <all the MUX files>
+
+
+Discussion
+==========
+
+The above structure may make it difficult to share just one scenario of a project.
+If required, it wouldn't be difficult to make a $scenario subdirectory directly 
+under $project and appropriate changes elsewhere.
+
+Do we need $time of run?  If user re-runs a scenario is it OK if we overwrite results?
+
