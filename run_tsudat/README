@@ -1,17 +1,41 @@
-The code here is used to run an ANUGA simulation.
+The code here is used to run an ANUGA simulation.  The process that
+starts the TsuDAT run is imagined to be something like this.
 
 The front-end should create some sort of data file containing all
 the UI data such as username, project, tide, etc.  This data contains 
 boolean flags (such as 'extract depth of the water' from step 4),
-lists of filenames for elevation, meshes, etc.
+lists of filenames for elevation, meshes, etc.  The data file should
+probably be in json format.  The only other real option is a python import
+module and, since the file can be anywhere, is a problem to import.
 
-The code under tsudat.py must merge the data values into it's own 
-fixed set of assumptions (currently in project.py) and run the
-simulation.
+Any filenames in the json data file should be absolute paths to anywhere
+in the filesystem.  Data files should have been translated to the pre-agreed
+format.
+
+Next, the UI code calls the mk_tsudat_dir() function to create a working
+directory structure.  The UI passes everything the function needs, like 
+username, project, scenario, etc.  This function returns the absolute paths
+to various places the UI code should place data files IF REQUIRED.  This 
+need is yet to be determined.
+
+IF REQUIRED, the UI code copies data files to places in the tsudat working
+directories using the path(s) returned by mk_tsudat_dir().
+
+Finally, the UI code calls the run_tsudat() function passing the absolute
+path to the json data file.
+
+
+Random Thoughts
+---------------
+The run_tsudat.py and mk_tsudat_dir.py files need not be copied anywhere.
+The design assumes there is only one copy of these files in the system.
+
+The code under run_tsudat.py must merge the json data values into it's own 
+fixed set of assumptions (currently in project.py) and run the simulation.
 
 It is planned to pull all the code in files such as build_elevation.py
-into tsudat.py.  These files are separate at the moment just because 
+into run_tsudat.py.  These files are separate at the moment just because 
 they originally were separate.
 
 The get_timeseries.py code currently fails with a time sequence error.
-Not worried about this art the moment.
+Not worried about this at the moment.

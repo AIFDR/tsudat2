@@ -97,7 +97,6 @@ $MUXHOME		# some pre-defined place
 
 Discussion
 ==========
-
 The above structure may make it difficult to share just one scenario of a project.
 If required, it wouldn't be difficult to make a $scenario subdirectory directly 
 under $project and appropriate changes elsewhere.
