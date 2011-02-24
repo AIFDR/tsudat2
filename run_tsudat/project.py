@@ -43,7 +43,7 @@ alpha = 0.1                     # 'smoothing' from UI
 # polygon - 'simulation area'
 # BOUNDING POLYGON - for data clipping and estimate of triangles in mesh
 # Format for points easting,northing (no header)
-bounding_polygon_filename = 'bounding_polygon.csv'
+bounding_polygon_filename = 'bounding_polygon.csv'	# from UI
 bounding_polygon_maxarea = 100000
 
 # float - 'mesh_resolution'
@@ -51,7 +51,7 @@ bounding_polygon_maxarea = 100000
 # ?? - 'elevation data'
 # ELEVATION DATA
 # Format for point is x,y,elevation (with header)
-point_filenames = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']
+point_filenames = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']	# from UI
 # Format for ascii grids, as produced in ArcGIS + a projection file
 ascii_grid_filenames = []
 
@@ -69,14 +69,14 @@ scenario_name = 'victor_harbor' # 'scenario name' in UI
 UI_cell_size = 250              # 'raster resolution' in UI
 UI_var = ['stage', 'depth']     # 'layers' in UI
 # boolean - maximum value over simulation
-UI_get_results_max = True
-UI_get_timeseries = True
+UI_get_results_max = True	# ?? in UI
+UI_get_timeseries = False	# ?? in UI
 UI_area = ['All']               # ?? in UI
 
 # 'gauge points' - .csv file?
 # GAUGES - for creating timeseries at a specific point
 # Format easting,northing,name,elevation (with header)
-gauges_filename = 'gauges_final.csv'
+gauges_filename = 'gauges_final.csv'	# 'gauges' in UI
 
 #-------------------------------------------------------------------------------
 # Directory setup
@@ -115,7 +115,7 @@ output_comment = [setup, event_number]
 # Format for points easting,northing (no header)
 
 # For high res model
-interior_regions_data = [['area_of_interest.csv', 500],
+interior_regions_data = [['area_of_interest.csv', 500],		# interior regions from UI?
                          ['area_of_significance.csv', 2500],
                          ['shallow_water.csv', 10000]]
 
@@ -125,11 +125,11 @@ land_initial_conditions_filename = []
 
 # Thinned ordering file from Hazard Map (geographic)
 # Format is index,latitude,longitude (with header)
-urs_order_filename = 'urs_order.csv'
+urs_order_filename = 'urs_order.csv'				# from UI
 
 # Landward bounding points
 # Format easting,northing (no header)
-landward_boundary_filename = 'landward_boundary.csv'
+landward_boundary_filename = 'landward_boundary.csv'		# from UI
 
 # MUX input filename.
 # If a meta-file from EventSelection is used, set 'multi-mux' to True.

@@ -5,8 +5,9 @@ The front-end should create some sort of data file containing all
 the UI data such as username, project, tide, etc.  This data contains 
 boolean flags (such as 'extract depth of the water' from step 4),
 lists of filenames for elevation, meshes, etc.  The data file should
-probably be in json format.  The only other real option is a python import
-module and, since the file can be anywhere, is a problem to import.
+probably be in json format (eg. data.json).  The only other real option
+is a python import module and, since the file can be anywhere, is a
+problem to import.
 
 Any filenames in the json data file should be absolute paths to anywhere
 in the filesystem.  Data files should have been translated to the pre-agreed
