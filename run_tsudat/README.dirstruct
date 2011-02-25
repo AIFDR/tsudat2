@@ -1,30 +1,26 @@
 A program has been written to create a new ANUGA directory structure.
 It is named 'mk_tsudat_dir.py'.  Use the 'tree' command to get a dump
 of the generated directory:
-$ ./mk_tsudat_dir.py fred trial /tmp/xyzzy project scenario 12345
-$ tree /tmp/xyzzy
+$ vi README.dirstruct 
+$ tree -F /tmp/xyzzy
 /tmp/xyzzy
-`-- fred
-    `-- project
-        |-- boundaries
-        |   |-- 12345
-        |   |   |-- event.lst
-        |   |   `-- scenario
-        |   |-- landward_boundary.csv
-        |   `-- urs_order.csv
-        |-- gauges
-        |   `-- gauges_final.csv
-        |-- meshes
-        |   `-- scenario.msh
-        |-- outputs
-        |   |-- 20110224_112717_build_fred
-        |   `-- 20110224_112717_run_trial_12345
-        |       `-- scenario
-        |-- polygons
-        `-- topographies
-            |-- scenario_combined_elevation.pts
-            `-- scenario_combined_elevation.txt
-
+`-- fred/
+    `-- project/
+        `-- scenario/
+            |-- boundaries/
+            |   |-- event_12345.lst
+            |   |-- landward_boundary.csv
+            |   `-- urs_order.csv
+            |-- gauges/
+            |   `-- gauges_final.csv
+            |-- meshes/
+            |   `-- meshes.msh
+            |-- outputs/
+            |   `-- generated_files
+            |-- polygons/
+            `-- topographies/
+                |-- combined_elevation.pts
+                `-- combined_elevation.txt
 
 
 Old ANUGA directory structure
