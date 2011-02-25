@@ -6,6 +6,8 @@ usage:  run_tsudat(json_data)
 where 'json_data' is the path to the jsaon data file from the UI.
 """
 
+import json
+
 import setup_model
 import build_elevation
 import build_urs_boundary
@@ -54,7 +56,10 @@ def run_tsudat(json_data):
         # list all project.* attributes
         for key in dir(project):
             if not key.startswith('__'):
-                log.info('project.%s=%s' % (key, eval('project.%s' % key)))
+                try:
+                    log.info('project.%s=%s' % (key, eval('project.%s' % key)))
+                except AttributeError:
+                    pass
         log.info('#'*90)
         log.info('#'*90)
 

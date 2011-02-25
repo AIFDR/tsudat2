@@ -2,9 +2,9 @@
 
 """A small program to create a TsuDAT2 working directory.
 
-usage: mk_tsudat_dir <user> <setup> <base_dir> <project> <scenario> <event>
+usage: mk_tsudat_dir.py <base_dir> <user> <project> <scenario> <setup> <event>
 
-eg: mk_tsudat_dir fred trial /tmp/xyzzy project scenario 12345
+eg: mk_tsudat_dir.py /tmp/xyzzy fred project scenario trial 12345
 """
 
 
@@ -26,7 +26,7 @@ def touch(path):
         os.utime(path, None)
 
 
-def mk_tsudat_dir(user, setup, base, proj, scen, event):
+def mk_tsudat_dir(base, user, proj, scen, setup, event):
     """Create a TsuDAT2 run directory."""
 
     # create base directory after deleting any dir that might be there
@@ -37,10 +37,6 @@ def mk_tsudat_dir(user, setup, base, proj, scen, event):
     # now create major sub-dirs
     for sd in MajorSubDirs:
         os.makedirs(os.path.join(run_dir, sd))
-
-    # get time string, 'comment', etc
-    time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    comment = '%s_%d' % (setup, event)
 
     # now create lower directories & files (NOT IN FINAL)
     path = os.path.join(run_dir, 'topographies')
@@ -78,11 +74,12 @@ if __name__ == '__main__':
     if len(sys.argv) != 7:
         usage()
 
-    user = sys.argv[1]
-    setup = sys.argv[2]
-    base = sys.argv[3]
-    proj = sys.argv[4]
-    scen = sys.argv[5]
-    event = int(sys.argv[6])
+    index = 1
+    base = sys.argv[index]; index += 1
+    user = sys.argv[index]; index += 1
+    proj = sys.argv[index]; index += 1
+    scen = sys.argv[index]; index += 1
+    setup = sys.argv[index]; index += 1
+    event = int(sys.argv[index]); index += 1
 
-    mk_tsudat_dir(user, setup, base, proj, scen, event)
+    mk_tsudat_dir(base, user, proj, scen, setup, event)
