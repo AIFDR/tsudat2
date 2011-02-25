@@ -22,7 +22,13 @@ import project
 def adorn_project(json_data):
     """Adorn the project object with data from json file."""
 
-    pass
+    # parse the json
+    with open(json_data, 'r') as fp:
+        ui_dict = json.load(fp)
+
+    # adorn project object with entries from ui_dict
+    for (key, value) in ui_dict.iteritems():
+        project.__setattr__(key, value)
 
 
 def excepthook(type, value, tb):

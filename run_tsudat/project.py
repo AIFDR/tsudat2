@@ -182,8 +182,10 @@ build_time = ltime + '_build'
 run_time = ltime + '_run_'
 
 # create paths generated from environment variables.
-home = os.path.join(os.getenv(ENV_INUNDATIONHOME), 'data') # path to data folder
-muxhome = os.getenv(ENV_MUXHOME)
+home = '/tmp'
+muxhome = '/data_area/Tsu-DAT 1.0/Tsu-DAT_Data/earthquake_data/mux'
+#home = os.path.join(os.getenv(ENV_INUNDATIONHOME), 'data') # path to data folder
+#muxhome = os.getenv(ENV_MUXHOME)
     
 # check various directories/files that must exist
 anuga_folder = os.path.join(home, state, scenario_folder, 'anuga')

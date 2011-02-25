@@ -27,8 +27,8 @@ $ tree /tmp/xyzzy
 
 
 
-Current ANUGA directory structure
-=================================
+Old ANUGA directory structure
+=============================
 
 Below, $UPPERCASE is some fixed value from the environment
 and $lowercase is a project.py value or something derived from a project.py value.
@@ -71,24 +71,22 @@ and $lowercase is a UI value or something derived from a UI value.
 $TSUDATHOME		# some pre-defined place
     $user		# user name from login
         $project	# project name from login
-            'topographies'
-                $scenario_name+'_combined_elevation.pts'
-                $scenario_name+'_combined_elevation.txt'
-            'polygons'
-            'boundaries'
-                $event_number
-                    $scenario_name
-                    'event.lst'
-                'landward_boundary.csv'
-                'urs_order.csv'
-            'outputs'
-                $time+'_build_'+$user	# could remove this
-                $time+'_run_'+$comment	# comment = setup+eventID??
-                    $scenario_name
-            'gauges'
-                'gauges_final.csv'
-            'meshes'
-                $scenario_name+'.msh'
+            $scenario   # scenario name from UI
+                'topographies'
+                    'combined_elevation.pts'
+                    'combined_elevation.txt'
+                'polygons'
+                    <polygon files>
+                'boundaries'
+                    'event_%d.lst' % $event_number
+                    'landward_boundary.csv'
+                    'urs_order.csv'
+                'outputs'
+                    <generated run output files>
+                'gauges'
+                    'gauges_final.csv'
+                'meshes'
+                    'mesh.msh'    # need a better name?
 
 $MUXHOME		# some pre-defined place
     'mux'

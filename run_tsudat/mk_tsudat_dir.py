@@ -18,58 +18,52 @@ MajorSubDirs = ['topographies', 'polygons', 'boundaries', 'outputs',
 
 
 def touch(path):
-    """Do a 'touch' for a file.  This is NOT  good solution."""
+    """Do a 'touch' for a file.
+
+    This is NOT a good solution, it's just to show where files will go."""
 
     with file(path, 'a'):
         os.utime(path, None)
 
 
 def mk_tsudat_dir(user, setup, base, proj, scen, event):
-    """Create a TsuDAT2 directory."""
+    """Create a TsuDAT2 run directory."""
 
-    # delete any directory that might be there
-
-    # create base directory
-    proj_dir = os.path.join(base, user, proj)
-    shutil.rmtree(proj_dir, ignore_errors=True)
-    os.makedirs(proj_dir)
+    # create base directory after deleting any dir that might be there
+    run_dir = os.path.join(base, user, proj, scen)
+    shutil.rmtree(run_dir, ignore_errors=True)
+    os.makedirs(run_dir)
 
     # now create major sub-dirs
     for sd in MajorSubDirs:
-        os.makedirs(os.path.join(proj_dir, sd))
+        os.makedirs(os.path.join(run_dir, sd))
 
     # get time string, 'comment', etc
     time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime())
     comment = '%s_%d' % (setup, event)
 
-    # now create lower directories & files
-    path = os.path.join(proj_dir, 'topographies')
-    touch(os.path.join(path, scen+'_combined_elevation.pts'))
-    touch(os.path.join(path, scen+'_combined_elevation.txt'))
+    # now create lower directories & files (NOT IN FINAL)
+    path = os.path.join(run_dir, 'topographies')
+    touch(os.path.join(path, 'combined_elevation.pts'))
+    touch(os.path.join(path, 'combined_elevation.txt'))
 
-    path = os.path.join(proj_dir, 'boundaries')
+    # NOT IN FINAL
+    path = os.path.join(run_dir, 'boundaries')
+    touch(os.path.join(path, 'event_%d.lst' % event))
     touch(os.path.join(path, 'landward_boundary.csv'))
     touch(os.path.join(path, 'urs_order.csv'))
 
-    path = os.path.join(path, '%s' % event)
-    os.makedirs(path)
-    touch(os.path.join(path, 'event.lst'))
+    # NOT IN FINAL
+    path = os.path.join(run_dir, 'outputs')
+    touch(os.path.join(path, 'generated_files'))
 
-    path = os.path.join(path, scen)
-    os.makedirs(path)
-
-    path = os.path.join(proj_dir, 'outputs')
-    sub_dir = os.path.join(path, time_str+'_build_'+user)
-    os.makedirs(sub_dir)
-    sub_dir = os.path.join(path, time_str+'_run_'+comment)
-    os.makedirs(sub_dir)
-    os.makedirs(os.path.join(sub_dir, scen))
-
-    path = os.path.join(proj_dir, 'gauges')
+    # NOT IN FINAL
+    path = os.path.join(run_dir, 'gauges')
     touch(os.path.join(path, 'gauges_final.csv'))
 
-    path = os.path.join(proj_dir, 'meshes')
-    touch(os.path.join(path, scen+'.msh'))
+    # NOT IN FINAL
+    path = os.path.join(run_dir, 'meshes')
+    touch(os.path.join(path, 'meshes.msh'))
 
 
 if __name__ == '__main__':
