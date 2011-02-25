@@ -9,6 +9,7 @@ of the mesh generation.
 
 import os
 
+import get_multimux
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
 import anuga.utilities.log as log
@@ -17,20 +18,14 @@ import project
 
 
 def setup_model():
-    """Perform sanity checks, adorn project object."""
+    """Perform sanity checks, adorn project object.
+
+    The checks here can be simpler than for full-blown ANUGA as the directory
+    structure is automatically generated.
+    """
 
     # flag - we check many things and then don't proceed if anything wrong
     sanity_error = False               # checked at bottom of this file
-
-    # Test that environment variables are defined.
-    if os.getenv(project.ENV_INUNDATIONHOME) is None:
-        log.error("Environment variable '%s' is not set"
-                  % project.ENV_INUNDATIONHOME)
-        sanity_error = True
-
-    if os.getenv(project.ENV_MUXHOME) is None:
-        log.error("Environment variable '%s' is not set" % project.ENV_MUXHOME)
-        sanity_error = True
 
     #####
     # check directory Structure
@@ -84,6 +79,9 @@ def setup_model():
                   % project.mux_data_folder)
         sanity_error = True
 
+    # generate the event.lst file for the event
+    get_multimux.get_multimux(project.event, project.multimux_folder, project.mux_input)
+
     # if multi_mux is True, check if multi-mux file exists
     if project.multi_mux:
         if not os.path.exists(project.mux_input):
@@ -93,7 +91,7 @@ def setup_model():
 
     if not os.path.exists(project.event_folder):
         log.error("Sorry, you must generate event %s with EventSelection."
-                  % project.event_number)
+                  % project.event)
         sanity_error = True
 
     #####
@@ -101,17 +99,14 @@ def setup_model():
     #####
 
     if project.setup == 'trial':
-        log.info('trial')
         project.scale_factor = 100
         project.time_thinning = 96
         project.yieldstep = 240
     elif project.setup == 'basic': 
-        log.info('basic')
         project.scale_factor = 4
         project.time_thinning = 12
         project.yieldstep = 120
     elif project.setup == 'final': 
-        log.info('final')
         project.scale_factor = 1
         project.time_thinning = 4
         project.yieldstep = 60
@@ -136,24 +131,24 @@ def setup_model():
     # Reading polygons and creating interior regions
     #####
 
-    # Create list of land polygons with initial conditions
-    project.land_initial_conditions = []
-    for (filename, MSL) in project.land_initial_conditions_filename:
-        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-                                                  filename))
-        project.land_initial_conditions.append([polygon, MSL])
+#    # Create list of land polygons with initial conditions
+#    project.land_initial_conditions = []
+#    for (filename, MSL) in project.land_initial_conditions_filename:
+#        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
+#                                                  filename))
+#        project.land_initial_conditions.append([polygon, MSL])
 
-    # Create list of interior polygons with scaling factor
-    project.interior_regions = []
-    for (filename, maxarea) in project.interior_regions_data:
-        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-                                                  filename))
-        project.interior_regions.append([polygon,
-                                         maxarea*project.scale_factor])
+#    # Create list of interior polygons with scaling factor
+#    project.interior_regions = []
+#    for (filename, maxarea) in project.interior_regions_data:
+#        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
+#                                                  filename))
+#        project.interior_regions.append([polygon,
+#                                         maxarea*project.scale_factor])
 
     # Initial bounding polygon for data clipping 
     project.bounding_polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-                                                 project.bounding_polygon_filename))
+                                                  project.bounding_polygon_filename))
     project.bounding_maxarea = project.bounding_polygon_maxarea*project.scale_factor
 
     # Estimate the number of triangles                     

@@ -1,6 +1,7 @@
 {
-    "user_name": "fred",
+    "user": "fred",
     "project": "project",
+    "scenario": "scenario",
     "tide": 0.0,
     "start_time": 0,
     "end_time": 40,
@@ -9,7 +10,7 @@
     "bounding_polygon_maxarea": 100000,
     "elevation_data": ["250m_final.csv", "shallow_water.csv", "aoi.csv"],
     "mesh_friction": 0.01,
-    "event_ID": 58342,
+    "event": 58342,
     "scenario_name": "victor_harbor",
     "raster_resolution": 250,
     "layers": ["stage", "depth"],
