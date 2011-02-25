@@ -1,7 +1,7 @@
 A program has been written to create a new ANUGA directory structure.
 It is named 'mk_tsudat_dir.py'.  Use the 'tree' command to get a dump
 of the generated directory:
-$ vi README.dirstruct 
+$ ./mk_tsudat_dir.py fred trial /tmp/xyzzy project scenario 12345
 $ tree -F /tmp/xyzzy
 /tmp/xyzzy
 `-- fred/
@@ -91,9 +91,9 @@ $MUXHOME		# some pre-defined place
 
 Discussion
 ==========
-The above structure may make it difficult to share just one scenario of a project.
-If required, it wouldn't be difficult to make a $scenario subdirectory directly 
-under $project and appropriate changes elsewhere.
+The $scenario stuff was made more high-level.  Any encoding of $scenarion at lower
+levels was removed.
 
 Do we need $time of run?  If user re-runs a scenario is it OK if we overwrite results?
+Removed $time as the time/date of dirs/files should be enough.
 
