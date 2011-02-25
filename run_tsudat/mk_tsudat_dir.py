@@ -30,7 +30,7 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
     """Create a TsuDAT2 run directory."""
 
     # create base directory after deleting any dir that might be there
-    run_dir = os.path.join(base, user, proj, scen)
+    run_dir = os.path.join(base, user, proj, scen, setup)
     shutil.rmtree(run_dir, ignore_errors=True)
     os.makedirs(run_dir)
 

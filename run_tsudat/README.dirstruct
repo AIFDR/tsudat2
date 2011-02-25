@@ -1,26 +1,27 @@
 A program has been written to create a new ANUGA directory structure.
 It is named 'mk_tsudat_dir.py'.  Use the 'tree' command to get a dump
 of the generated directory:
-$ ./mk_tsudat_dir.py /tmp/xyzzy fred project scenario trial -12345
+$ ./mk_tsudat_dir.py /tmp/xyzzy user project scenario trial 12345
 $ tree -F /tmp/xyzzy
 /tmp/xyzzy
-└── fred/
-    └── project/
-        └── scenario/
-            ├── boundaries/
-            │   ├── event_12345.lst
-            │   ├── landward_boundary.csv
-            │   └── urs_order.csv
-            ├── gauges/
-            │   └── gauges_final.csv
-            ├── meshes/
-            │   └── meshes.msh
-            ├── outputs/
-            │   └── generated_files
-            ├── polygons/
-            └── topographies/
-                ├── combined_elevation.pts
-                └── combined_elevation.txt
+`-- user/
+    `-- project/
+        `-- scenario/
+            `-- trial/
+                |-- boundaries/
+                |   |-- event_12345.lst
+                |   |-- landward_boundary.csv
+                |   `-- urs_order.csv
+                |-- gauges/
+                |   `-- gauges_final.csv
+                |-- meshes/
+                |   `-- meshes.msh
+                |-- outputs/
+                |   `-- generated_files
+                |-- polygons/
+                `-- topographies/
+                    |-- combined_elevation.pts
+                    `-- combined_elevation.txt
 
 
 Old ANUGA directory structure
@@ -68,21 +69,22 @@ $TSUDATHOME		# some pre-defined place
     $user		# user name from login
         $project	# project name from login
             $scenario   # scenario name from UI
-                'topographies'
-                    'combined_elevation.pts'
-                    'combined_elevation.txt'
-                'polygons'
-                    <polygon files>
-                'boundaries'
-                    'event_%d.lst' % $event_number
-                    'landward_boundary.csv'
-                    'urs_order.csv'
-                'outputs'
-                    <generated run output files>
-                'gauges'
-                    'gauges_final.csv'
-                'meshes'
-                    'mesh.msh'    # need a better name?
+                $setup  # setup ('trial', etc) from UI
+                    'topographies'
+                        'combined_elevation.pts'
+                        'combined_elevation.txt'
+                    'polygons'
+                        <polygon files>
+                    'boundaries'
+                        'event_%d.lst' % $event_number
+                        'landward_boundary.csv'
+                        'urs_order.csv'
+                    'outputs'
+                        <generated run output files>
+                    'gauges'
+                        'gauges_final.csv'
+                    'meshes'
+                        'mesh.msh'    # need a better name?
 
 $MUXHOME		# some pre-defined place
     'mux'
@@ -94,6 +96,10 @@ Discussion
 The $scenario stuff was made more high-level.  Any encoding of $scenarion at lower
 levels was removed.
 
+A directory named $setup was placed after the $scenario directory.  Not sure this is
+needed as there appears to be nowhere in the UI where this is set by the user.
+
 Do we need $time of run?  If user re-runs a scenario is it OK if we overwrite results?
-Removed $time as the time/date of dirs/files should be enough.
+Is the time/date of dirs/files enough?  If we require the time/date of runs, add yet
+another top-level directory under $setup directory.
 
