@@ -34,10 +34,11 @@ def run_model():
     # resolutions (maximal area of per triangle) for each polygon
     log.info('Create computational domain')
 
-    # Create the STS file
-    log.info('project.mux_data_folder=%s' % project.mux_data_folder)
-    if not os.path.exists(project.event_sts + '.sts'):
-        bub.build_urs_boundary(project.mux_input_filename, project.event_sts)
+    # THIS IS DONE IN run_tsudat()
+#    # Create the STS file
+#    log.info('project.mux_data_folder=%s' % project.mux_data_folder)
+#    if not os.path.exists(project.event_sts + '.sts'):
+#        bub.build_urs_boundary(project.mux_input_filename, project.event_sts)
 
     # Read in boundary from ordered sts file
     event_sts = anuga.create_sts_boundary(project.event_sts)
@@ -82,7 +83,7 @@ def run_model():
     log.info('\n%s' % domain.statistics())
 
     domain.set_name(project.scenario_name)
-    domain.set_datadir(project.output_run) 
+    domain.set_datadir(project.output_folder) 
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
     # Setup initial conditions

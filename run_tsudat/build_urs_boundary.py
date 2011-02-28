@@ -101,7 +101,7 @@ def build_urs_boundary(event_file, output_dir):
             fd.close()
         except IOError, e:
             msg = 'File %s cannot be read: %s' % (mux_event_file, str(e))
-            raise Exception, msg
+            raise Exception(msg)
         except:
             raise
 
@@ -114,7 +114,7 @@ def build_urs_boundary(event_file, output_dir):
         if num_lines != len(mux_data):
             msg = ('Bad file %s: %d data lines, but line 1 count is %d'
                    % (event_file, len(mux_data), num_lines))
-            raise Exception, msg
+            raise Exception(msg)
 
         # Create filename and weights lists.
         # Must chop GRD filename just after '*.grd'.
@@ -129,12 +129,13 @@ def build_urs_boundary(event_file, output_dir):
         mux_weights = [float(line.strip().split()[1]) for line in mux_data]
 
         # Call legacy function to create STS file.
-        log.info('creating sts file: %s' % output_dir)
+        log.info('creating sts file: basename_out=%s' % output_dir)
+        log.info('creating sts file: ordering_filename=%s' % str(project.urs_order))
         anuga.urs2sts(mux_filenames,
                 basename_out=output_dir,
                 ordering_filename=project.urs_order,
                 weights=mux_weights,
-                verbose=False)
+                verbose=True)
     else:                           # a single mux stem file, assume 1.0 weight
         mux_file = os.path.join(project.event_folder, event_file)
         mux_filenames = [mux_file]
@@ -155,7 +156,8 @@ def build_urs_boundary(event_file, output_dir):
 
     # report on progress so far
     sts_file = os.path.join(project.event_folder, project.scenario_name)
-    quantities, elevation, time = get_sts_gauge_data(sts_file, verbose=False)
+    log.info('sts_file=%s' % sts_file)
+    (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
     log.info('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
 
     

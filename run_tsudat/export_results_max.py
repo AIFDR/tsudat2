@@ -2,8 +2,7 @@
 Generates ascii grids of nominated areas -
 Input: sww file from run_model.py
        boundaries for grids from project.py
-Outputs: ascii grids of specified variables
-Stored in the 'outputs_folder' folder for respective .sww file
+Output: ascii grids of specified variables
 
 Note:
 If producing a grid for the entire extent cellsize should be greater than 30m
@@ -22,13 +21,7 @@ import project
 def export_results_max():
     """Export maximum resuts."""
 
-    directory = project.output_folder
-    time_dirs = [os.path.basename(project.output_run)]
-
-    # sww filename extensions ie. if batemans_bay_time_37860_0.sww, input
-    # into list 37860
-    # make sure numbers are in sequential order
-    times = []
+    log.info('project.output_folder=%s' % str(project.output_folder))
 
     # Now set the timestep at which you want the raster generated.
     # Either set the actual timestep required or use 'None' to indicate that
@@ -53,18 +46,19 @@ def export_results_max():
                      'elevation': 'elevation'}
 
     ######
-    # Start script, running through variables, area, folder, sww file
-    # (determine by times)
-    # Then creates a maximum ascii if there is more than one sww file
+    # Start script, running through variables, area, sww file
     ######
 
-    for which_var in project.UI_var:
+    log.info('project.var=%s' % str(project.var))
+
+    for which_var in project.var:
         if which_var not in var_equations:
             log.critical('Unrecognized variable name: %s' % which_var)
             break
 
-        for which_area in project.UI_area:
+        for which_area in project.area:
             if which_area == 'All':
+                log.info("Found: 'All'")
                 easting_min = None
                 easting_max = None
                 northing_min = None
@@ -79,42 +73,25 @@ def export_results_max():
                     log.critical('Unrecognized area name: %s' % which_area)
                     break
 
-            for time_dir in time_dirs:
-                names = [os.path.join(directory, time_dir,
-                                      project.scenario_name)]
-                for time in times:
-                    names.append(os.path.join(directory, time_dir,
-                                              project.scenario_name)
-                                 + '_time_' + str(time) + '_0')
+            name = os.path.join(project.output_folder, project.scenario_name)
 
-                asc_name = []   
+            log.info('name=%s' % name)
 
-                for name in names:
-                    outname = name + '_' + which_area + '_' + which_var
-                    quantityname = var_equations[which_var]
+            outname = name + '_' + which_area + '_' + which_var
+            quantityname = var_equations[which_var]
 
-                    log.info('start sww2dem: time_dir=%s' % time_dir)
+            log.info(' input filename: %s' % (name+'.sww'))
+            log.info('output filename: %s' % (outname+'.asc'))
+            log.info('quantityname: %s' % str(quantityname))
 
-                    anuga.sww2dem(name+'.sww', outname+'.asc',
-                                  quantity=quantityname,
-                                  reduction=max,
-                                  cellsize=project.UI_cell_size,      
-                                  easting_min=easting_min,
-                                  easting_max=easting_max,
-                                  northing_min=northing_min,
-                                  northing_max=northing_max,        
-                                  verbose=False)
+            anuga.sww2dem(name+'.sww', outname+'.asc',
+                          quantity=quantityname,
+                          reduction=max,
+                          cellsize=project.cell_size,      
+                          easting_min=easting_min,
+                          easting_max=easting_max,
+                          northing_min=northing_min,
+                          northing_max=northing_max,        
+                          verbose=False)
 
-                    asc_name.append(outname + '.asc')
 
-                if len(names) > 1:
-                    maxasc_outname = (os.path.join(directory, time_dir,
-                                                   project.scenario_name)
-                                      +'_'+which_area+'_'+which_var+'_max.asc')
-
-                    log.info('max asc outname=%s' % maxasc_outname)
-                    log.info('asc_name: %s' % str(asc_name))
-
-                    anuga.MaxAsc(maxasc_outname, asc_name)
-                else:
-                    log.info('only one sww input')

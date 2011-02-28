@@ -3,7 +3,7 @@ Run an ANUGA simulation.
 
 usage:  run_tsudat(json_data)
 
-where 'json_data' is the path to the jsaon data file from the UI.
+where 'json_data' is the path to the json data file from the UI.
 """
 
 import os
@@ -24,6 +24,16 @@ log.log_logging_level = log.DEBUG
 import project
 
 
+# dictionary to handle attribute renaming from json->project
+# 'json_name': 'ANUGA_name',
+RenameDict = {'mesh_friction': 'friction',
+              'smoothing': 'alpha',
+              'end_time': 'finaltime',
+              'layers': 'var',
+              'raster_resolution': 'cell_size',
+             }
+
+
 def adorn_project(json_data):
     """Adorn the project object with data from the json file.
 
@@ -32,8 +42,6 @@ def adorn_project(json_data):
     Also adds extra project attributes derived from json data.
     """
 
-    # dictionary to hande attribute renaming from json->project
-    rename_dict = {}
 
     # parse the json
     with open(json_data, 'r') as fp:
@@ -41,15 +49,20 @@ def adorn_project(json_data):
 
     # adorn project object with entries from ui_dict
     for (key, value) in ui_dict.iteritems():
+        # convert to str (ANUGA can't handle unicode yet)
+        key = str(key)
+        if isinstance(value, basestring):
+            value = str(value)
+
         # allow renaming of attributes here
-        new_key = rename_dict.get(key, key)
+        new_key = RenameDict.get(key, key)
 
         # set new attribute in project object
-        project.__setattr__(key, value)
+        project.__setattr__(new_key, value)
 
     # add extra derived attributes
     # paths to various directories
-    project.anuga_folder = os.path.join(project.home, project.user, project.project, project.scenario, project.setup)
+    project.anuga_folder = os.path.join(project.home, project.user, project.project, project.scenario_name, project.setup)
     project.topographies_folder = os.path.join(project.anuga_folder, 'topographies')
     project.polygons_folder = os.path.join(project.anuga_folder, 'polygons')
     project.boundaries_folder = os.path.join(project.anuga_folder, 'boundaries')
@@ -57,46 +70,42 @@ def adorn_project(json_data):
     project.gauges_folder = os.path.join(project.anuga_folder, 'gauges')
     project.meshes_folder = os.path.join(project.anuga_folder, 'meshes')
     project.event_folder = project.boundaries_folder
-    
+    project.raw_elevation_folder = os.path.join(project.home, project.user, project.project, 'raw_elevation')
+
     # MUX data files
     # Directory containing the MUX data files to be used with EventSelection.
     project.mux_data_folder = os.path.join(project.muxhome, 'mux')
     project.multimux_folder = os.path.join(project.muxhome, 'multimux')
-    
+
+    project.mux_input_filename = 'event_%d.lst' % project.event
+
     #-------------------------------------------------------------------------------
     # Location of input and output data
     #-------------------------------------------------------------------------------
-    
+
     # The absolute pathstem of the all elevation, generated in build_elevation.py
     project.combined_elevation = os.path.join(project.topographies_folder, 'combined_elevation')
-    
+
     # The absolute pathname of the mesh, generated in run_model.py
     project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')
-    
+
     # The pathname for the urs order points, used within build_urs_boundary.py
     project.urs_order = os.path.join(project.boundaries_folder, 'urs_order.csv')
-    
+
     # The absolute pathname for the landward points of the bounding polygon,
     # Used within run_model.py)
     project.landward_boundary = os.path.join(project.boundaries_folder, 'landward_boundary.csv')
-    
+
     # The absolute pathname for the .sts file, generated in build_boundary.py
     project.event_sts = project.boundaries_folder
-    
-#?     # The absolute pathname for the output folder names
-#?     # Used for build_elevation.py
-#?     output_build = os.path.join(output_folder, build_time) + '_' + str(user_name) 
-#?     # Used for run_model.py
-#?     output_run = os.path.join(output_folder, run_time) + output_comment 
-#?     # Used by post processing
-#?     output_run_time = os.path.join(output_run, scenario_name) 
-    
+
     # The absolute pathname for the gauges file
-    project.gauges = os.path.join(project.gauges_folder, 'gauges_final.csv')       
-    
+    project.gauges = os.path.join(project.gauges_folder, 'gauges_final.csv')
+
     # full path to where MUX files (or meta-files) live
     project.mux_input = os.path.join(project.event_folder, 'event_%d.lst' % project.event)
 
+    project.land_initial_conditions = []
 
 
 def excepthook(type, value, tb):
@@ -145,12 +154,12 @@ def run_tsudat(json_data):
     run_model.run_model()
 
     # now do optional post-run extractions
-    if project.UI_get_results_max:
+    if project.get_results_max:
        log.info('~'*90)
        log.info('~'*90)
        export_results_max.export_results_max()
 
-    if project.UI_get_timeseries:
+    if project.get_timeseries:
        log.info('~'*90)
        log.info('~'*90)
        get_timeseries.get_timeseries()

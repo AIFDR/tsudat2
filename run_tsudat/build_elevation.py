@@ -1,10 +1,9 @@
 """Build the elevation data to run a tsunami inundation scenario 
 for Victor Harbor, South Australia, Australia.
 
-Input: elevation data from project.py
+Input: elevation data from project.py in the 'raw_elevation' folder
 Output: pts file stored in project.topographies_dir 
 The run_model.py is reliant on the output of this script.
-
 """
 
 import os
@@ -27,7 +26,7 @@ def build_elevation():
     # Create Geospatial data from ASCII files
     geospatial_data = {}
     for filename in project.ascii_grid_filenames:
-        absolute_filename = join(project.topographies_folder, filename)
+        absolute_filename = join(project.raw_elevation_folder, filename)
         anuga.asc2dem(absolute_filename+'.asc',
                                       use_cache=False,
                                       verbose=False)
@@ -43,7 +42,7 @@ def build_elevation():
     # Create Geospatial data from TXT files
     for filename in project.point_filenames:
         log.info(filename)
-        absolute_filename = project.topographies_folder+'/'+str(filename)
+        absolute_filename = project.raw_elevation_folder+'/'+str(filename)
         G_points = anuga.geospatial_data.\
                        Geospatial_data(file_name=absolute_filename,
                                        verbose=False)

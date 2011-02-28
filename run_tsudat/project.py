@@ -88,7 +88,6 @@ import time
 # MUX input filename.
 # If a meta-file from EventSelection is used, set 'multi-mux' to True.
 # If a single MUX stem filename (*.grd) is used, set 'multi-mux' to False.
-mux_input_filename = 'event.list'
 multi_mux = True
 
 zone = 54		# IS THIS USED?
@@ -128,7 +127,7 @@ build_time = ltime + '_build'
 run_time = ltime + '_run_'
 
 # create paths generated from environment variables.
-home = '/tmp/xyzzy'
+home = '/tmp/xyzzy2'
 muxhome = '/data_area/Tsu-DAT 1.0/Tsu-DAT_Data/earthquake_data'
 #home = os.path.join(os.getenv(ENV_INUNDATIONHOME), 'data') # path to data folder
 #muxhome = os.getenv(ENV_MUXHOME)

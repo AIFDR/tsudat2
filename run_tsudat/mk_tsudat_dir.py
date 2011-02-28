@@ -38,7 +38,8 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
 
     Creates a TSUDAT directory structure under the 'base' path.
 
-    Returns a tuple of paths to places under 'base' required by the UI.
+    Returns a tuple of paths to places under 'base' required by the UI:
+        (raw_elevation, bondaries, meshes, polygons)
     """
 
     # delete any dir that might be there
@@ -46,7 +47,7 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
 
     # create the 'raw_elevation' directory for a project
     path = os.path.join(base, user, proj, 'raw_elevation')
-    raw_elev = path
+    raw_elevation = path
     os.makedirs(path)
     touch(os.path.join(path, 'raw_elevation1.asc'))	# NOT IN FINAL
     touch(os.path.join(path, 'raw_elevation2.asc'))	# NOT IN FINAL
@@ -59,6 +60,11 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
     # now create major sub-dirs under $setup
     for sd in MajorSubDirs:
         os.makedirs(os.path.join(run_dir, sd))
+
+    # get return paths
+    boundaries = os.path.join(run_dir, 'boundaries')
+    meshes = os.path.join(run_dir, 'meshes')
+    polygons = os.path.join(run_dir, 'polygons')
 
     # now create lower directories & files (NOT IN FINAL)
     path = os.path.join(run_dir, 'topographies')
@@ -83,8 +89,8 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
     path = os.path.join(run_dir, 'meshes')
     touch(os.path.join(path, 'meshes.msh'))
 
-    # return paths to various placesunder 'base'
-    return (raw_elev,)
+    # return paths to various places under 'base'
+    return (raw_elevation, boundaries, meshes, polygons)
 
 
 if __name__ == '__main__':
