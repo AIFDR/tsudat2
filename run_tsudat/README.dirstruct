@@ -6,6 +6,9 @@ $ tree -F /tmp/xyzzy
 /tmp/xyzzy
 `-- user/
     `-- project/
+        |-- raw_elevation/
+        |   |-- raw_elevation1.asc
+        |   `-- raw_elevation2.asc
         `-- scenario/
             `-- trial/
                 |-- boundaries/
@@ -22,6 +25,8 @@ $ tree -F /tmp/xyzzy
                 `-- topographies/
                     |-- combined_elevation.pts
                     `-- combined_elevation.txt
+
+11 directories, 10 files
 
 
 Old ANUGA directory structure

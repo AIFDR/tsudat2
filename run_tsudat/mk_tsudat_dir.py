@@ -27,15 +27,34 @@ def touch(path):
 
 
 def mk_tsudat_dir(base, user, proj, scen, setup, event):
-    """Create a TsuDAT2 run directory."""
+    """Create a TsuDAT2 run directory.
+
+    base   path to base of new directory structure
+    user   user name
+    proj   project name
+    scen   scenario name
+    setup  type of run ('trial', etc)
+    event  event number
+
+    Creates a TSUDAT directory structure under the 'base' path.
+
+    Returns a tuple of paths to places under 'base' required by the UI.
+    """
+
+    # delete any dir that might be there
+    shutil.rmtree(base, ignore_errors=True)
+
+    # create the 'raw_elevation' directory for a project
+    path = os.path.join(base, user, proj, 'raw_elevation')
+    raw_elev = path
+    os.makedirs(path)
+    touch(os.path.join(path, 'raw_elevation1.asc'))	# NOT IN FINAL
+    touch(os.path.join(path, 'raw_elevation2.asc'))	# NOT IN FINAL
 
     # create base directory after deleting any dir that might be there
     run_dir = os.path.join(base, user, proj, scen, setup)
     shutil.rmtree(run_dir, ignore_errors=True)
     os.makedirs(run_dir)
-
-    # create the 'raw_elevation' directory for a project
-    os.makedirs(os.path.join(base, user, proj, 'raw_elevation'))
 
     # now create major sub-dirs under $setup
     for sd in MajorSubDirs:
@@ -63,6 +82,9 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
     # NOT IN FINAL
     path = os.path.join(run_dir, 'meshes')
     touch(os.path.join(path, 'meshes.msh'))
+
+    # return paths to various placesunder 'base'
+    return (raw_elev,)
 
 
 if __name__ == '__main__':
