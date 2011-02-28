@@ -129,12 +129,12 @@ def build_urs_boundary(event_file, output_dir):
         mux_weights = [float(line.strip().split()[1]) for line in mux_data]
 
         # Call legacy function to create STS file.
-        log.info('creating sts file')
+        log.info('creating sts file: %s' % output_dir)
         anuga.urs2sts(mux_filenames,
                 basename_out=output_dir,
                 ordering_filename=project.urs_order,
                 weights=mux_weights,
-                verbose=True)
+                verbose=False)
     else:                           # a single mux stem file, assume 1.0 weight
         mux_file = os.path.join(project.event_folder, event_file)
         mux_filenames = [mux_file]
@@ -151,7 +151,7 @@ def build_urs_boundary(event_file, output_dir):
                 basename_out=output_dir,
                 ordering_filename=order_filename,
                 weights=mux_weights,
-                verbose=True)
+                verbose=False)
 
     # report on progress so far
     sts_file = os.path.join(project.event_folder, project.scenario_name)

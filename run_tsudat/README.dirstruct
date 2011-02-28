@@ -65,11 +65,12 @@ Proposed TsuDAT2 run directory structure
 As before, $UPPERCASE is some fixed value from the configuration
 and $lowercase is a UI value or something derived from a UI value.
 
-$TSUDATHOME		# some pre-defined place
-    $user		# user name from login
-        $project	# project name from login
-            $scenario   # scenario name from UI
-                $setup  # setup ('trial', etc) from UI
+$TSUDATHOME			# some pre-defined place
+    $user			# user name from login
+        $project		# project name from login
+            'raw_elevation'	# raw elevation data for project
+            $scenario  		# scenario name from UI
+                $setup 		# setup ('trial', etc) from UI
                     'topographies'
                         'combined_elevation.pts'
                         'combined_elevation.txt'

@@ -8,6 +8,7 @@ where 'json_data' is the path to the jsaon data file from the UI.
 
 import os
 import json
+import traceback
 
 import setup_model
 import build_elevation
@@ -66,8 +67,8 @@ def adorn_project(json_data):
     # Location of input and output data
     #-------------------------------------------------------------------------------
     
-    # The absolute pathname of the all elevation, generated in build_elevation.py
-    project.combined_elevation = os.path.join(project.topographies_folder, 'combined_elevation.pts')
+    # The absolute pathstem of the all elevation, generated in build_elevation.py
+    project.combined_elevation = os.path.join(project.topographies_folder, 'combined_elevation')
     
     # The absolute pathname of the mesh, generated in run_model.py
     project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')

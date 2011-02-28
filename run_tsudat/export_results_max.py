@@ -103,7 +103,7 @@ def export_results_max():
                                   easting_max=easting_max,
                                   northing_min=northing_min,
                                   northing_max=northing_max,        
-                                  verbose=True)
+                                  verbose=False)
 
                     asc_name.append(outname + '.asc')
 

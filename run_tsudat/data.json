@@ -19,7 +19,9 @@
     "area": "all",
     "gauges": "gauges_final.csv",
     "setup": "trial",
-    "interior_regions": [["area_of_interest.csv", 500], ["area_of_significance.csv", 2500], ["shallow_water.csv", 10000]],
+    "interior_regions_data": [["area_of_interest.csv", 500], ["area_of_significance.csv", 2500], ["shallow_water.csv", 10000]],
     "urs_order": "urs_order.csv",
-    "landward_boundary": "landward_boundary.csv"
+    "landward_boundary": "landward_boundary.csv",
+    "ascii_grid_filenames": [],
+    "point_filenames": ["250m_final.csv", "shallow_water.csv", "aoi.csv"]
 }

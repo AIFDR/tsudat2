@@ -30,6 +30,6 @@ def get_timeseries():
         gauge = project.gauges
         log.critical('get_timeseries: %s  %s' % (name, gauge))
         anuga.sww2csv_gauges(name+'.sww', gauge,
-                             quantities=project.UI_var, verbose=True)
+                             quantities=project.UI_var, verbose=False)
 
 

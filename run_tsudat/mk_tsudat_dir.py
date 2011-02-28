@@ -34,7 +34,10 @@ def mk_tsudat_dir(base, user, proj, scen, setup, event):
     shutil.rmtree(run_dir, ignore_errors=True)
     os.makedirs(run_dir)
 
-    # now create major sub-dirs
+    # create the 'raw_elevation' directory for a project
+    os.makedirs(os.path.join(base, user, proj, 'raw_elevation'))
+
+    # now create major sub-dirs under $setup
     for sd in MajorSubDirs:
         os.makedirs(os.path.join(run_dir, sd))
 

@@ -138,20 +138,21 @@ def setup_model():
 #                                                  filename))
 #        project.land_initial_conditions.append([polygon, MSL])
 
-#    # Create list of interior polygons with scaling factor
-#    project.interior_regions = []
-#    for (filename, maxarea) in project.interior_regions_data:
-#        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-#                                                  filename))
-#        project.interior_regions.append([polygon,
-#                                         maxarea*project.scale_factor])
+    # Create list of interior polygons with scaling factor
+    project.interior_regions = []
+    for (filename, maxarea) in project.interior_regions_data:
+        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
+                                                  filename))
+        project.interior_regions.append([polygon,
+                                         maxarea*project.scale_factor])
 
     # Initial bounding polygon for data clipping 
     project.bounding_polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-                                                  project.bounding_polygon_filename))
+                                                  project.bounding_polygon))
     project.bounding_maxarea = project.bounding_polygon_maxarea*project.scale_factor
 
     # Estimate the number of triangles                     
+    log.critical('number_mesh_triangles(%s, %s, %s)' % (str(project.interior_regions), str(project.bounding_polygon), str(project.bounding_maxarea)))
     trigs_min = number_mesh_triangles(project.interior_regions,
                                       project.bounding_polygon,
                                       project.bounding_maxarea)

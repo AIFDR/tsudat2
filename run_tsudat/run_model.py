@@ -63,13 +63,20 @@ def run_model():
                    'ocean': range(num_ocean_segments)}
 
     # Build mesh and domain
+    log.critical('@'*90)
+    log.critical('bounding_polygon_sts=%s' % str(bounding_polygon_sts))
+    log.critical('boundary_tags=%s' % str(boundary_tags))
+    log.critical('project.bounding_maxarea=%s' % str(project.bounding_maxarea))
+    log.critical('project.interior_regions=%s' % str(project.interior_regions))
+    log.critical('project.meshes=%s' % str(project.meshes))
+
     domain = anuga.create_domain_from_regions(bounding_polygon_sts,
                                 boundary_tags=boundary_tags,
                                 maximum_triangle_area=project.bounding_maxarea,
                                 interior_regions=project.interior_regions,
                                 mesh_filename=project.meshes,
                                 use_cache=False,
-                                verbose=True)
+                                verbose=False)
 
     domain.geo_reference.zone = project.zone
     log.info('\n%s' % domain.statistics())
@@ -88,11 +95,11 @@ def run_model():
                                     geo_reference=domain.geo_reference)
     else:
         IC = 0
-    domain.set_quantity('stage', IC, use_cache=True, verbose=True)
+    domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction) 
     domain.set_quantity('elevation', 
                         filename=project.combined_elevation+'.pts',
-                        use_cache=True, verbose=True, alpha=project.alpha)
+                        use_cache=True, verbose=False, alpha=project.alpha)
 
     # Setup boundary conditions 
     log.info('Set boundary - available tags: %s' % domain.get_boundary_tags())
@@ -104,7 +111,7 @@ def run_model():
                         domain, mean_stage=project.tide, time_thinning=1,
                         default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
                         boundary_polygon=bounding_polygon_sts,
-                        use_cache=True, verbose=True)
+                        use_cache=True, verbose=False)
 
     domain.set_boundary({'back': Br,
                          'side': Bt,

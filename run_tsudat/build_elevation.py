@@ -21,8 +21,8 @@ def build_elevation():
     # Do for coarse and fine data
     # Fine pts file to be clipped to area of interest
     log.info('project.bounding_polygon=%s' % project.bounding_polygon)
-    log.info('project.combined_elevation_basename=%s'
-             % project.combined_elevation_basename)
+    log.info('project.combined_elevation=%s'
+             % project.combined_elevation)
 
     # Create Geospatial data from ASCII files
     geospatial_data = {}
@@ -30,12 +30,12 @@ def build_elevation():
         absolute_filename = join(project.topographies_folder, filename)
         anuga.asc2dem(absolute_filename+'.asc',
                                       use_cache=False,
-                                      verbose=True)
-        anuga.dem2pts(absolute_filename+'.dem', use_cache=False, verbose=True)
+                                      verbose=False)
+        anuga.dem2pts(absolute_filename+'.dem', use_cache=False, verbose=False)
 
         G_grid = anuga.geospatial_data.\
                      Geospatial_data(file_name=absolute_filename+'.pts',
-                                     verbose=True)
+                                     verbose=False)
 
         log.info('Clip geospatial object')
         geospatial_data[filename] = G_grid.clip(project.bounding_polygon)
@@ -46,7 +46,7 @@ def build_elevation():
         absolute_filename = project.topographies_folder+'/'+str(filename)
         G_points = anuga.geospatial_data.\
                        Geospatial_data(file_name=absolute_filename,
-                                       verbose=True)
+                                       verbose=False)
         log.info('Clip geospatial object')
         geospatial_data[filename] = G_points.clip(project.bounding_polygon)
 
