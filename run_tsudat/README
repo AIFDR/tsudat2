@@ -13,7 +13,7 @@ Any filenames in the json data file should be absolute paths to anywhere
 in the filesystem.  Data files should have been translated to the pre-agreed
 format.
 
-Next, the UI code calls the mk_tsudat_dir() function to create a working
+Next, the UI code calls the make_tsudat_dir() function to create a working
 directory structure.  The UI passes everything the function needs, like 
 username, project, scenario, etc.  This function returns the absolute paths
 to various places the UI code should place data files IF REQUIRED.  This 
@@ -32,11 +32,5 @@ The run_tsudat.py and mk_tsudat_dir.py files need not be copied anywhere.
 The design assumes there is only one copy of these files in the system.
 
 The code under run_tsudat.py must merge the json data values into it's own 
-fixed set of assumptions (currently in project.py) and run the simulation.
+fixed set of assumptions and run the simulation.
 
-It is planned to pull all the code in files such as build_elevation.py
-into run_tsudat.py.  These files are separate at the moment just because 
-they originally were separate.
-
-The get_timeseries.py code currently fails with a time sequence error.
-Not worried about this at the moment.
