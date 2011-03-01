@@ -18,13 +18,14 @@ import numpy as num
 
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
-import build_urs_boundary as bub
 import anuga.utilities.log as log
 log.console_logging_level = log.CRITICAL	# turn console logging off
-#log.log_logging_level = log.INFO
-log.log_logging_level = log.DEBUG
+log.log_logging_level = log.INFO
 
-import project
+
+# paths to back-end stuff
+ProjectHome = '/tmp/xyzzy2'
+ProjectMuxHome = '/data_area/Tsu-DAT 1.0/Tsu-DAT_Data/earthquake_data'
 
 
 # name of the fault name file (in multimux directory)
@@ -34,7 +35,7 @@ FaultNameFilename = 'fault_list.txt'
 SpacesPattern = re.compile(' +')
 
 # dictionary to handle attribute renaming from json->project
-# 'json_name': 'ANUGA_name',
+# 'UI_name': 'ANUGA_name',
 RenameDict = {'mesh_friction': 'friction',
               'smoothing': 'alpha',
               'end_time': 'finaltime',
@@ -47,6 +48,18 @@ MajorSubDirs = ['topographies', 'polygons', 'boundaries', 'outputs',
                 'gauges', 'meshes']
 
 
+# define a 'project' object
+class Project(object):
+    pass
+
+project = Project()
+
+# populate with some fixed values
+project.home = ProjectHome
+project.muxhome = ProjectMuxHome
+project.multi_mux = True
+
+
 #def touch(path):
 #    """Do a 'touch' for a file.
 #
@@ -56,8 +69,8 @@ MajorSubDirs = ['topographies', 'polygons', 'boundaries', 'outputs',
 #        os.utime(path, None)
 
 
-def mk_tsudat_dir(base, user, proj, scen, setup, event):
-    """Create a TsuDAT2 run directory.
+def make_tsudat_dir(base, user, proj, scen, setup, event):
+    """Create a TsuDAT2 work directory.
 
     base   path to base of new directory structure
     user   user name
@@ -201,7 +214,7 @@ def setup_model():
         sanity_error = True
 
     #####
-    # determine type of run
+    # determine type of run, set some parameters depending on type
     #####
 
     if project.setup == 'trial':
@@ -253,9 +266,11 @@ def setup_model():
                                          maxarea*project.scale_factor])
 
     # Initial bounding polygon for data clipping 
-    project.bounding_polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-                                                  project.bounding_polygon))
-    project.bounding_maxarea = project.bounding_polygon_maxarea*project.scale_factor
+    project.bounding_polygon = anuga.read_polygon(os.path.join(
+                                                      project.polygons_folder,
+                                                      project.bounding_polygon))
+    project.bounding_maxarea = project.bounding_polygon_maxarea \
+                               * project.scale_factor
 
     # Estimate the number of triangles                     
     log.debug('number_mesh_triangles(%s, %s, %s)'
@@ -453,7 +468,6 @@ def get_sts_gauge_data(filename, verbose=False):
                           % (time[k], stage[k], xmomentum[k], ymomentum[k]))
 
         fid_sts.close()      
-
     fid.close()
 
     return (quantities, elevation, time)
@@ -503,11 +517,9 @@ def build_urs_boundary(event_file, output_dir):
         mux_weights = [float(line.strip().split()[1]) for line in mux_data]
 
         # Call legacy function to create STS file.
-        anuga.urs2sts(mux_filenames,
-                basename_out=output_dir,
-                ordering_filename=project.urs_order,
-                weights=mux_weights,
-                verbose=False)
+        anuga.urs2sts(mux_filenames, basename_out=output_dir,
+                      ordering_filename=project.urs_order,
+                      weights=mux_weights, verbose=False)
     else:                           # a single mux stem file, assume 1.0 weight
         log.info('using single-mux file %s' % mux_file)
 
@@ -520,15 +532,13 @@ def build_urs_boundary(event_file, output_dir):
         order_filename = project.urs_order
 
         # Create ordered sts file
-        anuga.urs2sts(mux_filenames,
-                basename_out=output_dir,
-                ordering_filename=order_filename,
-                weights=mux_weights,
-                verbose=False)
+        anuga.urs2sts(mux_filenames, basename_out=output_dir,
+                      ordering_filename=order_filename,
+                      weights=mux_weights, verbose=False)
 
     # report on progress so far
     sts_file = os.path.join(project.event_folder, project.scenario_name)
-    log.info('URS boundary filee=%s' % sts_file)
+    log.info('URS boundary file=%s' % sts_file)
 
     (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
     log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
@@ -540,12 +550,6 @@ def run_model():
     log.info('@'*90)
     log.info('@ Running simulation')
     log.info('@'*90)
-
-    # THIS IS DONE IN run_tsudat()
-#    # Create the STS file
-#    log.info('project.mux_data_folder=%s' % project.mux_data_folder)
-#    if not os.path.exists(project.event_sts + '.sts'):
-#        bub.build_urs_boundary(project.mux_input_filename, project.event_sts)
 
     # Read in boundary from ordered sts file
     event_sts = anuga.create_sts_boundary(project.event_sts)
@@ -599,6 +603,7 @@ def run_model():
                                     geo_reference=domain.geo_reference)
     else:
         IC = 0
+
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction) 
     domain.set_quantity('elevation', 
@@ -640,7 +645,6 @@ def adorn_project(json_data):
     Also adds extra project attributes derived from json data.
     """
 
-
     # parse the json
     with open(json_data, 'r') as fp:
         ui_dict = json.load(fp)
@@ -660,8 +664,11 @@ def adorn_project(json_data):
 
     # add extra derived attributes
     # paths to various directories
-    project.anuga_folder = os.path.join(project.home, project.user, project.project, project.scenario_name, project.setup)
-    project.topographies_folder = os.path.join(project.anuga_folder, 'topographies')
+    project.anuga_folder = os.path.join(project.home, project.user,
+                                        project.project, project.scenario_name,
+                                        project.setup)
+    project.topographies_folder = os.path.join(project.anuga_folder,
+                                               'topographies')
     project.polygons_folder = os.path.join(project.anuga_folder, 'polygons')
     project.boundaries_folder = os.path.join(project.anuga_folder, 'boundaries')
     project.output_folder = os.path.join(project.anuga_folder, 'outputs')
@@ -683,8 +690,9 @@ def adorn_project(json_data):
     # Location of input and output data
     #####
 
-    # The absolute pathstem of the all elevation, generated in build_elevation.py
-    project.combined_elevation = os.path.join(project.topographies_folder, 'combined_elevation')
+    # The stem path of the all elevation, generated in build_elevation()
+    project.combined_elevation = os.path.join(project.topographies_folder,
+                                              'combined_elevation')
 
     # The absolute pathname of the mesh, generated in run_model.py
     project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')
@@ -694,7 +702,8 @@ def adorn_project(json_data):
 
     # The absolute pathname for the landward points of the bounding polygon,
     # Used within run_model.py)
-    project.landward_boundary = os.path.join(project.boundaries_folder, 'landward_boundary.csv')
+    project.landward_boundary = os.path.join(project.boundaries_folder,
+                                             'landward_boundary.csv')
 
     # The absolute pathname for the .sts file, generated in build_boundary.py
     project.event_sts = project.boundaries_folder
@@ -703,15 +712,23 @@ def adorn_project(json_data):
     project.gauges = os.path.join(project.gauges_folder, 'gauges_final.csv')
 
     # full path to where MUX files (or meta-files) live
-    project.mux_input = os.path.join(project.event_folder, 'event_%d.lst' % project.event)
+    project.mux_input = os.path.join(project.event_folder,
+                                     'event_%d.lst' % project.event)
 
+    # not sure what this is for
     project.land_initial_conditions = []
 
-    # if .debug isn't defined, set it to False
+    # if project.debug isn't defined, set it to False
     try:
         project.debug
     except AttributeError:
         project.debug = False
+
+    # if .force_run isn't defined, set it to True
+    try:
+        project.force_run
+    except AttributeError:
+        project.force_run = True
 
 
 def get_youngest_input():
@@ -769,14 +786,14 @@ def export_results_max():
     ######
 
     for which_var in project.var:
-        log.debug("Using value '%s'" % which_var)
+        log.debug("Using value: %s" % which_var)
 
         if which_var not in var_equations:
             log.critical('Unrecognized variable name: %s' % which_var)
             break
 
         for which_area in project.area:
-            log.debug("Using area'%s'" % which_area)
+            log.debug("Using area: %s" % which_area)
 
             if which_area == 'All':
                 easting_min = None

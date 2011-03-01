@@ -23,5 +23,5 @@
     "landward_boundary": "landward_boundary.csv",
     "ascii_grid_filenames": [],
     "point_filenames": ["250m_final.csv", "shallow_water.csv", "aoi.csv"],
-    "force_run": false
+    "zone": 54
 }
