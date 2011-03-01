@@ -1,0 +1,14 @@
+To use cloud/cluster computers to run TsuDAT, some thoughts.
+
+The current run_tsudat.py becomes run_tsudat_local.py.
+
+For the Amazon cloud (say) we must put some configuration information into
+the UI, such as key, login, maybe passwords, etc.  All this extra information
+is put into the JSON file.
+
+The new run_tsudat.py file should take the JSON file and decide which helper
+module to use.  For amazon, this means we also need a run_tsudat_amazon.py
+file that does all the work in setting up and running the simulation on EC2.
+
+So now run_tsudat.py becomes a simple little 'shim' that passes off to the
+appropriate handler module.
