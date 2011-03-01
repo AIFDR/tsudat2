@@ -22,20 +22,9 @@ import project
 def get_timeseries():
     """Get time series data."""
 
-#    directory = project.output_folder
-#    time_dirs = [os.path.basename(project.output_folder)]
-#
-#    for time_dir in time_dirs:
-#        name = os.path.join(directory, time_dir, project.scenario_name)
-#        gauge = project.gauges
-#        log.critical('get_timeseries: %s  %s' % (name, gauge))
-#        anuga.sww2csv_gauges(name+'.sww', gauge,
-#                             quantities=project.var, verbose=False)
-
-    name = os.path.join(project.output_folder, project.scenario_name)
-    gauge = project.gauges
-    log.critical('get_timeseries: %s  %s' % (name, gauge))
-    anuga.sww2csv_gauges(name+'.sww', gauge,
-                         quantities=project.var, verbose=False)
-
+    name = os.path.join(project.output_folder, project.scenario_name+'.sww')
+    log.debug('get_timeseries: input SWW file=%s' % name)
+    log.debug('get_timeseries: gauge file=%s' % project.gauges)
+    anuga.sww2csv_gauges(name, project.gauges, quantities=project.var,
+                         verbose=False) 
 

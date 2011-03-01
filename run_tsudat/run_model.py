@@ -29,10 +29,11 @@ import project
 
 
 def run_model():
-    # Create the computational domain based on overall clipping polygon with
-    # a tagged boundary and interior regions defined in project.py along with
-    # resolutions (maximal area of per triangle) for each polygon
-    log.info('Create computational domain')
+    """Run a tsunami simulation for a scenario."""
+
+    log.info('@'*90)
+    log.info('@ Running simulation')
+    log.info('@'*90)
 
     # THIS IS DONE IN run_tsudat()
 #    # Create the STS file
@@ -64,12 +65,11 @@ def run_model():
                    'ocean': range(num_ocean_segments)}
 
     # Build mesh and domain
-    log.critical('@'*90)
-    log.critical('bounding_polygon_sts=%s' % str(bounding_polygon_sts))
-    log.critical('boundary_tags=%s' % str(boundary_tags))
-    log.critical('project.bounding_maxarea=%s' % str(project.bounding_maxarea))
-    log.critical('project.interior_regions=%s' % str(project.interior_regions))
-    log.critical('project.meshes=%s' % str(project.meshes))
+    log.debug('bounding_polygon_sts=%s' % str(bounding_polygon_sts))
+    log.debug('boundary_tags=%s' % str(boundary_tags))
+    log.debug('project.bounding_maxarea=%s' % str(project.bounding_maxarea))
+    log.debug('project.interior_regions=%s' % str(project.interior_regions))
+    log.debug('project.meshes=%s' % str(project.meshes))
 
     domain = anuga.create_domain_from_regions(bounding_polygon_sts,
                                 boundary_tags=boundary_tags,
@@ -86,9 +86,6 @@ def run_model():
     domain.set_datadir(project.output_folder) 
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
-    # Setup initial conditions
-    log.info('Setup initial conditions')
-
     # Set the initial stage in the offcoast region only
     if project.land_initial_conditions:
         IC = anuga.Polygon_function(project.land_initial_conditions,
@@ -103,7 +100,7 @@ def run_model():
                         use_cache=True, verbose=False, alpha=project.alpha)
 
     # Setup boundary conditions 
-    log.info('Set boundary - available tags: %s' % domain.get_boundary_tags())
+    log.debug('Set boundary - available tags: %s' % domain.get_boundary_tags())
 
     Br = anuga.Reflective_boundary(domain)
     Bt = anuga.Transmissive_stage_zero_momentum_boundary(domain)

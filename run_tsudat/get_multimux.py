@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """A routine to write the event.lst data.
 
 The standalone program is used to test the function.
@@ -39,7 +37,7 @@ def get_multimux(event, multimux_dir, output_file):
     try:
         outfd = open(output_file, "w")
     except IOError, msg:
-        raise RuntimeError(1, "Error opening output file: %s" % msg)
+        raise Exception('Error opening output file: %s' % msg)
 
     # handle each fault
     nquake = 0
@@ -52,12 +50,13 @@ def get_multimux(event, multimux_dir, output_file):
         try:
             infd = open(mmx_filename, "r")
         except IOError, msg:
-            raise RuntimeError(1, "Error opening file: %s" % msg)
+            raise Exception('Error opening file: %s' % msg)
 
         # check fault name in file is as expected
         mux_faultname = infd.readline().strip()
         if mux_faultname != fn:
-            raise RuntimeError(1, "Error reading file")
+            raise Exception("Error in file %s: fault name in file isn't %s"
+                            % (mmx_filename, fn))
 
         # read data
         while True:
@@ -65,7 +64,8 @@ def get_multimux(event, multimux_dir, output_file):
             try:
                 nsubfault = infd.readline()
             except IOError:
-                raise RuntimeError(1, "Error reading file")
+                raise Exception("Error reading file %s: EOF reading event"
+                                % mmx_filename)
 
             if not nsubfault:
                 break
@@ -86,9 +86,8 @@ def get_multimux(event, multimux_dir, output_file):
                     try:
                         infd.readline()
                     except IOError:
-                        raise RuntimeError(1,
-                                           "Something wrong at bottom of file %s" %
-                                           mux_faultname)
+                        raise Exception("Something wrong at bottom of file %s"
+                                        % mux_faultname)
 
         infd.close()
     outfd.close()

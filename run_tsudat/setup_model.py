@@ -1,12 +1,3 @@
-"""
-Module to check the project.py 'configuration' file, perform
-sanity checks plus a quick check on mesh generation.  Returns
-an 'adorned' version of the project object.
-
-Also callable as a stand-alone program, mainly to view the results
-of the mesh generation.
-"""
-
 import os
 
 import get_multimux
@@ -152,12 +143,15 @@ def setup_model():
     project.bounding_maxarea = project.bounding_polygon_maxarea*project.scale_factor
 
     # Estimate the number of triangles                     
-    log.critical('number_mesh_triangles(%s, %s, %s)' % (str(project.interior_regions), str(project.bounding_polygon), str(project.bounding_maxarea)))
-    trigs_min = number_mesh_triangles(project.interior_regions,
-                                      project.bounding_polygon,
-                                      project.bounding_maxarea)
+    log.debug('number_mesh_triangles(%s, %s, %s)'
+              % (str(project.interior_regions),
+                 str(project.bounding_polygon),
+                 str(project.bounding_maxarea)))
+    triangle_min = number_mesh_triangles(project.interior_regions,
+                                         project.bounding_polygon,
+                                         project.bounding_maxarea)
 
-    log.info('min estimated number of triangles=%d' % trigs_min)
+    log.info('minimum estimated number of triangles=%d' % triangle_min)
 
 
 ################################################################################

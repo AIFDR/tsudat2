@@ -21,8 +21,6 @@ import project
 def export_results_max():
     """Export maximum resuts."""
 
-    log.info('project.output_folder=%s' % str(project.output_folder))
-
     # Now set the timestep at which you want the raster generated.
     # Either set the actual timestep required or use 'None' to indicate that
     # you want the maximum values in the raster over all timesteps
@@ -49,16 +47,17 @@ def export_results_max():
     # Start script, running through variables, area, sww file
     ######
 
-    log.info('project.var=%s' % str(project.var))
-
     for which_var in project.var:
+        log.debug("Using value '%s'" % which_var)
+
         if which_var not in var_equations:
             log.critical('Unrecognized variable name: %s' % which_var)
             break
 
         for which_area in project.area:
+            log.debug("Using area'%s'" % which_area)
+
             if which_area == 'All':
-                log.info("Found: 'All'")
                 easting_min = None
                 easting_max = None
                 northing_min = None
@@ -75,14 +74,10 @@ def export_results_max():
 
             name = os.path.join(project.output_folder, project.scenario_name)
 
-            log.info('name=%s' % name)
-
             outname = name + '_' + which_area + '_' + which_var
             quantityname = var_equations[which_var]
 
-            log.info(' input filename: %s' % (name+'.sww'))
-            log.info('output filename: %s' % (outname+'.asc'))
-            log.info('quantityname: %s' % str(quantityname))
+            log.debug('Generating output file: %s' % (outname+'.asc'))
 
             anuga.sww2dem(name+'.sww', outname+'.asc',
                           quantity=quantityname,

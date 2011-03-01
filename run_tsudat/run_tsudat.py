@@ -7,6 +7,7 @@ where 'json_data' is the path to the json data file from the UI.
 """
 
 import os
+import glob
 import json
 import traceback
 
@@ -18,8 +19,8 @@ import export_results_max
 import get_timeseries
 
 import anuga.utilities.log as log
-log.console_logging_level = log.CRITICAL+30	# turn console logging off
-log.log_logging_level = log.DEBUG
+log.console_logging_level = log.CRITICAL # turn console logging mostly off
+log.log_logging_level = log.INFO
 
 import project
 
@@ -70,7 +71,9 @@ def adorn_project(json_data):
     project.gauges_folder = os.path.join(project.anuga_folder, 'gauges')
     project.meshes_folder = os.path.join(project.anuga_folder, 'meshes')
     project.event_folder = project.boundaries_folder
-    project.raw_elevation_folder = os.path.join(project.home, project.user, project.project, 'raw_elevation')
+    project.raw_elevation_folder = os.path.join(project.home, project.user,
+                                                project.project,
+                                                'raw_elevation')
 
     # MUX data files
     # Directory containing the MUX data files to be used with EventSelection.
@@ -79,9 +82,9 @@ def adorn_project(json_data):
 
     project.mux_input_filename = 'event_%d.lst' % project.event
 
-    #-------------------------------------------------------------------------------
+    #####
     # Location of input and output data
-    #-------------------------------------------------------------------------------
+    #####
 
     # The absolute pathstem of the all elevation, generated in build_elevation.py
     project.combined_elevation = os.path.join(project.topographies_folder, 'combined_elevation')
@@ -107,6 +110,37 @@ def adorn_project(json_data):
 
     project.land_initial_conditions = []
 
+    # if .debug isn't defined, set it to False
+    try:
+        project.debug
+    except AttributeError:
+        project.debug = False
+
+
+def get_youngest_input():
+    """Get date/time of youngest input file."""
+
+    input_dirs = [project.polygons_folder, project.raw_elevation_folder]
+    input_files = [project.urs_order,
+                   os.path.join(project.boundaries_folder,
+                                '%s.sts' % project.scenario_name),
+                   project.landward_boundary]
+
+    youngest = 0.0	# time at epoch start
+
+    # check all files in given directories
+    for dir in input_dirs:
+        for file in glob.glob(os.path.join(dir, '*')):
+            mtime = os.path.getmtime(file)
+            youngest = max(mtime, youngest)
+
+    # check individual files
+    for file in input_files:
+        mtime = os.path.getmtime(file)
+        youngest = max(mtime, youngest)
+
+    return youngest
+
 
 def excepthook(type, value, tb):
     """Exception hook routine."""
@@ -116,18 +150,15 @@ def excepthook(type, value, tb):
     msg += ''.join(traceback.format_exception(type, value, tb))
     msg += '='*80 + '\n'
     log.critical(msg)
-    #sys.exit(1)
 
 
 def run_tsudat(json_data):
-    """"Run ANUGA using data from the json data file."""
+    """"Run ANUGA using data from a json data file."""
 
 
     def dump_project_py():
         """Debug routine - dump project attributes to the log."""
 
-        log.info('#'*90)
-        log.info('#'*90)
         # list all project.* attributes
         for key in dir(project):
             if not key.startswith('__'):
@@ -135,8 +166,6 @@ def run_tsudat(json_data):
                     log.info('project.%s=%s' % (key, eval('project.%s' % key)))
                 except AttributeError:
                     pass
-        log.info('#'*90)
-        log.info('#'*90)
 
     # plug our exception handler into the python system
     sys.excepthook = excepthook
@@ -144,25 +173,51 @@ def run_tsudat(json_data):
     # get json data and adorn project object with it's data
     adorn_project(json_data)
 
-    # run the tsudat simulation
-    dump_project_py()
+    # set logfile to be in run output folder
+    log.log_filename = os.path.join(project.output_folder, 'tsudat.log')
 
-    setup_model.setup_model()
-    build_elevation.build_elevation()
-    build_urs_boundary.build_urs_boundary(project.mux_input_filename,
-                                          project.event_sts)
-    run_model.run_model()
+    # run the tsudat simulation
+    if project.debug:
+        dump_project_py()
+
+    youngest_input = get_youngest_input()
+    sww_file = os.path.join(project.output_folder, project.scenario_name+'.sww')
+    try:
+        sww_ctime = os.path.getctime(sww_file)
+    except OSError:
+        sww_ctime = 0.0		# SWW file not there
+
+    if project.force_run or youngest_input > sww_ctime:
+        log.info('#'*90)
+        log.info('# Running simulation')
+        log.info('#'*90)
+        setup_model.setup_model()
+        build_elevation.build_elevation()
+        build_urs_boundary.build_urs_boundary(project.mux_input_filename,
+                                              project.event_sts)
+        run_model.run_model()
+        log.info('End of simulation')
+    else:
+        log.info('#'*90)
+        log.info('# Not running simulation')
+        log.debug('# SWW file %s is younger than input data' % sww_file)
+        log.info('# If you want to force a simulation run, select FORCE RUN')
+        log.info('#'*90)
 
     # now do optional post-run extractions
     if project.get_results_max:
        log.info('~'*90)
+       log.info('~ Running max.export_results_max()')
        log.info('~'*90)
        export_results_max.export_results_max()
+       log.info('export_results_max() has finished')
 
     if project.get_timeseries:
        log.info('~'*90)
+       log.info('~ Running get_timeseries()')
        log.info('~'*90)
        get_timeseries.get_timeseries()
+       log.info('get_timeseries() has finished')
 
 
 if __name__ == '__main__':
