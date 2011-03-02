@@ -23,8 +23,10 @@ log.console_logging_level = log.CRITICAL	# turn console logging off
 log.log_logging_level = log.INFO
 
 
-# paths to back-end stuff
+# THIS MUST BE CHANGED TO MATCH SERVER REQUIREMENTS
+# path to where all user work areas live
 ProjectHome = '/tmp/xyzzy2'
+# path to where all the MUX files are
 ProjectMuxHome = '/data_area/Tsu-DAT 1.0/Tsu-DAT_Data/earthquake_data'
 
 
@@ -61,77 +63,81 @@ project.muxhome = ProjectMuxHome
 project.multi_mux = True
 
 
-#def touch(path):
-#    """Do a 'touch' for a file.
-#
-#    This is NOT a good solution, it's just to show where files will go."""
-#
-#    with file(path, 'a'):
-#        os.utime(path, None)
-
-
-def make_tsudat_dir(base, user, proj, scen, setup, event):
+def make_tsudat_dir(base, user, proj, scen, setup, event,
+                    nuke=False, make_files=False):
     """Create a TsuDAT2 work directory.
 
-    base   path to base of new directory structure
-    user   user name
-    proj   project name
-    scen   scenario name
-    setup  type of run ('trial', etc)
-    event  event number
+    base        path to base of new directory structure
+    user        user name
+    proj        project name
+    scen        scenario name
+    setup       type of run ('trial', etc)
+    event       event number
+    nuke        optional - destroy any existing structure first
+    make_files  create 'placeholder' files (for debug/documentation)
 
     Creates a TSUDAT directory structure under the 'base' path.
+    If 'nuke' is True, delete any structure under base/user/proj/scen/setup.
 
     Returns a tuple of paths to places under 'base' required by the UI:
         (raw_elevation, bondaries, meshes, polygons)
     """
 
-    # delete any dir that might be there
-    shutil.rmtree(base, ignore_errors=True)
+    def touch(path):
+        """Helper function to do a 'touch' for a file."""
+    
+        with file(path, 'a'):
+            os.utime(path, None)
+
+    def makedirs_noerror(path):
+        """Helper function to create a directory tree, ignoring errors."""
+
+        try:
+            os.makedirs(path)
+        except OSError:
+            pass            # ignore "already there' errors
+
+    # create base directory
+    run_dir = os.path.join(base, user, proj, scen, setup)
+    if nuke:
+        shutil.rmtree(run_dir, ignore_errors=True)
+    makedirs_noerror(run_dir)
 
     # create the 'raw_elevation' directory for a project
-    path = os.path.join(base, user, proj, 'raw_elevation')
-    raw_elevation = path
-    os.makedirs(path)
-#    touch(os.path.join(path, 'raw_elevation1.asc'))	# NOT IN FINAL
-#    touch(os.path.join(path, 'raw_elevation2.asc'))	# NOT IN FINAL
-
-    # create base directory after deleting any dir that might be there
-    run_dir = os.path.join(base, user, proj, scen, setup)
-    shutil.rmtree(run_dir, ignore_errors=True)
-    os.makedirs(run_dir)
+    raw_elevation = os.path.join(base, user, proj, 'raw_elevation')
+    makedirs_noerror(raw_elevation)
 
     # now create major sub-dirs under $setup
     for sd in MajorSubDirs:
-        os.makedirs(os.path.join(run_dir, sd))
+        makedirs_noerror(os.path.join(run_dir, sd))
 
-    # get return paths
+    # get extra return paths
     boundaries = os.path.join(run_dir, 'boundaries')
     meshes = os.path.join(run_dir, 'meshes')
     polygons = os.path.join(run_dir, 'polygons')
 
-#    # now create lower directories & files (NOT IN FINAL)
-#    path = os.path.join(run_dir, 'topographies')
-#    touch(os.path.join(path, 'combined_elevation.pts'))
-#    touch(os.path.join(path, 'combined_elevation.txt'))
-#
-#    # NOT IN FINAL
-#    path = os.path.join(run_dir, 'boundaries')
-#    touch(os.path.join(path, 'event_%d.lst' % event))
-#    touch(os.path.join(path, 'landward_boundary.csv'))
-#    touch(os.path.join(path, 'urs_order.csv'))
-#
-#    # NOT IN FINAL
-#    path = os.path.join(run_dir, 'outputs')
-#    touch(os.path.join(path, 'generated_files'))
-#
-#    # NOT IN FINAL
-#    path = os.path.join(run_dir, 'gauges')
-#    touch(os.path.join(path, 'gauges_final.csv'))
-#
-#    # NOT IN FINAL
-#    path = os.path.join(run_dir, 'meshes')
-#    touch(os.path.join(path, 'meshes.msh'))
+    # now create example files if required
+    if make_files:
+        touch(os.path.join(raw_elevation, 'raw_elevation1.asc'))
+        touch(os.path.join(raw_elevation, 'raw_elevation2.asc'))
+
+        path = os.path.join(run_dir, 'topographies')
+        touch(os.path.join(path, 'combined_elevation.pts'))
+        touch(os.path.join(path, 'combined_elevation.txt'))
+
+        touch(os.path.join(boundaries, 'event_%d.lst' % event))
+        touch(os.path.join(boundaries, 'landward_boundary.csv'))
+        touch(os.path.join(boundaries, 'urs_order.csv'))
+
+        path = os.path.join(run_dir, 'outputs')
+        touch(os.path.join(path, 'generated_files'))
+
+        path = os.path.join(run_dir, 'gauges')
+        touch(os.path.join(path, 'gauges_final.csv'))
+
+        touch(os.path.join(meshes, 'meshes.msh'))
+
+        touch(os.path.join(polygons, 'polygon_files'))
 
     # return paths to various places under 'base'
     return (raw_elevation, boundaries, meshes, polygons)
@@ -404,16 +410,17 @@ def build_elevation():
     G.export_points_file(project.combined_elevation + '.pts')
 
     # Use for comparision in ARC
+    # DO WE NEED THIS?
     G.export_points_file(project.combined_elevation + '.txt')
 
 
 def get_sts_gauge_data(filename, verbose=False):
     """Get gauges (timeseries of index points)."""
 
-    fid = NetCDFFile(filename+'.sts', 'r')      #Open existing file for read
+    fid = NetCDFFile(filename+'.sts', 'r')      # Open existing file for read
     permutation = fid.variables['permutation'][:]
-    x = fid.variables['x'][:] + fid.xllcorner   #x-coordinates of vertices
-    y = fid.variables['y'][:] + fid.yllcorner   #y-coordinates of vertices
+    x = fid.variables['x'][:] + fid.xllcorner   # x-coordinates of vertices
+    y = fid.variables['y'][:] + fid.yllcorner   # y-coordinates of vertices
     points = num.transpose(num.asarray([x.tolist(), y.tolist()]))
     time = fid.variables['time'][:] + fid.starttime
     elevation = fid.variables['elevation'][:]
@@ -871,6 +878,8 @@ def run_tsudat(json_data):
     adorn_project(json_data)
 
     # set logfile to be in run output folder
+    if project.debug:
+        log.log_logging_level = log.DEBUG
     log.log_filename = os.path.join(project.output_folder, 'tsudat.log')
 
     # run the tsudat simulation

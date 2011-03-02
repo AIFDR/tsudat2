@@ -21,9 +21,10 @@
     "interior_regions_data": [["area_of_interest.csv", 500], ["area_of_significance.csv", 2500], ["shallow_water.csv", 10000]],
     "bounding_polygon_maxarea": 100000,
 
-    "_comment": "All these are for discussion, or aren't used, or ...",
+    "_comment": "All these are for discussion, or aren't used, or are new, or ...",
     "urs_order": "urs_order.csv",
     "landward_boundary": "landward_boundary.csv",
     "ascii_grid_filenames": [],
-    "zone": 54
+    "zone": 54,
+    "debug": true
 }
