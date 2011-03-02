@@ -41,6 +41,7 @@ RenameDict = {'mesh_friction': 'friction',
               'end_time': 'finaltime',
               'layers': 'var',
               'raster_resolution': 'cell_size',
+              'elevation_data': 'point_filenames',
              }
 
 # major directories under user/project/scenario/setup base directory

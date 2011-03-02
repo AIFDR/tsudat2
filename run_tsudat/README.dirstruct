@@ -1,7 +1,7 @@
 A program has been written to create a new ANUGA directory structure.
 It is named 'mk_tsudat_dir.py'.  Use the 'tree' command to get a dump
 of the generated directory:
-$ ./mk_tsudat_dir.py /tmp/xyzzy user project scenario trial 12345
+$ ./mk_tsudat_dir.py /tmp/xyzzy user project scenario setup 12345
 $ tree -F /tmp/xyzzy
 /tmp/xyzzy
 `-- user/
@@ -10,7 +10,7 @@ $ tree -F /tmp/xyzzy
         |   |-- raw_elevation1.asc
         |   `-- raw_elevation2.asc
         `-- scenario/
-            `-- trial/
+            `-- setup/
                 |-- boundaries/
                 |   |-- event_12345.lst
                 |   |-- landward_boundary.csv
@@ -22,11 +22,10 @@ $ tree -F /tmp/xyzzy
                 |-- outputs/
                 |   `-- generated_files
                 |-- polygons/
+                |   `-- polygon_files
                 `-- topographies/
                     |-- combined_elevation.pts
                     `-- combined_elevation.txt
-
-11 directories, 10 files
 
 
 Old ANUGA directory structure
