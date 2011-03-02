@@ -1,4 +1,4 @@
-To use cloud/cluster computers to run TsuDAT, some thoughts.
+Some thoughts on using cloud/cluster computers to run TsuDAT.
 
 The current run_tsudat.py becomes run_tsudat_local.py.
 
@@ -7,8 +7,19 @@ the UI, such as key, login, maybe passwords, etc.  All this extra information
 is put into the JSON file.
 
 The new run_tsudat.py file should take the JSON file and decide which helper
-module to use.  For amazon, this means we also need a run_tsudat_amazon.py
-file that does all the work in setting up and running the simulation on EC2.
+module to use.  For amazon, this means we need a run_tsudat_amazon.py file
+that does all the work in setting up and running the simulation on EC2.
 
 So now run_tsudat.py becomes a simple little 'shim' that passes off to the
-appropriate handler module.
+appropriate handler module.  The handler modules should exist on the server.
+The handler's job is to copy the run_tsudat_*.py handler to the target platform,
+copy all required files to the platform and then run the handler.
+
+The handler code should be in one file and be in two parts:
+1. Code that runs on the server to prepare the remote platform
+2. Code that runs on the remote platform to run ANUGA
+This approach puts all the code required to run on a platform (EC2, say) in one
+file.
+
+With some effort, the part 2 code might be the same on all platforms.  This means
+we could split out the common code.
