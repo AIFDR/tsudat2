@@ -602,7 +602,7 @@ def run_model():
                                     default=project.tide,
                                     geo_reference=domain.geo_reference)
     else:
-        IC = 0
+        IC = project.tide
 
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction) 
@@ -618,7 +618,7 @@ def run_model():
     Bd = anuga.Dirichlet_boundary([project.tide, 0, 0])
     Bf = anuga.Field_boundary(project.event_sts+'.sts',
                         domain, mean_stage=project.tide, time_thinning=1,
-                        default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
+                        default_boundary=anuga.Dirichlet_boundary([project.tide, 0, 0]),
                         boundary_polygon=bounding_polygon_sts,
                         use_cache=True, verbose=False)
 
