@@ -767,12 +767,6 @@ def get_youngest_input():
 def export_results_max():
     """Export maximum resuts."""
 
-    # Now set the timestep at which you want the raster generated.
-    # Either set the actual timestep required or use 'None' to indicate that
-    # you want the maximum values in the raster over all timesteps
-    timestep = None    # None means no timestep!
-    #timestep = 0       # To check initial stage
-
     ######
     # Define allowed variable names and associated equations to generate values.
     ######
