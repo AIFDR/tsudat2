@@ -6,6 +6,7 @@ usage:  run_tsudat(json_data)
 where 'json_data' is the path to the json data file from the UI.
 """
 
+import sys
 import os
 import re
 import shutil
@@ -19,13 +20,13 @@ import numpy as num
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
 import anuga.utilities.log as log
-log.console_logging_level = log.CRITICAL	# turn console logging off
+log.console_logging_level = log.ERROR	# turn console logging mostly off
 log.log_logging_level = log.INFO
 
 
 # THIS MUST BE CHANGED TO MATCH SERVER REQUIREMENTS
 # path to where all user work areas live
-ProjectHome = '/tmp/xyzzy2'
+ProjectHome = '/tmp/tsudat'
 # path to where all the MUX files are
 ProjectMuxHome = '/data_area/Tsu-DAT 1.0/Tsu-DAT_Data/earthquake_data'
 
@@ -80,7 +81,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
     If 'nuke' is True, delete any structure under base/user/proj/scen/setup.
 
     Returns a tuple of paths to places under 'base' required by the UI:
-        (raw_elevation, bondaries, meshes, polygons)
+        (raw_elevation, bondaries, meshes, polygons, gauges)
     """
 
     def touch(path):
@@ -115,6 +116,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
     boundaries = os.path.join(run_dir, 'boundaries')
     meshes = os.path.join(run_dir, 'meshes')
     polygons = os.path.join(run_dir, 'polygons')
+    gauges = os.path.join(run_dir, 'gauges')
 
     # now create example files if required
     if make_files:
@@ -140,7 +142,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
         touch(os.path.join(polygons, 'polygon_files'))
 
     # return paths to various places under 'base'
-    return (raw_elevation, boundaries, meshes, polygons)
+    return (raw_elevation, boundaries, meshes, polygons, gauges)
 
 
 def setup_model():
@@ -929,14 +931,3 @@ def run_tsudat(json_data):
     log.info('#'*90)
     log.info('# Simulation finished')
     log.info('#'*90)
-
-################################################################################
-
-if __name__ == '__main__':
-    import sys
-
-    if len(sys.argv) != 2:
-        print('usage: %s <json_data>' % sys.argv[0])
-        sys.exit(10)
-
-    run_tsudat(sys.argv[1])
