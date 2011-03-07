@@ -25,6 +25,9 @@ directories using the path(s) returned by mk_tsudat_dir().
 Finally, the UI code calls the run_tsudat() function passing the absolute
 path to the json data file.
 
+The program fake_ui.py performs all the above and runs a simulation.  The
+directory fake_ui_files contains all the data files the program needs to
+provide for the simulation.
 
 Random Thoughts
 ---------------
