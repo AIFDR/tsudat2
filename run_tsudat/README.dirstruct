@@ -1,28 +1,97 @@
-A program has been written to create a new ANUGA directory structure.
-It is named 'mk_tsudat_dir.py'.  Use the 'tree' command to get a dump
-of the generated directory:
-$ ./mk_tsudat_dir.py /tmp/xyzzy user project scenario setup 12345
-$ tree -F /tmp/xyzzy
-/tmp/xyzzy
+A function has been written to create the rsudat working structure.
+It is named 'make_tsudat_dir()'.  Use the 'tree' command to get a dump
+of the generated directory: tree -F <directory>
+
+A raw directory structure just after creation:
+/tmp/tsudat
 `-- user/
     `-- project/
         |-- raw_elevation/
-        |   |-- raw_elevation1.asc
-        |   `-- raw_elevation2.asc
         `-- scenario/
-            `-- setup/
+            `-- trial/
                 |-- boundaries/
-                |   |-- event_12345.lst
-                |   |-- landward_boundary.csv
-                |   `-- urs_order.csv
                 |-- gauges/
-                |   `-- gauges_final.csv
                 |-- meshes/
-                |   `-- meshes.msh
                 |-- outputs/
-                |   `-- generated_files
                 |-- polygons/
-                |   `-- polygon_files
+                `-- topographies/
+
+After copying all the input files to the structure, we have:
+/tmp/tsudat
+`-- user/
+    `-- project/
+        |-- raw_elevation/
+        |   |-- 250m_final.csv
+        |   |-- aoi.csv
+        |   `-- shallow_water.csv
+        `-- scenario/
+            `-- trial/
+                |-- boundaries/
+                |   |-- landward_boundary.csv
+                |   |-- scenario.sts
+                |   `-- urs_order.csv
+                |-- gauges/
+                |   `-- gauges_final.csv
+                |-- meshes/
+                |-- outputs/
+                |-- polygons/
+                |   |-- area_of_interest.csv
+                |   |-- area_of_significance.csv
+                |   |-- bounding_polygon.csv
+                |   `-- shallow_water.csv
+                `-- topographies/
+Note that the filenames are up to the user.
+
+After running a typical simulation, we have this structure:
+/tmp/tsudat
+`-- user/
+    `-- project/
+        |-- raw_elevation/
+        |   |-- 250m_final.csv
+        |   |-- aoi.csv
+        |   `-- shallow_water.csv
+        `-- scenario/
+            `-- trial/
+                |-- boundaries/
+                |   |-- event_58342.lst
+                |   |-- landward_boundary.csv
+                |   |-- max_sts_stage.csv
+                |   |-- min_sts_stage.csv
+                |   |-- scenario.sts
+                |   |-- sts_gauge_1943.csv
+                |   |-- sts_gauge_1944.csv
+                |   |-- sts_gauge_1945.csv
+                |   |-- sts_gauge_1946.csv
+                |   |-- sts_gauge_1947.csv
+                |   |-- sts_gauge_1948.csv
+                |   |-- sts_gauge_1949.csv
+                |   `-- urs_order.csv
+                |-- boundaries.sts
+                |-- gauges/
+                |   `-- gauges_final.csv
+                |-- meshes/
+                |   `-- meshes.msh
+                |-- outputs/
+                |   |-- gauge_deep7.csv
+                |   |-- gauge_deep8.csv
+                |   |-- gauge_deep9.csv
+                |   |-- gauge_inner1.csv
+                |   |-- gauge_inner2.csv
+                |   |-- gauge_inner3.csv
+                |   |-- gauge_inner4.csv
+                |   |-- gauge_inner5.csv
+                |   |-- gauge_shallow6.csv
+                |   |-- scenario_All_depth.asc
+                |   |-- scenario_All_depth.prj
+                |   |-- scenario_All_stage.asc
+                |   |-- scenario_All_stage.prj
+                |   |-- scenario.sww
+                |   `-- tsudat.log
+                |-- polygons/
+                |   |-- area_of_interest.csv
+                |   |-- area_of_significance.csv
+                |   |-- bounding_polygon.csv
+                |   `-- shallow_water.csv
                 `-- topographies/
                     |-- combined_elevation.pts
                     `-- combined_elevation.txt
@@ -30,7 +99,6 @@ $ tree -F /tmp/xyzzy
 
 Old ANUGA directory structure
 =============================
-
 Below, $UPPERCASE is some fixed value from the environment
 and $lowercase is a project.py value or something derived from a project.py value.
 
