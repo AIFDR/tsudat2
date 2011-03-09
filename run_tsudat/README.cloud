@@ -23,3 +23,34 @@ file.
 
 With some effort, the part 2 code might be the same on all platforms.  This means
 we could split out the common code.
+
+----------------------------
+After having created ANUGA instances and run test_all.py and validate_all.py
+on the instance, I have some thoughts about problems running TsuDAT2 in an AMI.
+
+Getting the security information from the user to enable the UI code to start
+a run on a user instance might be tricky.  Not impossible.
+
+A TsuDAT2 run on an AMI will need access to the 600GB of URS data.  Where do we
+put this data?  It can't go into the AMI itself, as there is a 10GB limit.
+
+We could use S3 storage, but that uses a REST/SOAP interface to access objects,
+so it's slow compared to disk access if each file is an S3 object.  We would also
+have to rewrite TsuDAT code.
+
+We might be able to load and expand the 600GB of data into the AMI filesystem from
+S3 storage at system startup.  We would have to split up the URS data as there is
+a 5GB limit on S3 object size. The load/expand could take a while.  This approach may
+be possible, especially if we can load/expand only what we *know* the TsuDAT2 run
+will require.  Another approach is to 'wrap' TsuDAT2 access to URS data so the data
+is dynamically loaded when required.
+
+A database might be possible, but we would have to rewrite TsuDAT code.
+
+There is such a thing as a "public dataset" available to all, but I'm not sure that
+the URS data would qualify.  And it probably has the same restrictions as S3 above.
+
+EBS might be possible, as it behaves just like an external disk that is mounted
+into the filesystem.  Problem is, only one instance can have the EBS storage mounted.
+This might be possible if we have some sort of "batch queue" system running on an
+instance.  But then that isn't a user-owned instance.
