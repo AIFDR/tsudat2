@@ -1,3 +1,15 @@
+To run a simulation, execute:
+    # for Victor Harbour
+    python make_fake_ui_files.VictorHarbour.sh	# if required
+    python fake_ui_victor.py
+
+    # for Batemans Bay
+    python make_fake_ui_files.BatemansBay.sh	# if required
+    python fake_ui_batemans.py
+
+----------
+Design
+
 The code here is used to run an ANUGA simulation.  The process that
 starts the TsuDAT run is imagined to be something like this.
 
