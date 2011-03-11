@@ -20,7 +20,11 @@ import numpy as num
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
 import anuga.utilities.log as log
-log.console_logging_level = log.ERROR	# turn console logging mostly off
+
+import export_depthonland_max as edm
+import export_newstage_max as enm
+
+log.console_logging_level = log.CRITICAL+1    # turn console logging off
 log.log_logging_level = log.INFO
 
 
@@ -28,7 +32,7 @@ log.log_logging_level = log.INFO
 # path to where all user work areas live
 ProjectHome = '/tmp/tsudat'
 # path to where all the MUX files are
-ProjectMuxHome = '/data_area/Tsu-DAT 1.0/Tsu-DAT_Data/earthquake_data'
+ProjectMuxHome = '/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
 
 
 # name of the fault name file (in multimux directory)
@@ -86,7 +90,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
 
     def touch(path):
         """Helper function to do a 'touch' for a file."""
-    
+
         with file(path, 'a'):
             os.utime(path, None)
 
@@ -230,11 +234,11 @@ def setup_model():
         project.scale_factor = 100
         project.time_thinning = 96
         project.yieldstep = 240
-    elif project.setup == 'basic': 
+    elif project.setup == 'basic':
         project.scale_factor = 4
         project.time_thinning = 12
         project.yieldstep = 120
-    elif project.setup == 'final': 
+    elif project.setup == 'final':
         project.scale_factor = 1
         project.time_thinning = 4
         project.yieldstep = 60
@@ -274,14 +278,14 @@ def setup_model():
         project.interior_regions.append([polygon,
                                          maxarea*project.scale_factor])
 
-    # Initial bounding polygon for data clipping 
+    # Initial bounding polygon for data clipping
     project.bounding_polygon = anuga.read_polygon(os.path.join(
                                                       project.polygons_folder,
                                                       project.bounding_polygon))
     project.bounding_maxarea = project.bounding_polygon_maxarea \
                                * project.scale_factor
 
-    # Estimate the number of triangles                     
+    # Estimate the number of triangles
     log.debug('number_mesh_triangles(%s, %s, %s)'
               % (str(project.interior_regions),
                  str(project.bounding_polygon),
@@ -402,7 +406,7 @@ def build_elevation():
         geospatial_data[filename] = G_points.clip(project.bounding_polygon)
 
     #####
-    # Combine, clip and export dataset 
+    # Combine, clip and export dataset
     #####
 
     G = None
@@ -426,7 +430,7 @@ def get_sts_gauge_data(filename, verbose=False):
     points = num.transpose(num.asarray([x.tolist(), y.tolist()]))
     time = fid.variables['time'][:] + fid.starttime
     elevation = fid.variables['elevation'][:]
-       
+
     basename = 'sts_gauge'
     quantity_names = ['stage', 'xmomentum', 'ymomentum']
     quantities = {}
@@ -436,10 +440,10 @@ def get_sts_gauge_data(filename, verbose=False):
     #####
     # Get maximum wave height throughout timeseries at each index point
     #####
-     
+
     maxname = 'max_sts_stage.csv'
     fid_max = open(os.path.join(project.event_folder, maxname), 'w')
-    fid_max.write('index, x, y, max_stage \n')    
+    fid_max.write('index, x, y, max_stage \n')
     for j in range(len(x)):
         index = permutation[j]
         stage = quantities['stage'][:,j]
@@ -448,14 +452,14 @@ def get_sts_gauge_data(filename, verbose=False):
 
         fid_max.write('%d, %.6f, %.6f, %.6f\n'
                       % (index, x[j], y[j], max(stage)))
-      
+
     #####
     # Get minimum wave height throughout timeseries at each index point
     #####
 
     minname = 'min_sts_stage.csv'
     fid_min = open(os.path.join(project.event_folder, minname), 'w')
-    fid_min.write('index, x, y, max_stage \n')    
+    fid_min.write('index, x, y, max_stage \n')
     for j in range(len(x)):
         index = permutation[j]
         stage = quantities['stage'][:,j]
@@ -477,7 +481,7 @@ def get_sts_gauge_data(filename, verbose=False):
             fid_sts.write('%.6f, %.6f, %.6f, %.6f\n'
                           % (time[k], stage[k], xmomentum[k], ymomentum[k]))
 
-        fid_sts.close()      
+        fid_sts.close()
     fid.close()
 
     return (quantities, elevation, time)
@@ -523,7 +527,7 @@ def build_urs_boundary(event_file, output_dir):
             muxname = muxname[:split_index+len('.grd')]
             muxname = os.path.join(project.mux_data_folder, muxname)
             mux_filenames.append(muxname)
-        
+
         mux_weights = [float(line.strip().split()[1]) for line in mux_data]
 
         # Call legacy function to create STS file.
@@ -538,7 +542,7 @@ def build_urs_boundary(event_file, output_dir):
 
         weight_factor = 1.0
         mux_weights = weight_factor*num.ones(len(mux_filenames), num.Float)
-            
+
         order_filename = project.urs_order
 
         # Create ordered sts file
@@ -603,7 +607,7 @@ def run_model():
     log.info('\n%s' % domain.statistics())
 
     domain.set_name(project.scenario_name)
-    domain.set_datadir(project.output_folder) 
+    domain.set_datadir(project.output_folder)
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
     # Set the initial stage in the offcoast region only
@@ -615,12 +619,12 @@ def run_model():
         IC = project.tide
 
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
-    domain.set_quantity('friction', project.friction) 
-    domain.set_quantity('elevation', 
+    domain.set_quantity('friction', project.friction)
+    domain.set_quantity('elevation',
                         filename=project.combined_elevation+'.pts',
                         use_cache=True, verbose=False, alpha=project.alpha)
 
-    # Setup boundary conditions 
+    # Setup boundary conditions
     log.debug('Set boundary - available tags: %s' % domain.get_boundary_tags())
 
     Br = anuga.Reflective_boundary(domain)
@@ -634,13 +638,13 @@ def run_model():
 
     domain.set_boundary({'back': Br,
                          'side': Bt,
-                         'ocean': Bf}) 
+                         'ocean': Bf})
 
     # Evolve system through time
     t0 = time.time()
-    for t in domain.evolve(yieldstep=project.yieldstep, 
+    for t in domain.evolve(yieldstep=project.yieldstep,
                            finaltime=project.finaltime,
-                           skip_initial_step=False): 
+                           skip_initial_step=False):
         log.info('\n%s' % domain.timestepping_statistics())
         log.info('\n%s' % domain.boundary_statistics(tags='ocean'))
 
@@ -754,13 +758,13 @@ def get_youngest_input():
 
     # check all files in given directories
     for dir in input_dirs:
-        for file in glob.glob(os.path.join(dir, '*')):
-            mtime = os.path.getmtime(file)
+        for fname in glob.glob(os.path.join(dir, '*')):
+            mtime = os.path.getmtime(fname)
             youngest = max(mtime, youngest)
 
     # check individual files
-    for file in input_files:
-        mtime = os.path.getmtime(file)
+    for fname in input_files:
+        mtime = os.path.getmtime(fname)
         youngest = max(mtime, youngest)
 
     return youngest
@@ -774,9 +778,12 @@ def export_results_max():
     ######
     # Note that mannings n (friction value) is taken as 0.01, as in the model
     # run density of water is 1000
-    var_equations = {'stage': 'stage',
+    var_equations = {'stage': enm.export_newstage_max,
+                     'oldstage': 'stage',
+                     'fred': 'fred',
                      'momentum': '(xmomentum**2 + ymomentum**2)**0.5',
-                     'depth': 'stage-elevation',
+                     'olddepth': 'stage-elevation',
+                     'depth': edm.export_depthonland_max,
                      'speed': '(xmomentum**2 + ymomentum**2)**0.5/(stage-elevation+1.e-6)',
                      'energy': '(((xmomentum/(stage-elevation+1.e-6))**2'
                                '  + (ymomentum/(stage-elevation+1.e-6))**2)'
@@ -790,14 +797,14 @@ def export_results_max():
     ######
 
     for which_var in project.var:
-        log.debug("Using value: %s" % which_var)
+        log.info("Exporting value: %s" % which_var)
 
         if which_var not in var_equations:
             log.critical('Unrecognized variable name: %s' % which_var)
             break
 
         for which_area in project.area:
-            log.debug("Using area: %s" % which_area)
+            log.info("Using area: %s" % which_area)
 
             if which_area == 'All':
                 easting_min = None
@@ -819,17 +826,20 @@ def export_results_max():
             outname = name + '_' + which_area + '_' + which_var
             quantityname = var_equations[which_var]
 
-            log.debug('Generating output file: %s' % (outname+'.asc'))
+            log.info('Generating output file: %s' % (outname+'.asc'))
 
-            anuga.sww2dem(name+'.sww', outname+'.asc',
-                          quantity=quantityname,
-                          reduction=max,
-                          cellsize=project.cell_size,      
-                          easting_min=easting_min,
-                          easting_max=easting_max,
-                          northing_min=northing_min,
-                          northing_max=northing_max,        
-                          verbose=False)
+            # assume 'quantityname' is a string, handle in the old way,
+            #  else call the handler function (same params as anuga.sww2dem)
+            if isinstance(quantityname, basestring):
+                export_func = anuga.sww2dem
+            elif callable(quantityname):
+                export_func = quantityname
+
+            export_func(name+'.sww', outname+'.asc', quantity=quantityname,
+                        reduction=max, cellsize=project.cell_size,
+                        easting_min=easting_min, easting_max=easting_max,
+                        northing_min=northing_min, northing_max=northing_max,
+                        verbose=False)
 
 
 def get_timeseries():
@@ -839,7 +849,7 @@ def get_timeseries():
     log.debug('get_timeseries: input SWW file=%s' % name)
     log.debug('get_timeseries: gauge file=%s' % project.gauges)
     anuga.sww2csv_gauges(name, project.gauges, quantities=project.var,
-                         verbose=False) 
+                         verbose=False)
 
 
 def excepthook(type, value, tb):
