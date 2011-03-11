@@ -16,12 +16,12 @@ TsuDATBase = '/tmp/tsudat'
 # all the user/project/scenario data
 User = 'user'
 Project = 'project'
-Scenario = 'scenario'
+Scenario = 'VictorHarbour'
 Setup = 'trial'
 Event = 58342
 
 # the directory containing all data files required
-DataFilesDir = './fake_ui_files'
+DataFilesDir = './fake_ui_files.%s' % Scenario
 
 # the data files
 BoundingPolygon = 'bounding_polygon.csv'
@@ -70,6 +70,7 @@ def main():
                  'zone': 54,
                  'force_run': False, # if True, *forces* a simulation
                  'debug': True}	# if True, forces DEBUG logging
+
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
