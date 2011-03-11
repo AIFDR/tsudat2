@@ -34,7 +34,7 @@ LandwardBoundary = 'landward_boundary.csv'
 
 STSFile = '%s.sts' % Scenario
 
-GaugesFinal = 'gauges_final.csv'
+GaugeFile = 'gauges_final.csv'
 
 
 
@@ -61,7 +61,7 @@ def main():
                  'area': ['All'],
                  'get_results_max': True,
                  'get_timeseries': True,
-                 'gauges': 'gauges_final.csv',
+                 'gauges': GaugeFile,
                  'interior_regions_data': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
                  'urs_order': UrsOrder,
@@ -93,7 +93,7 @@ def main():
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
 
-    shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugesFinal), gauges)
+    shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugeFile), gauges)
 
     # now run the simulation
     run_tsudat.run_tsudat(json_file)
