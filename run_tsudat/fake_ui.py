@@ -68,7 +68,8 @@ def main():
                  'landward_boundary': LandwardBoundary,
                  'ascii_grid_filenames': [],
                  'zone': 54,
-                 'debug': True}
+                 'force_run': False, # if True, *forces* a simulation
+                 'debug': True}	# if True, forces DEBUG logging
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
@@ -78,22 +79,20 @@ def main():
                                                     Scenario, Setup, Event)
 
     # copy data files to correct places in user directory
+    # maintain time/data stats
     for f in RawElevationFiles:
-        shutil.copy(os.path.join(DataFilesDir, 'raw_elevations', f),
-                    raw_elevations)
+        shutil.copy2(os.path.join(DataFilesDir, 'raw_elevations', f),
+                     raw_elevations)
 
-    shutil.copy(os.path.join(DataFilesDir, 'polygons', BoundingPolygon), polygons)
+    shutil.copy2(os.path.join(DataFilesDir, 'polygons', BoundingPolygon), polygons)
     for (f, _) in InteriorRegions:
-        shutil.copy(os.path.join(DataFilesDir, 'polygons', f), polygons)
+        shutil.copy2(os.path.join(DataFilesDir, 'polygons', f), polygons)
 
-    shutil.copy(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)
-    shutil.copy(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
-    shutil.copy(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
 
-    shutil.copy(os.path.join(DataFilesDir, 'gauges', GaugesFinal), gauges)
-
-    import sys
-    sys.exit(01)
+    shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugesFinal), gauges)
 
     # now run the simulation
     run_tsudat.run_tsudat(json_file)
