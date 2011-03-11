@@ -37,3 +37,5 @@ The design assumes there is only one copy of these files in the system.
 The code under run_tsudat.py must merge the json data values into it's own 
 fixed set of assumptions and run the simulation.
 
+The make_fake_ui_files.*.sh scripts are used to create directories full
+of data files that the fake_ui_*.py scripts use to run a simulation.
