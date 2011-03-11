@@ -139,7 +139,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
         touch(os.path.join(path, 'generated_files'))
 
         path = os.path.join(run_dir, 'gauges')
-        touch(os.path.join(path, 'gauges_final.csv'))
+        touch(os.path.join(path, 'gauges.csv'))
 
         touch(os.path.join(meshes, 'meshes.msh'))
 
@@ -708,22 +708,22 @@ def adorn_project(json_data):
     project.combined_elevation = os.path.join(project.topographies_folder,
                                               'combined_elevation')
 
-    # The absolute pathname of the mesh, generated in run_model.py
-    project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')
+    # The absolute pathname of the mesh file, generated in run_model.py
+    project.meshes = os.path.join(project.meshes_folder, project.meshfile)
 
-    # The pathname for the urs order points, used within build_urs_boundary.py
-    project.urs_order = os.path.join(project.boundaries_folder, 'urs_order.csv')
+    # The pathname for the urs order points file
+    project.urs_order = os.path.join(project.boundaries_folder,
+                                     project.urs_order)
 
     # The absolute pathname for the landward points of the bounding polygon,
-    # Used within run_model.py)
     project.landward_boundary = os.path.join(project.boundaries_folder,
-                                             'landward_boundary.csv')
+                                             project.landward_boundary)
 
     # The absolute pathname for the .sts file, generated in build_boundary.py
     project.event_sts = project.boundaries_folder
 
     # The absolute pathname for the gauges file
-    project.gauges = os.path.join(project.gauges_folder, 'gauges_final.csv')
+    project.gauges = os.path.join(project.gauges_folder, project.gauges)
 
     # full path to where MUX files (or meta-files) live
     project.mux_input = os.path.join(project.event_folder,
@@ -865,6 +865,7 @@ def excepthook(type, value, tb):
 def run_tsudat(json_data):
     """"Run ANUGA using data from a json data file."""
 
+    print('Batemans Bay run_tsudat.py')
 
     def dump_project_py():
         """Debug routine - dump project attributes to the log."""

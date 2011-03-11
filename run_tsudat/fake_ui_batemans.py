@@ -7,7 +7,7 @@ import shutil
 import json
 import tempfile
 
-import run_tsudat
+import run_tsudat_batemans as run_tsudat
 
 
 # the base of the TsuDAT user directory structures
@@ -36,6 +36,11 @@ STSFile = '%s.sts' % Scenario
 
 GaugesFinal = 'gauges.csv'
 
+MeshFile = 'meshes.msh'
+
+# pre-generated combined elevation file
+Elevation = 'combined_elevation.pts'
+
 
 
 def main():
@@ -61,7 +66,8 @@ def main():
                  'area': ['All'],
                  'get_results_max': True,
                  'get_timeseries': True,
-                 'gauges': 'gauges_final.csv',
+                 'gauges': GaugesFinal,
+                 'meshfile': MeshFile,
                  'interior_regions_data': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
                  'urs_order': UrsOrder,
@@ -97,6 +103,10 @@ def main():
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
 
     shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugesFinal), gauges)
+
+    # pre-generated combined elevation data file
+    topo = os.path.join(os.path.dirname(gauges), 'topographies')
+    shutil.copy2(os.path.join(DataFilesDir, 'topographies', Elevation), topo)
 
     # now run the simulation
     run_tsudat.run_tsudat(json_file)
