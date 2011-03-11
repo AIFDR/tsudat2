@@ -32,7 +32,7 @@ InteriorRegions = [['area_of_interest.csv', 500],
 UrsOrder = 'urs_order.csv'
 LandwardBoundary = 'landward_boundary.csv'
 
-STSFile = 'scenario.sts'
+STSFile = '%s.sts' % Scenario
 
 GaugesFinal = 'gauges_final.csv'
 
@@ -69,7 +69,7 @@ def main():
                  'ascii_grid_filenames': [],
                  'zone': 54,
                  'force_run': False, # if True, *forces* a simulation
-                 'debug': True}	# if True, forces DEBUG logging
+                 'debug': False}	# if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
