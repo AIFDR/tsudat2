@@ -54,3 +54,13 @@ EBS might be possible, as it behaves just like an external disk that is mounted
 into the filesystem.  Problem is, only one instance can have the EBS storage mounted.
 This might be possible if we have some sort of "batch queue" system running on an
 instance.  But then that isn't a user-owned instance.
+
+----------
+AMI and MUX data
+
+We might not need to transfer the 600GB of MUX data to the cloud if we generate the 
+hazard point timeseries data from the MUX data *locally* on the webserver before
+trying to run the simulation on the cloud.
+
+This approach woud work whether the remote machine was amazon AMI, a cluster, or
+whatever.
