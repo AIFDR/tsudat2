@@ -13,6 +13,7 @@ from vectorformats.Formats import Django, GeoJSON
 from geonode.maps.models import *
 
 from tsudat.models import *
+from tsudat.tasks import run_tsudat_simulation
 
 geoj = GeoJSON.GeoJSON()
 
@@ -320,3 +321,13 @@ def layer(request, uuid=None):
 	else:
 		coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
 		return HttpResponse(serializers.serialize("json", coverage_layers))
+
+def run_scenario(request, scenario_id):
+    try:
+        #logger.debug("Calling run_tsudat_simulation asynchronously")
+        run_tsudat_simulation.delay(request.user, scenario_id)
+        data = {'status': 'success', 'msg': 'Scenario queued for processing'}
+        return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+    except:
+        data = {'status': 'failure', 'msg': 'Failed queuing Scenario for processing', 'error': str(sys.exc_info()[0])}
+        return HttpResponse(simplejson.dumps(data),mimetype='application/json')
