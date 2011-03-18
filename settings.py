@@ -37,6 +37,18 @@ GEOSERVER_CREDENTIALS = "admin", "geoserver"
 GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
 GEONETWORK_CREDENTIALS = "admin", 'admin'
 
+# TsuDAT Settings
+TSUDAT_BASE_DIR='/opt/tsudat'
+
+# Celery Settings
+CARROT_BACKEND = "django"
+CELERY_IMPORTS = ("tsudat2.tsudat.tasks", )
+CELERY_RESULT_BACKEND = "database"
+CELERY_RESULT_DBURI = "postgresql://tsudat:tsudat@localhost/tsudat"
+CELERYD_LOG_LEVEL = "DEBUG"
+#CELERY_ALWAYS_EAGER = True
+#CELERY_SEND_EVENTS = True
+
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
@@ -75,7 +87,7 @@ MEDIA_URL = ''
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
-ADMIN_MEDIA_PREFIX = '/media/'
+ADMIN_MEDIA_PREFIX = "/admin-media/"
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '(28f@wmx0qnm#=_1$vxu7l55vvovt$e!2f@++%6$)i2i3erb@z'
@@ -101,7 +113,6 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT,"templates"),
 )
 
-
 STATIC_ROOT = os.path.abspath(os.path.dirname(__file__))
 #STATIC_ROOT = os.path.join(PROJECT_ROOT,"media")
 
@@ -122,8 +133,16 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.gis',
+    'notification',
     'staticfiles',
     'proxy',
     'tsudat',
     'geonode.maps',
+    'djcelery',
+    'ghettoq',
+    'djkombu',
+
 )
+
+import djcelery
+djcelery.setup_loader()
