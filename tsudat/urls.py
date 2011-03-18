@@ -23,4 +23,5 @@ urlpatterns = patterns('tsudat.views',
     (r'^data_set/(?P<id>[0-9]+)/$', 'data_set'),
     (r'^project_data_set/$', 'project_data_set'),
     (r'^project_data_set/(?P<id>[0-9]+)/$', 'project_data_set'),
+    (r'^run_scenario/(?P<scenario_id>[0-9]+)/$', 'run_scenario'),
 )
