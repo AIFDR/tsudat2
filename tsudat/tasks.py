@@ -3,6 +3,7 @@ import logging
 import shutil
 import simplejson as json
 import tempfile
+from time import gmtime, strftime
 
 from django import db
 from django.contrib.auth.models import User
@@ -22,41 +23,82 @@ logger = logging.getLogger("tsudat2.tsudat.tasks")
 
 @task
 def run_tsudat_simulation(user, scenario_id):
+    # Get the scenario object from the Database
     scenario = Scenario.objects.get(id=scenario_id)
         
-    # the base of the TsuDAT user directory structures
-    # from settings.py
+    # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR
-
-    ProjectFilesDir = TsuDATBase + '/run'
-    # the directory containing all data files required
     DataFilesDir = '%s/fake_ui_files.%s' % (TsuDATBase, scenario.name)
 
-    # the data files
+    # create the user working directory
+    (run_dir, raw_elevations, boundaries, meshes,
+     polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username, scenario.project.name,
+                                                    scenario.name, scenario.model_setup, scenario.event.tsudat_id)
+
+    # Polygons
+
+    #TODO Need to actually determine the right UTM Zone from lat/lon pair
+    utm_zone = 54
+    srid = 32756
+
     project_geom = scenario.project.geom
+    project_geom.transform(srid) 
 
-    #Need to actually determine the right UTM Zone
-    project_geom.transform(32756)
+    bounding_polygon_file = open(os.path.join(polygons, 'bounding_polygon.csv'), 'w')
+    for coord in project_geom.coords[0]:
+        bounding_polygon_file.write('%f,%f\n' % (coord[0], coord[1]))
+    bounding_polygon_file.close()
+  
+    internal_polygons = InternalPolygon.objects.filter(project=scenario.project).order_by('value')
+    count = 0
+    InteriorRegions = []
+    for ip in internal_polygons:
+        ipfile = open(os.path.join(polygons, 'ip%s.csv' % count), 'w')
+        geom = ip.geom
+        geom.transform(srid)
+        for coord in geom.coords[0]:
+            ipfile.write('%f,%f\n' % (coord[0], coord[1]))
+        InteriorRegions.append([ipfile.name, ip.value])
+        ipfile.close()
+        geom = ipfile = None
+        count += 1
 
-    BoundingPolygon = 'bounding_polygon.csv'
+    # Raw Elevation Files TODO
     RawElevationFiles = []
-    InteriorRegions = [['area_of_interest.csv', 500],
-                       ['area_of_significance.csv', 2500],
-                       ['shallow_water.csv', 10000]]
-    UrsOrder = 'urs_order.csv'
+
+    for f in RawElevationFiles:
+        shutil.copy2(os.path.join(DataFilesDir, 'raw_elevations', f),
+                     raw_elevations)
+
+    # Boundaries TODO
     LandwardBoundary = 'landward_boundary.csv'
-
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)
+    UrsOrder = 'urs_order.csv'
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
     STSFile = '%s.sts' % scenario.name
-
-    GaugesFinal = 'gauges.csv'
-
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
+    
+    # Gauges
+    gauge_file = open(os.path.join(gauges, 'gauges.csv'), 'w')
+    gauge_file.write('easting,northing,name,elevation\n')
+    gauge_points = GaugePoint.objects.filter(project=scenario.project)
+    for gauge in gauge_points:
+        gauge_geom = gauge.geom
+        gauge_geom.transform(srid)
+        gauge_file.write('%f,%f,%s,%f\n' % (gauge_geom.coords[0], gauge_geom.coords[1], gauge.name, 0.0)) #TODO Add Elevation to GP?
+    gauge_file.close()
+    
+    # Topographies TODO
     MeshFile = 'meshes.msh'
-
-    # pre-generated combined elevation file
     Elevation = 'combined_elevation.pts'
 
-    # build the appropriate json data file
-    json_file = os.path.join(ProjectFilesDir, '%s.%s.json' % (scenario.name, scenario.project.name))
+    # pre-generated combined elevation data file
+    topo = os.path.join(os.path.dirname(gauges), 'topographies')
+    shutil.copy2(os.path.join(DataFilesDir, 'topographies', Elevation), topo)
+
+    # build the scenario json data file
+    date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
+    json_file = os.path.join(run_dir, '%s.%s.%s.json' % (scenario.name, scenario.project.name, date_time))
                
     json_dict = {'user': user.username,
                  'project': scenario.project.name,
@@ -67,22 +109,22 @@ def run_tsudat_simulation(user, scenario_id):
                  'start_time': scenario.start_time,
                  'end_time': scenario.end_time,
                  'smoothing': scenario.smoothing_param,
-                 'bounding_polygon': BoundingPolygon,
+                 'bounding_polygon': bounding_polygon_file.name,
                  'elevation_data': RawElevationFiles,
                  'mesh_friction': scenario.default_friction_value,
-                 'raster_resolution': 250,
-                 'layers': ['stage', 'depth'],
-                 'area': ['All'],
+                 'raster_resolution': 250, #TODO
+                 'layers': ['stage', 'depth'], #TODO
+                 'area': ['All'], #TODO?
                  'get_results_max': True,
                  'get_timeseries': True,
-                 'gauges': GaugesFinal,
+                 'gauges': gauge_file.name,
                  'meshfile': MeshFile,
                  'interior_regions_data': InteriorRegions,
-                 'bounding_polygon_maxarea': 100000,
+                 'bounding_polygon_maxarea': 100000, #TODO
                  'urs_order': UrsOrder,
                  'landward_boundary': LandwardBoundary,
                  'ascii_grid_filenames': [],
-                 'zone': 54,
+                 'zone': utm_zone,
                  'xminAOI': project_geom.extent[0],
                  'xmaxAOI': project_geom.extent[1],
                  'yminAOI': project_geom.extent[2],
@@ -92,40 +134,13 @@ def run_tsudat_simulation(user, scenario_id):
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
-    # create the user working directory
-    (raw_elevations, boundaries, meshes,
-     polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase + '/run', user.username, scenario.project.name,
-                                                    scenario.name, scenario.model_setup, scenario.event.tsudat_id)
-
-    # copy data files to correct places in user directory
-    # maintain time/data stats
-    for f in RawElevationFiles:
-        shutil.copy2(os.path.join(DataFilesDir, 'raw_elevations', f),
-                     raw_elevations)
-
-    #shutil.copy2(os.path.join(DataFilesDir, 'polygons', BoundingPolygon), polygons)
-    bounding_polygon_file = open(os.path.join(polygons, 'bounding_polygon.csv'), 'w')
-    for coord in project_geom.coords[0]:
-        bounding_polygon_file.write('%d,%d\n' % (coord[0], coord[1]))
-    bounding_polygon_file.close()
-
-    for (f, _) in InteriorRegions:
-        shutil.copy2(os.path.join(DataFilesDir, 'polygons', f), polygons)
-
-    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)
-    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
-    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
-
-    shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugesFinal), gauges)
-
-    # pre-generated combined elevation data file
-    topo = os.path.join(os.path.dirname(gauges), 'topographies')
-    shutil.copy2(os.path.join(DataFilesDir, 'topographies', Elevation), topo)
-
     # now run the simulation
     run_tsudat.run_tsudat(json_file)
 
-    # remove temporary files
-    #os.remove(json_file)
+    # Setup the new layers in the GeoNode
+
+    # Create a project Map in the GeoNode 
     
+    # Notify the User their job is finished
+
     return True
