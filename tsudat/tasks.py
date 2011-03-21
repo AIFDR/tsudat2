@@ -12,6 +12,7 @@ from django.conf import settings
 from tsudat.models import *
 from celery.decorators import task
 
+from util.LatLongUTMconversion import LLtoUTM 
 from run_tsudat import run_tsudat
 
 try:
@@ -36,10 +37,22 @@ def run_tsudat_simulation(user, scenario_id):
                                                     scenario.name, scenario.model_setup, scenario.event.tsudat_id)
 
     # Polygons
+    
+    project_geom = scenario.project.geom
+    centroid = project_geom.centroid
 
-    #TODO Need to actually determine the right UTM Zone from lat/lon pair
-    utm_zone = 54
-    srid = 32756
+    # This somewhat naively that the whole bounding polygon is in the same zone
+    (UTMZone, UTMEasting, UTMNorthing) = LLtoUTM(23, centroid.coords[1], centroid.coords[0])
+    if(len(UTMZone) == 3):
+        utm_zone = int(UTMZone[0:2])
+    else:
+        utm_zone = int(UTMZone[0:1])
+    if(centroid.coords[1] > 0):
+        srid_base = 32600
+    else:
+        srid_base = 32700
+    srid = srid_base + utm_zone
+    print utm_zone, srid
 
     project_geom = scenario.project.geom
     project_geom.transform(srid) 
