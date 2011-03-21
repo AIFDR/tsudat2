@@ -84,7 +84,7 @@ def main():
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
     # create the user working directory
-    (raw_elevations, boundaries, meshes,
+    (run_dir, raw_elevations, boundaries, meshes,
      polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase, User, Project,
                                                     Scenario, Setup, Event)
 

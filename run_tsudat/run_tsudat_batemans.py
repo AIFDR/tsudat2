@@ -146,7 +146,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
         touch(os.path.join(polygons, 'polygon_files'))
 
     # return paths to various places under 'base'
-    return (raw_elevation, boundaries, meshes, polygons, gauges)
+    return (run_dir, raw_elevation, boundaries, meshes, polygons, gauges)
 
 
 def setup_model():

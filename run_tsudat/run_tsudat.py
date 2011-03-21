@@ -30,7 +30,7 @@ log.log_logging_level = log.INFO
 
 # THIS MUST BE CHANGED TO MATCH SERVER REQUIREMENTS
 # path to where all user work areas live
-ProjectHome = '/tmp/tsudat'
+ProjectHome = '/opt/tsudat'
 # path to where all the MUX files are
 ProjectMuxHome = '/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
 
@@ -146,7 +146,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
         touch(os.path.join(polygons, 'polygon_files'))
 
     # return paths to various places under 'base'
-    return (raw_elevation, boundaries, meshes, polygons, gauges)
+    return (run_dir, raw_elevation, boundaries, meshes, polygons, gauges)
 
 
 def setup_model():
