@@ -8,7 +8,8 @@
 # and scp that single file to here and unzip.
 #
 
-PW=VBi1bu335
+# put your name here - you'll need to enter your password below
+USERNAME=wilsor
 
 # where to create fake_ui data
 TARGET=fake_ui_files.BatemansBay
@@ -22,8 +23,6 @@ if [ -d $TARGET ]; then
     exit
 fi
 
-echo "password: $PW"
-
 mkdir -p $TARGET
 mkdir -p $TARGET/boundaries
 mkdir -p $TARGET/gauges
@@ -32,13 +31,13 @@ mkdir -p $TARGET/topographies
 mkdir -p $TARGET/raw_elevations
 
 # copy required files from alamba
-scp wilsor@alamba:$SOURCE/boundaries/landward_boundary.csv $TARGET/boundaries
-scp wilsor@alamba:$SOURCE/boundaries/urs_order.csv $TARGET/boundaries
-scp wilsor@alamba:$SOURCE/boundaries/58348/batemans_bay.sts $TARGET/boundaries/BatemansBay.sts
-scp wilsor@alamba:$SOURCE/gauges/gauges.csv $TARGET/gauges
-scp wilsor@alamba:$SOURCE/polygons/area_of_interest.csv $TARGET/polygons
-scp wilsor@alamba:$SOURCE/polygons/area_of_significance.csv $TARGET/polygons
-scp wilsor@alamba:$SOURCE/polygons/bounding_polygon.csv $TARGET/polygons
-scp wilsor@alamba:$SOURCE/polygons/shallow_water.csv $TARGET/polygons
-scp wilsor@alamba:$SOURCE/topographies/batemans_bay_combined_elevation.pts $TARGET/topographies/combined_elevation.pts
+scp $USERNAME@alamba:$SOURCE/boundaries/landward_boundary.csv $TARGET/boundaries
+scp $USERNAME@alamba:$SOURCE/boundaries/urs_order.csv $TARGET/boundaries
+scp $USERNAME@alamba:$SOURCE/boundaries/58348/batemans_bay.sts $TARGET/boundaries/BatemansBay.sts
+scp $USERNAME@alamba:$SOURCE/gauges/gauges.csv $TARGET/gauges
+scp $USERNAME@alamba:$SOURCE/polygons/area_of_interest.csv $TARGET/polygons
+scp $USERNAME@alamba:$SOURCE/polygons/area_of_significance.csv $TARGET/polygons
+scp $USERNAME@alamba:$SOURCE/polygons/bounding_polygon.csv $TARGET/polygons
+scp $USERNAME@alamba:$SOURCE/polygons/shallow_water.csv $TARGET/polygons
+scp $USERNAME@alamba:$SOURCE/topographies/batemans_bay_combined_elevation.pts $TARGET/topographies/combined_elevation.pts
 
