@@ -63,8 +63,6 @@ class Project(object):
 project = Project()
 
 # populate with some fixed values
-project.home = ProjectHome
-project.muxhome = ProjectMuxHome
 project.multi_mux = True
 
 
@@ -163,12 +161,14 @@ def setup_model():
     # check directory Structure
     #####
 
-    if not os.path.exists(project.home):
-        log.error("Sorry, data directory '%s' doesn't exist" % project.home)
+    if not os.path.exists(project.working_directory):
+        log.error("Sorry, working directory '%s' doesn't exist"
+                  % project.working_directory)
         sanity_error = True
 
-    if not os.path.exists(project.muxhome):
-        log.error("Sorry, MUX directory '%s' doesn't exist" % project.muxhome)
+    if not os.path.exists(project.mux_directory):
+        log.error("Sorry, mux directory '%s' doesn't exist"
+                  % project.mux_directory)
         sanity_error = True
 
     if not os.path.exists(project.anuga_folder):
@@ -678,7 +678,7 @@ def adorn_project(json_data):
 
     # add extra derived attributes
     # paths to various directories
-    project.anuga_folder = os.path.join(project.home, project.user,
+    project.anuga_folder = os.path.join(project.working_directory, project.user,
                                         project.project, project.scenario_name,
                                         project.setup)
     project.topographies_folder = os.path.join(project.anuga_folder,
@@ -689,14 +689,15 @@ def adorn_project(json_data):
     project.gauges_folder = os.path.join(project.anuga_folder, 'gauges')
     project.meshes_folder = os.path.join(project.anuga_folder, 'meshes')
     project.event_folder = project.boundaries_folder
-    project.raw_elevation_folder = os.path.join(project.home, project.user,
+    project.raw_elevation_folder = os.path.join(project.working_directory,
+                                                project.user,
                                                 project.project,
                                                 'raw_elevation')
 
     # MUX data files
     # Directory containing the MUX data files to be used with EventSelection.
-    project.mux_data_folder = os.path.join(project.muxhome, 'mux')
-    project.multimux_folder = os.path.join(project.muxhome, 'multimux')
+    project.mux_data_folder = os.path.join(project.mux_directory, 'mux')
+    project.multimux_folder = os.path.join(project.mux_directory, 'multimux')
 
     project.mux_input_filename = 'event_%d.lst' % project.event
 
