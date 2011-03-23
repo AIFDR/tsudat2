@@ -12,6 +12,7 @@ import run_tsudat
 
 # the base of the TsuDAT user directory structures
 TsuDATBase = '/tmp/tsudat'
+TsuDATMux = '/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
 
 # all the user/project/scenario data
 User = 'user'
@@ -39,7 +40,7 @@ GaugeFile = 'gauges_final.csv'
 
 
 def main():
-    """Behave like the UI and run a TsuDAT sinulation locally."""
+    """Behave like the UI and run a TsuDAT simulation locally."""
 
     # build the appropriate json data file
     (_, json_file) = tempfile.mkstemp(suffix='.json',
@@ -49,6 +50,8 @@ def main():
                  'scenario_name': Scenario,
                  'setup': Setup,
                  'event': Event,
+                 'working_directory': TsuDATBase,
+                 'mux_directory': TsuDATMux,
                  'tide': 0.0,
                  'start_time': 0,
                  'end_time': 27000,
