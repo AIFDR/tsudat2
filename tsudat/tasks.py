@@ -9,8 +9,11 @@ from django import db
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from owslib.wcs import WebCoverageService
+
 from tsudat.models import *
 from celery.decorators import task
+from geonode.maps.models import *
 
 from util.LatLongUTMconversion import LLtoUTM 
 from run_tsudat import run_tsudat
@@ -39,6 +42,8 @@ def run_tsudat_simulation(user, scenario_id):
     # Polygons
     
     project_geom = scenario.project.geom
+    project_extent = scenario.project.geom.extent
+    print project_extent
     centroid = project_geom.centroid
 
     # This somewhat naively that the whole bounding polygon is in the same zone
@@ -54,8 +59,8 @@ def run_tsudat_simulation(user, scenario_id):
     srid = srid_base + utm_zone
     print utm_zone, srid
 
-    project_geom = scenario.project.geom
     project_geom.transform(srid) 
+    print project_extent
 
     bounding_polygon_file = open(os.path.join(polygons, 'bounding_polygon.csv'), 'w')
     for coord in project_geom.coords[0]:
@@ -79,9 +84,15 @@ def run_tsudat_simulation(user, scenario_id):
     # Raw Elevation Files TODO
     RawElevationFiles = []
 
-    for f in RawElevationFiles:
-        shutil.copy2(os.path.join(DataFilesDir, 'raw_elevations', f),
-                     raw_elevations)
+    wcs = WebCoverageService('http://tsudat.dev.opengeo.org/geoserver-geonode-dev/wcs', version='1.0.0')
+    pds = ProjectDataSet.objects.filter(project=scenario.project).order_by('ranking')
+    for ds in pds:
+        layer = Layer.objects.using('geonode').get(uuid=ds.dataset.geonode_layer_uuid)
+        cvg = wcs.getCoverage(identifier=layer.typename, format='GeoTIFF', crs="EPSG:4326", bbox=(project_extent[0], project_extent[1], project_extent[2], project_extent[3]), resx=0.030741064, resy=0.030741064)
+        file_name = '%s.tif' % ds.ranking
+        out = open(os.path.join(raw_elevations, file_name), 'wb')
+        out.write(cvg.read())
+        out.close()
 
     # Boundaries TODO
     LandwardBoundary = 'landward_boundary.csv'
@@ -139,8 +150,8 @@ def run_tsudat_simulation(user, scenario_id):
                  'ascii_grid_filenames': [],
                  'zone': utm_zone,
                  'xminAOI': project_geom.extent[0],
-                 'xmaxAOI': project_geom.extent[1],
-                 'yminAOI': project_geom.extent[2],
+                 'yminAOI': project_geom.extent[1],
+                 'xmaxAOI': project_geom.extent[2],
                  'ymaxAOI': project_geom.extent[3],
                  'force_run': False, # if True, *forces* a simulation
                  'debug': True}	# if True, forces DEBUG logging
