@@ -255,6 +255,9 @@ class DataSet(models.Model):
     resolution = models.PositiveIntegerField() 
     geom = models.PolygonField()
     objects = models.GeoManager()
+    
+    def __unicode__(self):
+        return str(self.pk)
 
 class ProjectDataSet(models.Model):
     project = models.ForeignKey(Project)
