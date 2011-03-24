@@ -71,8 +71,8 @@ def main():
                  'landward_boundary': LandwardBoundary,
                  'ascii_grid_filenames': [],
                  'zone': 54,
-                 'force_run': False, # if True, *forces* a simulation
-                 'debug': False}	# if True, forces DEBUG logging
+                 'force_run': True, # if True, *forces* a simulation
+                 'debug': True}	# if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
@@ -99,7 +99,7 @@ def main():
     shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugeFile), gauges)
 
     # now run the simulation
-    run_tsudat.run_tsudat(json_file)
+    gen_files = run_tsudat.run_tsudat(json_file)
 
     # remove temporary files
     os.remove(json_file)

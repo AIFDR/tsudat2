@@ -109,7 +109,7 @@ def main():
     shutil.copy2(os.path.join(DataFilesDir, 'topographies', Elevation), topo)
 
     # now run the simulation
-    run_tsudat.run_tsudat(json_file)
+    gen_files = run_tsudat.run_tsudat(json_file)
 
     # remove temporary files
     os.remove(json_file)

@@ -3,7 +3,7 @@ Run an ANUGA simulation.
 
 usage:  run_tsudat(json_data)
 
-where 'json_data' is the path to the json data file from the UI.
+where 'json_data' is the path to the JSON data file from the UI.
 """
 
 import sys
@@ -41,7 +41,7 @@ FaultNameFilename = 'fault_list.txt'
 # match any number of spaces beteen fields
 SpacesPattern = re.compile(' +')
 
-# dictionary to handle attribute renaming from json->project
+# dictionary to handle attribute renaming from JSON->project
 # 'UI_name': 'ANUGA_name',
 RenameDict = {'mesh_friction': 'friction',
               'smoothing': 'alpha',
@@ -654,12 +654,12 @@ def run_model():
 def adorn_project(json_data):
     """Adorn the project object with data from the json file.
 
-    json_data  path to the UI json datat file
+    json_data  path to the UI JSON data file
 
-    Also adds extra project attributes derived from json data.
+    Also adds extra project attributes derived from JSON data.
     """
 
-    # parse the json
+    # parse the JSON
     with open(json_data, 'r') as fp:
         ui_dict = json.load(fp)
 
@@ -772,7 +772,13 @@ def get_youngest_input():
 
 
 def export_results_max():
-    """Export maximum resuts."""
+    """Export maximum results.
+
+    Returns a list of generated files.
+    """
+
+    # initialise the list of generated files
+    gen_files = []
 
     ######
     # Define allowed variable names and associated equations to generate values.
@@ -842,15 +848,29 @@ def export_results_max():
                         northing_min=northing_min, northing_max=northing_max,
                         verbose=False)
 
+            # add generated filename to result list
+            gen_files.append(outname+'.asc')
+
+    return gen_files
+
 
 def get_timeseries():
-    """Get time series data."""
+    """Get time series data"
 
+    Returns a list of generated files.
+    """
+
+    # generate the result files
     name = os.path.join(project.output_folder, project.scenario_name+'.sww')
     log.debug('get_timeseries: input SWW file=%s' % name)
     log.debug('get_timeseries: gauge file=%s' % project.gauges)
     anuga.sww2csv_gauges(name, project.gauges, quantities=project.var,
                          verbose=False)
+
+    # since ANUGA code doesn't return a list of generated files,
+    # look in output directory for 'gauge_*.csv' files.
+    glob_mask = os.path.join(project.output_folder, 'gauge_*.csv')
+    return glob.glob(glob_mask)
 
 
 def excepthook(type, value, tb):
@@ -864,7 +884,32 @@ def excepthook(type, value, tb):
 
 
 def run_tsudat(json_data):
-    """"Run ANUGA using data from a json data file."""
+    """Run ANUGA using data from a JSON data file.
+
+    json_data  the path to the JSON data file
+
+    Returns a dictionary of {'<type of file>': <list of files>, ...}.
+    The dictionary keys and values are:
+        'log': list of a single path to the log file
+        'results_max': list of ASC files containing maximum values
+        'sww':         list of ll SWW files produced
+        'timeseries':  list of all gauge files produced
+
+    For example:
+    {'log': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/tsudat.log'],
+     'results_max': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour_All_stage.asc',
+                     '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour_All_depth.asc'],
+     'sww': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour.sww'],
+     'timeseries': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner4.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner1.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner5.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner2.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_deep7.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_shallow6.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_deep8.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_deep9.csv',
+                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner3.csv']}
+    """
 
 
     def dump_project_py():
@@ -878,10 +923,13 @@ def run_tsudat(json_data):
                 except AttributeError:
                     pass
 
+    # start the result dictionary
+    gen_files = {}
+
     # plug our exception handler into the python system
     sys.excepthook = excepthook
 
-    # get json data and adorn project object with it's data
+    # get JSON data and adorn project object with its data
     adorn_project(json_data)
 
     # set logfile to be in run output folder
@@ -916,13 +964,21 @@ def run_tsudat(json_data):
         log.info('# If you want to force a simulation run, select FORCE RUN')
         log.info('#'*90)
 
+    # add *all* SWW files in the output directory to result dictionary
+    # (whether we ran a sumulation or not)
+    glob_mask = os.path.join(project.output_folder, '*.sww')
+    gen_files['sww'] = glob.glob(glob_mask)
+
     # now do optional post-run extractions
     if project.get_results_max:
        log.info('~'*90)
        log.info('~ Running export_results_max()')
        log.info('~'*90)
-       export_results_max()
+       file_list = export_results_max()
        log.info('export_results_max() has finished')
+
+       # add generated file list to result dictionary
+       gen_files['results_max'] = file_list
     else:
        log.info('~'*90)
        log.info('~ Not running export_results_max() - not requested')
@@ -932,8 +988,11 @@ def run_tsudat(json_data):
        log.info('~'*90)
        log.info('~ Running get_timeseries()')
        log.info('~'*90)
-       get_timeseries()
+       file_list = get_timeseries()
        log.info('get_timeseries() has finished')
+
+       # add generated file list to result dictionary
+       gen_files['timeseries'] = file_list
     else:
        log.info('~'*90)
        log.info('~ Not running get_timeseries() - not requested')
@@ -942,3 +1001,16 @@ def run_tsudat(json_data):
     log.info('#'*90)
     log.info('# Simulation finished')
     log.info('#'*90)
+
+    # add the ANUGA log file in case user wants to see it
+    glob_mask = os.path.join(project.output_folder, '*.log')
+    gen_files['log'] = glob.glob(glob_mask)
+
+    # optionally dump returned file data
+    if project.debug:
+        import pprint
+        pp = pprint.PrettyPrinter(indent=4)
+        gen_str = pprint.pformat(gen_files)
+        log.debug('Returned files:\n%s' % gen_str)
+
+    return gen_files
