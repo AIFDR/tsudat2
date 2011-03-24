@@ -3,7 +3,7 @@ import logging
 import shutil
 import simplejson as json
 import tempfile
-from time import gmtime, strftime
+from time import gmtime, strftime, sleep
 
 from django import db
 from django.contrib.auth.models import User
@@ -14,6 +14,10 @@ from owslib.wcs import WebCoverageService
 from tsudat.models import *
 from celery.decorators import task
 from geonode.maps.models import *
+
+import gdal
+from gdalconst import *
+import osr
 
 from util.LatLongUTMconversion import LLtoUTM 
 from run_tsudat import run_tsudat
@@ -43,7 +47,6 @@ def run_tsudat_simulation(user, scenario_id):
     
     project_geom = scenario.project.geom
     project_extent = scenario.project.geom.extent
-    print project_extent
     centroid = project_geom.centroid
 
     # This somewhat naively that the whole bounding polygon is in the same zone
@@ -57,10 +60,8 @@ def run_tsudat_simulation(user, scenario_id):
     else:
         srid_base = 32700
     srid = srid_base + utm_zone
-    print utm_zone, srid
 
     project_geom.transform(srid) 
-    print project_extent
 
     bounding_polygon_file = open(os.path.join(polygons, 'bounding_polygon.csv'), 'w')
     for coord in project_geom.coords[0]:
@@ -86,13 +87,57 @@ def run_tsudat_simulation(user, scenario_id):
 
     wcs = WebCoverageService('http://tsudat.dev.opengeo.org/geoserver-geonode-dev/wcs', version='1.0.0')
     pds = ProjectDataSet.objects.filter(project=scenario.project).order_by('ranking')
+    output_format = "AAIGrid"
+    driver = gdal.GetDriverByName(output_format)
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(srid)
+    dst_wkt = srs.ExportToPrettyWkt()
+    eResampleAlg = None
+    create_options = None
     for ds in pds:
         layer = Layer.objects.using('geonode').get(uuid=ds.dataset.geonode_layer_uuid)
-        cvg = wcs.getCoverage(identifier=layer.typename, format='GeoTIFF', crs="EPSG:4326", bbox=(project_extent[0], project_extent[1], project_extent[2], project_extent[3]), resx=0.030741064, resy=0.030741064)
-        file_name = '%s.tif' % ds.ranking
-        out = open(os.path.join(raw_elevations, file_name), 'wb')
+        metadata = wcs.contents[layer.name]
+        resx = metadata.grid.offsetvectors[0][0]
+        resy = abs(float(metadata.grid.offsetvectors[1][1]))
+        formats = metadata.supportedFormats
+        print formats
+        cvg = wcs.getCoverage(identifier=layer.typename, 
+                format='GeoTIFF', 
+                crs="EPSG:4326", 
+                bbox=(project_extent[0], 
+                    project_extent[1], 
+                    project_extent[2], 
+                    project_extent[3]), 
+                resx=resx, 
+                resy=resy)
+        # Need to make sure the ranking numbers are unique for each project (enforced with DB constraint?)
+        tif_file_name = '%s.tif' % ds.ranking
+        tif_file_path = os.path.join(raw_elevations, tif_file_name)
+        asc_file_name = '%s.asc' % ds.ranking
+        asc_file_path = os.path.join(raw_elevations, asc_file_name)
+        out = open(tif_file_path, 'wb')
         out.write(cvg.read())
         out.close()
+       
+        # Warp to UTM
+        cmd = "/usr/bin/gdalwarp -t_srs EPSG:%d %s %s.tmp" % (srid, tif_file_path, tif_file_path)
+        os.system(cmd)
+        # Convert to AAIGrid
+        cmd = "/usr/bin/gdal_translate -of %s %s.tmp %s" % (output_format, tif_file_path, asc_file_path)
+        os.system(cmd)
+        # Remove Intermediate files
+        os.remove(tif_file_path)
+        os.remove(tif_file_path + ".tmp")
+
+        '''
+        src_ds = gdal.Open( str(tif_file_path), GA_ReadOnly )
+        dst_ds_tmp = driver.CreateCopy( str(asc_file_name + '.tmp'), src_ds, 0)
+        dst_ds = driver.Create( str(asc_file_path), dst_ds_tmp.RasterXSize, dst_ds_tmp.RasterYSize)
+        gdal.ReprojectImage(src_ds, dst_ds, None, dst_wkt)
+        dst_ds = None
+        dst_ds_tmp = None
+        src_ds = None
+        '''
 
     # Boundaries TODO
     LandwardBoundary = 'landward_boundary.csv'
