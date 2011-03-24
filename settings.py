@@ -32,7 +32,7 @@ DATABASES = {
     }
 }
 
-GEOSERVER_BASE_URL="http://localhost:8080/geoserver-geonode-dev/"
+GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
 GEOSERVER_CREDENTIALS = "admin", "geoserver" 
 GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
 GEONETWORK_CREDENTIALS = "admin", 'admin'

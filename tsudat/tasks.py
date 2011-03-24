@@ -33,7 +33,7 @@ logger = logging.getLogger("tsudat2.tsudat.tasks")
 def run_tsudat_simulation(user, scenario_id):
     # Get the scenario object from the Database
     scenario = Scenario.objects.get(id=scenario_id)
-        
+    
     # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR
     TsuDATMux = settings.TSUDAT_MUX_DIR
@@ -86,7 +86,9 @@ def run_tsudat_simulation(user, scenario_id):
     # Raw Elevation Files
     RawElevationFiles = []
 
-    wcs = WebCoverageService('http://tsudat.dev.opengeo.org/geoserver-geonode-dev/wcs', version='1.0.0')
+    wcs_url = settings.GEOSERVER_BASE_URL + 'wcs'
+
+    wcs = WebCoverageService(wcs_url, version='1.0.0')
     pds = ProjectDataSet.objects.filter(project=scenario.project).order_by('ranking')
     output_format = "AAIGrid"
     driver = gdal.GetDriverByName(output_format)
