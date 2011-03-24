@@ -39,6 +39,7 @@ GEONETWORK_CREDENTIALS = "admin", 'admin'
 
 # TsuDAT Settings
 TSUDAT_BASE_DIR='/opt/tsudat'
+TSUDAT_MUX_DIR='/opt/tsudat/mux'
 
 # Celery Settings
 CARROT_BACKEND = "django"

@@ -36,20 +36,20 @@ def run_tsudat_simulation(user, scenario_id):
         
     # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR
-    DataFilesDir = '%s/fake_ui_files.%s' % (TsuDATBase, scenario.name)
+    TsuDATMux = settings.TSUDAT_MUX_DIR
+    DataFilesDir = '%s/fake_ui_files.%s' % (TsuDATBase, scenario.project.name)
+    print DataFilesDir
 
     # create the user working directory
     (run_dir, raw_elevations, boundaries, meshes,
      polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username, scenario.project.name,
                                                     scenario.name, scenario.model_setup, scenario.event.tsudat_id)
 
-    # Polygons
-    
     project_geom = scenario.project.geom
     project_extent = scenario.project.geom.extent
     centroid = project_geom.centroid
 
-    # This somewhat naively that the whole bounding polygon is in the same zone
+    # This somewhat naively assumes that the whole bounding polygon is in the same zone
     (UTMZone, UTMEasting, UTMNorthing) = LLtoUTM(23, centroid.coords[1], centroid.coords[0])
     if(len(UTMZone) == 3):
         utm_zone = int(UTMZone[0:2])
@@ -63,6 +63,7 @@ def run_tsudat_simulation(user, scenario_id):
 
     project_geom.transform(srid) 
 
+    # Polygons
     bounding_polygon_file = open(os.path.join(polygons, 'bounding_polygon.csv'), 'w')
     for coord in project_geom.coords[0]:
         bounding_polygon_file.write('%f,%f\n' % (coord[0], coord[1]))
@@ -82,7 +83,7 @@ def run_tsudat_simulation(user, scenario_id):
         geom = ipfile = None
         count += 1
 
-    # Raw Elevation Files TODO
+    # Raw Elevation Files
     RawElevationFiles = []
 
     wcs = WebCoverageService('http://tsudat.dev.opengeo.org/geoserver-geonode-dev/wcs', version='1.0.0')
@@ -128,6 +129,8 @@ def run_tsudat_simulation(user, scenario_id):
         # Remove Intermediate files
         os.remove(tif_file_path)
         os.remove(tif_file_path + ".tmp")
+        
+        RawElevationFiles.append(asc_file_path)
 
         '''
         src_ds = gdal.Open( str(tif_file_path), GA_ReadOnly )
@@ -144,7 +147,7 @@ def run_tsudat_simulation(user, scenario_id):
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)
     UrsOrder = 'urs_order.csv'
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
-    STSFile = '%s.sts' % scenario.name
+    STSFile = '%s.sts' % scenario.project.name
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
     
     # Gauges
@@ -154,7 +157,7 @@ def run_tsudat_simulation(user, scenario_id):
     for gauge in gauge_points:
         gauge_geom = gauge.geom
         gauge_geom.transform(srid)
-        gauge_file.write('%f,%f,%s,%f\n' % (gauge_geom.coords[0], gauge_geom.coords[1], gauge.name, 0.0)) #TODO Add Elevation to GP?
+        gauge_file.write('%f,%f,%s,%f\n' % (gauge_geom.coords[0], gauge_geom.coords[1], gauge.name, 0.0))
     gauge_file.close()
     
     # Topographies TODO
@@ -165,11 +168,18 @@ def run_tsudat_simulation(user, scenario_id):
     topo = os.path.join(os.path.dirname(gauges), 'topographies')
     shutil.copy2(os.path.join(DataFilesDir, 'topographies', Elevation), topo)
 
+    scenario_layers = scenario.output_layers.all()
+    layers = []
+    for layer in scenario_layers:
+        layers.append(layer.name)
+
     # build the scenario json data file
     date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
-    json_file = os.path.join(run_dir, '%s.%s.%s.json' % (scenario.name, scenario.project.name, date_time))
+    json_file = os.path.join(run_dir, '%s.%s.%s.json' % (scenario.project.name, scenario.name, date_time))
                
-    json_dict = {'user': user.username,
+    json_dict = {'working_directory': TsuDATBase,
+                 'mux_directory': TsuDATMux,
+                 'user': user.username,
                  'project': scenario.project.name,
                  'scenario_name': scenario.name,
                  'setup': scenario.model_setup,
@@ -181,15 +191,15 @@ def run_tsudat_simulation(user, scenario_id):
                  'bounding_polygon': bounding_polygon_file.name,
                  'elevation_data': RawElevationFiles,
                  'mesh_friction': scenario.default_friction_value,
-                 'raster_resolution': 250, #TODO
-                 'layers': ['stage', 'depth'], #TODO
+                 'raster_resolution': scenario.raster_resolution,
+                 'layers': layers, 
                  'area': ['All'], #TODO?
                  'get_results_max': True,
                  'get_timeseries': True,
                  'gauges': gauge_file.name,
                  'meshfile': MeshFile,
                  'interior_regions_data': InteriorRegions,
-                 'bounding_polygon_maxarea': 100000, #TODO
+                 'bounding_polygon_maxarea': scenario.project.max_area,
                  'urs_order': UrsOrder,
                  'landward_boundary': LandwardBoundary,
                  'ascii_grid_filenames': [],
