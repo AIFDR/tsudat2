@@ -1,0 +1,8 @@
+This is a list of required packages when setting up 
+a new server.
+
+apt-get install ttf-liberation
+apt-get install python-scipy
+apt-get install python-numpy
+apt-get install python-matplotlib
+apt-get install python-matplotlib-data

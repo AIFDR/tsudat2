@@ -71,7 +71,7 @@ def main():
                  'landward_boundary': LandwardBoundary,
                  'ascii_grid_filenames': [],
                  'zone': 54,
-                 'force_run': True, # if True, *forces* a simulation
+                 'force_run': False, # if True, *forces* a simulation
                  'debug': True}	# if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:

@@ -16,23 +16,19 @@ import json
 import traceback
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as num
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.font_manager as fm
+import matplotlib.pyplot as plt
 
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
 import anuga.utilities.log as log
-
 import export_depthonland_max as edm
 import export_newstage_max as enm
 
 log.console_logging_level = log.CRITICAL+1    # turn console logging off
 log.log_logging_level = log.INFO
-
-
-# THIS MUST BE CHANGED TO MATCH SERVER REQUIREMENTS
-# path to where all user work areas live
-ProjectHome = '/opt/tsudat'
-# path to where all the MUX files are
-ProjectMuxHome = '/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
 
 
 # name of the fault name file (in multimux directory)
@@ -883,6 +879,70 @@ def excepthook(type, value, tb):
     log.critical(msg)
 
 
+def make_stage_plot(filename, out_dir=None):
+    """Make a stage graph from a timeseries file.
+
+    filename  path to the timeseries file
+    out_dir   directory to put plot file in
+              (if not supplied, use same directory as input file)
+
+    Creates a PNG timeseries plot file from the timeseries file.
+
+    Assumes the input file is CSV format, 1 header line and columns:
+        time, hours, stage, depth
+    """
+
+    # read timeseries file, get data
+    with open(filename) as fp:
+        lines = fp.readlines()
+
+    # skip 1 header line
+    lines = lines[1:]
+
+    # convert CSV lines into X (hours) and Y (stage) data arrays
+    hours = []
+    stage = []
+    for line in lines:
+        (_, hval, sval, _) = line.strip().split(',')
+        hours.append(float(hval))
+        stage.append(float(sval))
+
+    # get gauge filename and create matching PNG name
+    data_filename = os.path.basename(filename)
+    data_dir = os.path.dirname(filename)
+    (stem, _) = data_filename.rsplit('.', 1)
+    picname = stem + '.png'
+
+    if out_dir is None:
+        out_dir = data_dir
+
+    picname = os.path.join(out_dir, picname)
+
+    # get gauge name from filename
+    (_, gaugename) = stem.rsplit('_', 1)
+
+    # plot the graph
+    fpath = '/usr/share/fonts/truetype/ttf-liberation/LiberationSans-Regular.ttf'
+    prop = fm.FontProperties(fname=fpath)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, axisbg='#f0f0f0')
+    ax.plot(hours, stage)
+    ax.grid(True)
+    xticks = ax.xaxis.get_major_ticks()
+    yticks = ax.yaxis.get_major_ticks()
+    for xytext in xticks + yticks:
+        xytext.label1.set_fontproperties(prop)
+    ax.set_xlabel('time (hours)', fontproperties=prop)
+    ax.set_ylabel('stage (m)', fontproperties=prop)
+    ax.set_title("Stage at gauge '%s'" % gaugename, fontproperties=prop)
+    ax.title.set_fontsize(14)
+
+    plt.savefig(picname)
+
+    return picname
+
+
 def run_tsudat(json_data):
     """Run ANUGA using data from a JSON data file.
 
@@ -975,10 +1035,8 @@ def run_tsudat(json_data):
        log.info('~ Running export_results_max()')
        log.info('~'*90)
        file_list = export_results_max()
+       gen_files['results_max'] = file_list  # add files to output dict
        log.info('export_results_max() has finished')
-
-       # add generated file list to result dictionary
-       gen_files['results_max'] = file_list
     else:
        log.info('~'*90)
        log.info('~ Not running export_results_max() - not requested')
@@ -989,10 +1047,15 @@ def run_tsudat(json_data):
        log.info('~ Running get_timeseries()')
        log.info('~'*90)
        file_list = get_timeseries()
-       log.info('get_timeseries() has finished')
+       gen_files['timeseries'] = file_list  # add files to output dict
+       # generate plot files
+       plot_list = []
+       for filename in file_list:
+           plot_file = make_stage_plot(filename)
+           plot_list.append(plot_file)
+       gen_files['timeseries_plot'] = plot_list  # add files to output dict
 
-       # add generated file list to result dictionary
-       gen_files['timeseries'] = file_list
+       log.info('get_timeseries() has finished')
     else:
        log.info('~'*90)
        log.info('~ Not running get_timeseries() - not requested')
