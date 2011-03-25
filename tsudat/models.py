@@ -51,6 +51,13 @@ MODEL_SETUP_CHOICES = (
     ('F', 'Final'),
 )
 
+#Required to do a ManyToMany in Scenario
+class ScenarioOutputLayer(models.Model):
+    name = models.CharField(max_length=10)
+    description = models.CharField(max_length=100)
+    def __unicode__(self):
+        return self.name
+
 class HazardPoint(models.Model):
     tsudat_id = models.PositiveIntegerField()
     geom = models.PointField()
@@ -116,7 +123,8 @@ class EventWaveHeight(models.Model):
 class Project(models.Model):
     name = models.CharField(max_length=50)
     geom = models.PolygonField()
-    
+    max_area = models.PositiveIntegerField()
+
     objects = models.GeoManager()
 
     def __unicode__(self):
@@ -156,6 +164,8 @@ class Scenario(models.Model):
     smoothing_param = models.FloatField() # Alpha
     default_friction_value = models.FloatField()
     model_setup = models.CharField(max_length=1, choices=MODEL_SETUP_CHOICES)
+    raster_resolution = models.PositiveIntegerField()
+    output_layers = models.ManyToManyField(ScenarioOutputLayer)
 
     def __unicode__(self):
         return self.name
@@ -255,6 +265,9 @@ class DataSet(models.Model):
     resolution = models.PositiveIntegerField() 
     geom = models.PolygonField()
     objects = models.GeoManager()
+    
+    def __unicode__(self):
+        return str(self.pk)
 
 class ProjectDataSet(models.Model):
     project = models.ForeignKey(Project)
