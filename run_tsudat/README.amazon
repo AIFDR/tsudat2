@@ -4,14 +4,14 @@ Random thoughts on running on AMAZON EC2
 EC2 gives us three types of storage:
 1. Runing image (AMI) storage which is volatile
 2. S3 storage which is persistent but not disk-like
-3. EBS storage which is persistent & disk-like but is single-thread-mount
+3. EBS storage which is persistent & disk-like but is single-instance-mount
 
 The first can't be used to store user data.
 
 The second option (S3) means we would have to load data from the S3 storage
 to the running image before TsuDAT2 could run.  We would also have to store
 generated files back to S3 when the run is over.  We need to determine how
-this is done and how fats it will be.
+this is done and how fast it will be.
 
 The third is simplest to use (it is just like mounting a USB external drive)
 but only one AMI can have the thing mounted at any one time.  This means we
@@ -25,3 +25,63 @@ Using S3
 --------
 The example at [http://aws.amazon.com/articles/Python/3998] shows how to load
 and save files from/to S3.  Try this out and see how fast it goes.
+
+28 Mar 2011
+-----------
+About 240s for a 2GB load, with a lot of noise in that figure.
+dd
+
+#################################################################################
+
+Initial design.
+---------------
+
+We have an AMI that contains ANUGA and a small python script 'bootstrap.py'.
+
+When we want to run a TsuDAT simulation:
+. The UI calls the make_dir() function, creating a directory structure on the
+  server.
+. The UI copies all required files to the directory.
+. The UI calls the local run_tsudat() (LRT).
+. LRT creates a file in S3 containing the directory structure.
+. LRT starts an AMI, passing the call to bootstrap plus user/project/... params.
+. At this point, LRT could delete the directory structure.
+. The AMI runs bootstrap, using the params to load the directory structure
+  from S3.
+. bootstrap finds the data file in S3 and loads it into the AMI filesystem.
+. bootstrap then runs an amazon run_tsudat.py (ART) that is in the directory.
+. The simulation completes.
+. ART bundles all output files into S3.
+. ART informs UI of completion through SQS.
+. ART halts the AMI.
+
+bootstrap.py
+------------
+
+This script should be as simple as possible.  Just do the minimum to load the
+AMI filesystem with the S3 data and call run_tsudat() from there.
+
+The parameters passed should be the user/project/scenarion... set.  The S3 file
+name will be created from this data.
+
+The bootstrap should inform UI of any errors (through SQS).  Things like, couldn't
+find initial S3 file, etc.
+
+run_tsudat.py() ART
+-------------------
+
+The run_tsudat() code in the S3 file should look for previous data files in S3
+and load them if they are there.  This is to allow the 'run but don't simulate'
+situation.  Previously, ANUGA users would decide to run further extractions of
+things like stage 'by hand'. TsuDAT2 is run through a web interface.  There is
+code in the current 'local' run_tsudat.py to look at the input and output file
+dates and do a simulation only if the input files are newer than any existing output
+file (overridden by the FORCE RUN flag).  This allows a user to extract different
+values without running a simulation AGAIN.  We want to try and maintain this
+feature.
+
+It is up to run_tsudat.py() to save generated files back to S3.
+
+Some attempt should be made to catch unexpected exceptions and report via SQS.
+
+There will be a copy of the original JSON file in the data S3 file.
