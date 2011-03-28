@@ -1,0 +1,27 @@
+Random thoughts on running on AMAZON EC2
+----------------------------------------
+
+EC2 gives us three types of storage:
+1. Runing image (AMI) storage which is volatile
+2. S3 storage which is persistent but not disk-like
+3. EBS storage which is persistent & disk-like but is single-thread-mount
+
+The first can't be used to store user data.
+
+The second option (S3) means we would have to load data from the S3 storage
+to the running image before TsuDAT2 could run.  We would also have to store
+generated files back to S3 when the run is over.  We need to determine how
+this is done and how fats it will be.
+
+The third is simplest to use (it is just like mounting a USB external drive)
+but only one AMI can have the thing mounted at any one time.  This means we
+could run only one TsuDAT2 at any one time, unless we have an EBS instance
+for each project.  If we do have an EBS instance for each project we can 
+have only one run per project at any time.  There is also a maximum size for
+each EBS instance.  We need to determine how to create EBS instances and how
+to mount them for a run.
+
+Using S3
+--------
+The example at [http://aws.amazon.com/articles/Python/3998] shows how to load
+and save files from/to S3.  Try this out and see how fast it goes.

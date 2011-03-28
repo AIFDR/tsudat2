@@ -140,7 +140,6 @@ INSTALLED_APPS = (
     'tsudat',
     'geonode.maps',
     'djcelery',
-    'ghettoq',
     'djkombu',
 
 )
