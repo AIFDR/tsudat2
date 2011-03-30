@@ -12,6 +12,7 @@ import json
 import traceback
 import zipfile
 import tempfile
+import boto
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as num
 import matplotlib
@@ -698,7 +699,7 @@ def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
     """
     """
 
-    ec2 = boto.connect_ec2()
+    ec2 = boto.connect_ec2(AccessKey, SecretKey)
     if user_data is None:
         user_data = ''
     reservation = ec2.run_instances(image_id=ami, key_name=key_name,
@@ -728,6 +729,26 @@ def dump_project_py():
                 pass
 
 
+def dump_json_to_file(project, json_file):
+    """Dump project object back to a JSON file.
+
+    project  the project object to dump
+    json_file  the file to dump JSON to
+
+    Dump all 'non-special' attributes of the object.
+    """
+
+    ui_dict = {}
+    for attr_name in dir(project):
+        if not attr_name.startswith('_'):
+            ui_dict[attr_name] = project.__getattribute__(attr_name)
+     
+    log.debug('ui_dict=%s' % str(ui_dict))
+
+    with open(json_file, 'w') as fd:
+        json.dump(ui_dict, fd, indent=2, separators=(',', ':'))
+
+
 def run_tsudat(json_data):
     """Run ANUGA on the Amazon EC2.
 
@@ -739,61 +760,70 @@ def run_tsudat(json_data):
 
     # get JSON data and adorn project object with its data
     adorn_project(json_data)
-    if project.debug:
-        dump_project_py()
 
     # set logfile to be in run output folder
     if project.debug:
         log.log_logging_level = log.DEBUG
     log.log_filename = os.path.join(project.output_folder, 'ui.log')
+    if project.debug:
+        dump_project_py()
 
     # do all required data generation before EC2 run
     log.info('#'*90)
-    log.info('# Running simulation')
+    log.info('# Preparing simulation')
     log.info('#'*90)
     setup_model()
     build_elevation()
     build_urs_boundary(project.mux_input_filename, project.event_sts)
 
     # add EC2 run_tsudat.py script and JSON data file to 'scripts' directory
-    shutil.copy(Ec2RunTsuDAT, ScriptsDir)
+    log.debug("Copying EC2 run file '%s' to scripts directory '%s'."
+              % (Ec2RunTsuDAT, ScriptsDir))
+    shutil.copy(Ec2RunTsuDAT, os.path.join(ScriptsDir, 'run_tsudat.py'))
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
-    json_file = os.path.join(scripts, JsonDataFilename)
-    with open(json_file, 'w') as fd:
-        json.dump(project, fd, indent=2, separators=(',', ':'))
+    dump_project_py()
+    json_file = os.path.join(ScriptsDir, JsonDataFilename)
+    log.debug('Dumping JSON to file %s' % json_file)
+    dump_json_to_file(project, json_file)
 
     # bundle up the working directory, put it into S3
     # move just what we want to a temporary directory
     here = os.getcwd()
 
-    tmp_dir = tempfile.mkdtemp(prefix='run_tsudat_ec2_'))
+    tmp_dir = tempfile.mkdtemp(prefix='run_tsudat_ec2_')
     tmp_root = os.path.join(tmp_dir, 'tsudat')
     os.mkdir(tmp_root)
     user_dir = os.path.join(project.working_directory, project.user)
-    os.system('mv %s %s' % (user_dir, tmp_root))
+    cmd = 'cp -R %s %s' % (user_dir, tmp_root)
+    log.debug('Copying work dir: %s' % cmd)
+    os.system(cmd)
     zipname = ('%s-%s-%s-%s.zip'
                % (project.user, project.project,
                   project.scenario_name, project.setup))
     os.chdir(tmp_dir)
     make_dir_zip('tsudat', zipname)
+    log.debug('Making zip %s in fir %s' % (zipname, tmp_dir))
 
-    s3_name = 'input_data/%s' % zipname
+    s3_name = 'input-data/%s' % zipname
     s3 = boto.connect_s3(AccessKey, SecretKey)
     bucket = s3.create_bucket(Bucket)
     key = bucket.new_key(s3_name)
+    log.debug('Creating S3 file: %s/%s' % (Bucket, s3_name))
     key.set_contents_from_filename(zipname)
+    log.debug('Done!')
     key.set_acl('public-read')
 
     os.chdir(here)
 
     # start the EC2 instance we are using
-    user_data = [project.user, project.project, project.scenario_name,
-                 project.setup, 'debug' if project.debug else 'production']
-    log('user_data=%s' % str(user_data))
+    user_data = ' '.join([project.user, project.project, project.scenario_name,
+                          project.setup,
+                          'debug' if project.debug else 'production'])
+    log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))
     instance = start_ami(DefaultAmi, user_data=''.join(user_data))
 
     print('*'*80)
     print('Started instance: %s' % instance.dns_name)
     print('*'*80)
-    log('Started instance: %s' % instance.dns_name)
+    log.info('Started instance: %s' % instance.dns_name)
