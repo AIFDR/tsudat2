@@ -11,6 +11,7 @@ import time
 import json
 import traceback
 import zipfile
+import tempfile
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as num
 import matplotlib
@@ -31,8 +32,18 @@ log.log_logging_level = log.INFO
 # the AMI we are going to run
 DefaultAmi = 'ami-b2fa07db' 
 
+# the authentication stuff
+AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
+SecretKey = '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'
+
+# bucket name in S3
+Bucket = 'tsudat.aifdr.org'
+
 # name of run_tsudat() file that runs on EC2
 Ec2RunTsuDAT = 'ec2_run_tsudat.py'
+
+# name of the JSON data file
+JsonDataFilename = 'data.json'
 
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
@@ -52,7 +63,7 @@ RenameDict = {'mesh_friction': 'friction',
 
 # major directories under user/project/scenario/setup base directory
 MajorSubDirs = ['topographies', 'polygons', 'boundaries', 'outputs',
-                'gauges', 'meshes']
+                'gauges', 'meshes', 'scripts']
 
 
 # define a 'project' object
@@ -705,22 +716,23 @@ def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
     return instance
 
 
+def dump_project_py():
+    """Debug routine - dump project attributes to the log."""
+
+    # list all project.* attributes
+    for key in dir(project):
+        if not key.startswith('__'):
+            try:
+                log.info('project.%s=%s' % (key, eval('project.%s' % key)))
+            except AttributeError:
+                pass
+
+
 def run_tsudat(json_data):
     """Run ANUGA on the Amazon EC2.
 
     json_data  the path to the JSON data file
     """
-
-    def dump_project_py():
-        """Debug routine - dump project attributes to the log."""
-
-        # list all project.* attributes
-        for key in dir(project):
-            if not key.startswith('__'):
-                try:
-                    log.info('project.%s=%s' % (key, eval('project.%s' % key)))
-                except AttributeError:
-                    pass
 
     # plug our exception handler into the python system
     sys.excepthook = excepthook
@@ -736,17 +748,47 @@ def run_tsudat(json_data):
     log.log_filename = os.path.join(project.output_folder, 'ui.log')
 
     # do all required data generation before EC2 run
+    log.info('#'*90)
+    log.info('# Running simulation')
+    log.info('#'*90)
+    setup_model()
+    build_elevation()
+    build_urs_boundary(project.mux_input_filename, project.event_sts)
 
     # add EC2 run_tsudat.py script and JSON data file to 'scripts' directory
     shutil.copy(Ec2RunTsuDAT, ScriptsDir)
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
-    json_file = os.path.join(scripts, 'data.json')
+    json_file = os.path.join(scripts, JsonDataFilename)
     with open(json_file, 'w') as fd:
         json.dump(project, fd, indent=2, separators=(',', ':'))
 
+    # bundle up the working directory, put it into S3
+    # move just what we want to a temporary directory
+    here = os.getcwd()
+
+    tmp_dir = tempfile.mkdtemp(prefix='run_tsudat_ec2_'))
+    tmp_root = os.path.join(tmp_dir, 'tsudat')
+    os.mkdir(tmp_root)
+    user_dir = os.path.join(project.working_directory, project.user)
+    os.system('mv %s %s' % (user_dir, tmp_root))
+    zipname = ('%s-%s-%s-%s.zip'
+               % (project.user, project.project,
+                  project.scenario_name, project.setup))
+    os.chdir(tmp_dir)
+    make_dir_zip('tsudat', zipname)
+
+    s3_name = 'input_data/%s' % zipname
+    s3 = boto.connect_s3(AccessKey, SecretKey)
+    bucket = s3.create_bucket(Bucket)
+    key = bucket.new_key(s3_name)
+    key.set_contents_from_filename(zipname)
+    key.set_acl('public-read')
+
+    os.chdir(here)
+
     # start the EC2 instance we are using
-    user_data = [project.user, project.project, project.scenario,
+    user_data = [project.user, project.project, project.scenario_name,
                  project.setup, 'debug' if project.debug else 'production']
     log('user_data=%s' % str(user_data))
     instance = start_ami(DefaultAmi, user_data=''.join(user_data))
