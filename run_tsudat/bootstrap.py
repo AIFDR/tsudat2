@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-"""The TsuDAT2 bootstrap.  Run the RsuDAT simulation."""
+"""
+The TsuDAT2 bootstrap.
+
+The minimum code required to run ..../scripts/run_tsudat.py.
+"""
 
 
 import os
@@ -11,30 +15,33 @@ import traceback
 import boto
 
 import tsudat_log as log
-LOGFILE = 'tsudat.log'
-log = log.Log(LOGFILE)
 
+
+LogFile = 'tsudat.log'
 
 # the authentication stuff
-ACCESS_KEY = 'AKIAIKGYJFXGT5TFJJOA'
-SECRET_KEY = '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'
+AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
+SecretKey = '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'
 
 # URL to get user-data from
-USER_DATA_URL = 'http://169.254.169.254/2007-01-19/user-data'
+UserDataURL = 'http://169.254.169.254/2007-01-19/user-data'
 
 # the bucket to use
-#BUCKET = 'tsudat.aifdr.org'
-BUCKET = 'tsudat.aifdr.org'
+#S3Bucket = 'tsudat.aifdr.org'
+S3Bucket = 'tsudat.aifdr.org'
 
 # path to input data zip file
-IN_ZIP = './input_data.zip'
-GEN_ZIP = './gen_data.zip'
+InputZipFile = './input_data.zip'
+GeneratedZipFile = './gen_data.zip'
 
 # root of the working directory
-WORK_DIR = './tsudat'
+WorkingDirectory = './tsudat'
 
-# sub-directory holding run_tsudat.py and other scripts
-TSUDAT_SCRIPTS = 'scripts'
+# sub-directory holding run_tsudat.py and other scripts/data
+ScriptsDirectory = 'scripts'
+
+# name of the JSON file in the S3 input data
+JSONFile = 'data.json'
 
 
 def abort(msg):
@@ -44,12 +51,12 @@ def abort(msg):
 
     # try to save the log file to S3 first
     try:
-        s3 = boto.connect_s3(ACCESS_KEY, SECRET_KEY)
-        bucket = s3.create_bucket(BUCKET)
+        s3 = boto.connect_s3(AccessKey, SecretKey)
+        bucket = s3.create_bucket(S3Bucket)
         key_str = ('abort/%s-%s-%s-%s.log'
-                   % (user, project, scenario, setup))
+                   % (User, Project, Scenario, Setup))
         key = bucket.new_key(key_str)
-        key.set_contents_from_filename(LOGFILE)
+        key.set_contents_from_filename(LogFile)
         key.set_acl('public-read')
     except:
         # if we get here, we can't save the log file
@@ -61,78 +68,83 @@ def abort(msg):
 def shutdown():
     """Shutdown this AMI."""
 
-    #os.system('sudo halt')
-    sys.exit(0)
+    if Debug:
+        sys.exit(0)
+
+    os.system('sudo halt')
 
 def bootstrap():
     """Bootstrap the TsuDAT run into existence.
 
     The following globals are used (all are strings):
-    user      user name
-    project   the TsuDAT project
-    scenario  the scenario
-    setup     the run setup ('trial', etc)
+    User      user name
+    Project   the TsuDAT project
+    Scenario  the scenario
+    Setup     the run setup ('trial', etc)
     """
 
+    log.critical('bootstrap start')
+
     # load the input data files from S3
-    s3 = boto.connect_s3(ACCESS_KEY, SECRET_KEY)
+    s3 = boto.connect_s3(AccessKey, SecretKey)
     key_str = ('input-data/%s-%s-%s-%s.zip'
-               % (user, project, scenario, setup))
-    log('Loading %s from S3' % key_str)
-    bucket = s3.get_bucket(BUCKET)
+               % (User, Project, Scenario, Setup))
+    log.info('Loading %s from S3' % key_str)
+    bucket = s3.get_bucket(S3Bucket)
     if bucket is None:
-        abort("Can't find bucket '%s'" % BUCKET)
+        abort("Can't find bucket '%s'" % S3Bucket)
     try:
         key = bucket.get_key(key_str)
     except S3ResponseError:
-        abort("Can't find key '%s' in bucket '%s'" % (key_str, BUCKET))
+        abort("Can't find key '%s' in bucket '%s'" % (key_str, S3Bucket))
     if key is None:
-        abort("Can't find key '%s' in bucket '%s'" % (key_str, BUCKET))
-    key.get_contents_to_filename(IN_ZIP)
+        abort("Can't find key '%s' in bucket '%s'" % (key_str, S3Bucket))
+    key.get_contents_to_filename(InputZipFile)
 
-    log('Unzipping %s ...' % IN_ZIP)
-    z = zipfile.PyZipFile(IN_ZIP)
+    log.debug('Unzipping %s ...' % InputZipFile)
+    z = zipfile.PyZipFile(InputZipFile)
     z.extractall()
-    log('... done.')
-    os.remove(IN_ZIP)
+    os.remove(InputZipFile)
+    log.debug('... done.')
 
     # load any previous generated data
     key_str = ('gen-data/%s-%s-%s-%s.zip'
-               % (user, project, scenario, setup))
+               % (User, Project, Scenario, Setup))
     try:
         key = bucket.get_key(key_str)
     except S3ResponseError:
         key = None
     if key:
-        log('Getting previously generated data %s' % GEN_ZIP)
-        key.get_contents_to_filename(GEN_ZIP)
+        log.info('Getting previously generated data %s' % GeneratedZipFile)
+        key.get_contents_to_filename(GeneratedZipFile)
 
-        log('Unzipping %s ...' % GEN_ZIP)
-        z = zipfile.PyZipFile(GEN_ZIP)
+        log.debug('Unzipping %s ...' % GeneratedZipFile)
+        z = zipfile.PyZipFile(GeneratedZipFile)
         z.extractall()
-        log('... done.')
+        log.debug('... done.')
 
     # run the run_tsudat.py from input dir
     # first jigger the PYTHONPATH so we can import it
-    new_path = os.path.join(os.getcwd(), WORK_DIR,
-                            user, project, scenario, setup,
-                            TSUDAT_SCRIPTS)
-    sys.path.append(new_path)
-    log('New search path=%s' % new_path)
+    scripts_path = os.path.join(WorkingDirectory, User, Project, Scenario,
+                                Setup, ScriptsDirectory)
+    new_pythonpath = os.path.join(os.getcwd(), scripts_path)
+    sys.path.append(new_pythonpath)
+    log.debug('Added additional import path=%s' % new_pythonpath)
 
     import run_tsudat
 
-    log('Running run_tsudat.run_tsudat()')
-    run_tsudat.run_tsudat(user, project, scenario, setup)
+    # get path to the JSON file in scripts dir, pass to run_tsudat()
+    json_path = os.path.join(new_pythonpath, JSONFile)
+    log.info('Running run_tsudat.run_tsudat()')
+    run_tsudat.run_tsudat(json_path)
 
-    # stop this AMI
-    log('run_tsudat() finished, shutting down')
+    # stop this AMI ( in case run_tsudat() doesn't
+    log.info('run_tsudat() finished, shutting down')
     shutdown()
 
 if __name__ == '__main__':
-    global user, project, scenario, setup
+    global User, Project, Scenario, Setup, Debug
 
-    import sys
     import re
 
     def excepthook(type, value, tb):
@@ -149,16 +161,21 @@ if __name__ == '__main__':
     sys.excepthook = excepthook
         
     # wget user-data into a string & split into params
-    with os.popen('wget -O - -q %s' % USER_DATA_URL) as fd:
-        args = fd.readline()
-
-    log('args=%s' % str(args))
+    with os.popen('wget -O - -q %s' % UserDataURL) as fd:
+        args = fd.readline()    # ignore all but first line
 
     expr = re.compile(' *')
     try:
-        (user, project, scenario, setup) = expr.split(args)
+        (User, Project, Scenario, Setup, Debug) = expr.split(args)
     except ValueError:
-        abort("Expected 4 args in setup string. Got '%s'" % args)
+        abort("Expected 5 args in setup string. Got '%s'" % args)
         sys.exit(10)
+
+    level = log.INFO
+    if Debug == 'debug':
+        Debug = True
+        level = log.DEBUG
+
+    log = log.Log(LogFile, level=level)
 
     bootstrap()
