@@ -40,8 +40,9 @@ SecretKey = 'yipBHX1ZEJ8YkBV09NzDqzJT79bweZXV2ncUqvcv'
 # bucket name in S3
 Bucket = 'tsudat.aifdr.org'
 
-# name of run_tsudat() file that runs on EC2
+# name of run_tsudat() file, here and on EC2 (name change)
 Ec2RunTsuDAT = 'ec2_run_tsudat.py'
+Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
 # name of the JSON data file
 JsonDataFilename = 'data.json'
@@ -743,8 +744,6 @@ def dump_json_to_file(project, json_file):
         if not attr_name.startswith('_'):
             ui_dict[attr_name] = project.__getattribute__(attr_name)
      
-    log.debug('ui_dict=%s' % str(ui_dict))
-
     with open(json_file, 'w') as fd:
         json.dump(ui_dict, fd, indent=2, separators=(',', ':'))
 
@@ -777,9 +776,10 @@ def run_tsudat(json_data):
     build_urs_boundary(project.mux_input_filename, project.event_sts)
 
     # add EC2 run_tsudat.py script and JSON data file to 'scripts' directory
+    ec2_name = os.path.join(ScriptsDir, Ec2RunTsuDATOnEC2)
     log.debug("Copying EC2 run file '%s' to scripts directory '%s'."
-              % (Ec2RunTsuDAT, ScriptsDir))
-    shutil.copy(Ec2RunTsuDAT, os.path.join(ScriptsDir, 'run_tsudat.py'))
+              % (Ec2RunTsuDAT, ec2_name))
+    shutil.copy(Ec2RunTsuDAT, ec2_name)
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
     dump_project_py()

@@ -2,6 +2,9 @@
 
 """A test run_tsudat script."""
 
+import log
+log = log.Log()
+
 import json
 
 
