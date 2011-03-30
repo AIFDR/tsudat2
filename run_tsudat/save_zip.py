@@ -1,3 +1,8 @@
+"""
+A simple little helper file on a running AMI instance.
+Will be deleted later.
+"""
+
 import boto
 
 ACCESS_KEY = 'AKIAIKGYJFXGT5TFJJOA'
@@ -10,8 +15,3 @@ bucket = s3.create_bucket('tsudat.aifdr.org')  # bucket names must be unique
 key = bucket.new_key(FILE)
 key.set_contents_from_filename('tsudat_user_project_VictorHarbour_trial.zip')
 key.set_acl('public-read')
-
-
-
-
-
