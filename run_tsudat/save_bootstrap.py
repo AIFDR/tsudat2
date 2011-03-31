@@ -34,6 +34,9 @@ S3Bucket = 'tsudat.aifdr.org'
 InputZipFile = './input_data.zip'
 GeneratedZipFile = './gen_data.zip'
 
+# root of the working directory
+WorkingDirectory = './tsudat'
+
 # sub-directory holding run_tsudat.py and other scripts/data
 ScriptsDirectory = 'scripts'
 
@@ -83,12 +86,7 @@ def bootstrap():
     Setup     the run setup ('trial', etc)
     """
 
-    log.debug('Params:')
-    log.debug('    User=%s' % User)
-    log.debug('    Project=%s' % Project)
-    log.debug('    Scenario=%s' % Scenario)
-    log.debug('    Setup=%s' % Setup)
-    log.debug('    BaseDir=%s' % BaseDir)
+    log.critical('bootstrap start')
 
     # load the input data files from S3
     s3 = boto.connect_s3(AccessKey, SecretKey)
@@ -109,7 +107,7 @@ def bootstrap():
     # unzip the input data ZIP file into the local directory
     log.debug('Unzipping %s ...' % InputZipFile)
     z = zipfile.ZipFile(InputZipFile)
-    z.extractall(path='/')
+    z.extractall()
     if not Debug:
         os.remove(InputZipFile)
     log.debug('... done.')
@@ -126,13 +124,13 @@ def bootstrap():
         key.get_contents_to_filename(GeneratedZipFile)
 
         log.debug('Unzipping %s ...' % GeneratedZipFile)
-        z = zipfile.ZipFile(GeneratedZipFile)
-        z.extractall(path='/')
+        z = zipfile.PyZipFile(GeneratedZipFile)
+        z.extractall()
         log.debug('... done.')
 
     # run the run_tsudat.py from input dir
     # first jigger the PYTHONPATH so we can import it
-    scripts_path = os.path.join(BaseDir, User, Project, Scenario,
+    scripts_path = os.path.join(WorkingDirectory, User, Project, Scenario,
                                 Setup, ScriptsDirectory)
     new_pythonpath = os.path.join(os.getcwd(), scripts_path)
     sys.path.append(new_pythonpath)
@@ -146,7 +144,7 @@ def bootstrap():
     log.info('Running run_tsudat.run_tsudat()')
     run_tsudat.run_tsudat(json_path)
 
-    # stop this AMI - in case run_tsudat() doesn't
+    # stop this AMI ( in case run_tsudat() doesn't
     log.info('run_tsudat() finished, shutting down')
     shutdown()
 

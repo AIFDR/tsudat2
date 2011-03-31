@@ -41,7 +41,7 @@ SecretKey = 'yipBHX1ZEJ8YkBV09NzDqzJT79bweZXV2ncUqvcv'
 Bucket = 'tsudat.aifdr.org'
 
 # name of run_tsudat() file, here and on EC2 (name change)
-Ec2RunTsuDAT = 'ec2_run_tsudat.py'
+Ec2RunTsuDAT = 'save_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
 # name of the JSON data file
