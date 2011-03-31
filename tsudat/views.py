@@ -174,6 +174,9 @@ def project(request, id=None):
         djf = Django.Django(geodjango="geom", properties=['name'])
         return HttpResponse(geoj.encode(djf.decode(projects)))
 
+def internal_polygon_types(request):
+    return HttpResponse(simplejson.dumps(IP_TYPE_CHOICES))
+
 @csrf_exempt
 def internal_polygon(request, id=None):
     #TODO: GET polygons for project_id and/or type
