@@ -5,7 +5,7 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 SERVE_MEDIA = True
 
-SITEURL = "http://tsudat.dev.opengeo.org/"
+SITEURL = "http://tsudat.dev.aifdr.org/"
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
@@ -38,8 +38,8 @@ GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
 GEONETWORK_CREDENTIALS = "admin", 'admin'
 
 # TsuDAT Settings
-TSUDAT_BASE_DIR='/opt/tsudat'
-TSUDAT_MUX_DIR='/opt/tsudat/mux'
+TSUDAT_BASE_DIR='/tmp/tsudat'
+TSUDAT_MUX_DIR='/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
 
 # Celery Settings
 CARROT_BACKEND = "django"
@@ -140,7 +140,6 @@ INSTALLED_APPS = (
     'tsudat',
     'geonode.maps',
     'djcelery',
-    'ghettoq',
     'djkombu',
 
 )

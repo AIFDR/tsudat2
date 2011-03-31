@@ -37,7 +37,7 @@ def run_tsudat_simulation(user, scenario_id):
     # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR
     TsuDATMux = settings.TSUDAT_MUX_DIR
-    DataFilesDir = '%s/fake_ui_files.%s' % (TsuDATBase, scenario.project.name)
+    DataFilesDir = '%s/fake_ui_files.%s' % ('/home/software/tsudat2/run_tsudat', scenario.project.name)
     print DataFilesDir
 
     # create the user working directory
@@ -100,6 +100,7 @@ def run_tsudat_simulation(user, scenario_id):
     for ds in pds:
         layer = Layer.objects.using('geonode').get(uuid=ds.dataset.geonode_layer_uuid)
         metadata = wcs.contents[layer.name]
+	print metadata.grid
         resx = metadata.grid.offsetvectors[0][0]
         resy = abs(float(metadata.grid.offsetvectors[1][1]))
         formats = metadata.supportedFormats
@@ -129,8 +130,8 @@ def run_tsudat_simulation(user, scenario_id):
         cmd = "/usr/bin/gdal_translate -of %s %s.tmp %s" % (output_format, tif_file_path, asc_file_path)
         os.system(cmd)
         # Remove Intermediate files
-        os.remove(tif_file_path)
-        os.remove(tif_file_path + ".tmp")
+        #os.remove(tif_file_path)
+        #os.remove(tif_file_path + ".tmp")
         
         RawElevationFiles.append(asc_file_path)
 

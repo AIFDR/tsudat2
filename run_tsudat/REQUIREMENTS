@@ -6,3 +6,5 @@ apt-get install python-scipy
 apt-get install python-numpy
 apt-get install python-matplotlib
 apt-get install python-matplotlib-data
+apt-get install python-boto	# for Amazon EC2
+sudo apt-get install zip
