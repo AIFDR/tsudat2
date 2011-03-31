@@ -34,9 +34,6 @@ S3Bucket = 'tsudat.aifdr.org'
 InputZipFile = './input_data.zip'
 GeneratedZipFile = './gen_data.zip'
 
-# root of the working directory
-WorkingDirectory = './tsudat'
-
 # sub-directory holding run_tsudat.py and other scripts/data
 ScriptsDirectory = 'scripts'
 
@@ -68,10 +65,13 @@ def abort(msg):
 def shutdown():
     """Shutdown this AMI."""
 
+    log.debug('Debug is %s, instance is %sterminating'
+              % (str(Debug), 'not ' if Debug else ''))
+
     if Debug:
         sys.exit(0)
-
-    os.system('sudo halt')
+#    else:
+#        os.system('sudo halt')
 
 def bootstrap():
     """Bootstrap the TsuDAT run into existence.
@@ -83,7 +83,12 @@ def bootstrap():
     Setup     the run setup ('trial', etc)
     """
 
-    log.critical('bootstrap start')
+    log.debug('Params:')
+    log.debug('    User=%s' % User)
+    log.debug('    Project=%s' % Project)
+    log.debug('    Scenario=%s' % Scenario)
+    log.debug('    Setup=%s' % Setup)
+    log.debug('    BaseDir=%s' % BaseDir)
 
     # load the input data files from S3
     s3 = boto.connect_s3(AccessKey, SecretKey)
@@ -101,10 +106,12 @@ def bootstrap():
         abort("Can't find key '%s' in bucket '%s'" % (key_str, S3Bucket))
     key.get_contents_to_filename(InputZipFile)
 
+    # unzip the input data ZIP file into the local directory
     log.debug('Unzipping %s ...' % InputZipFile)
-    z = zipfile.PyZipFile(InputZipFile)
-    z.extractall()
-    os.remove(InputZipFile)
+    z = zipfile.ZipFile(InputZipFile)
+    z.extractall(path='/')
+    if not Debug:
+        os.remove(InputZipFile)
     log.debug('... done.')
 
     # load any previous generated data
@@ -119,17 +126,18 @@ def bootstrap():
         key.get_contents_to_filename(GeneratedZipFile)
 
         log.debug('Unzipping %s ...' % GeneratedZipFile)
-        z = zipfile.PyZipFile(GeneratedZipFile)
-        z.extractall()
+        z = zipfile.ZipFile(GeneratedZipFile)
+        z.extractall(path='/')
         log.debug('... done.')
 
     # run the run_tsudat.py from input dir
     # first jigger the PYTHONPATH so we can import it
-    scripts_path = os.path.join(WorkingDirectory, User, Project, Scenario,
+    scripts_path = os.path.join(BaseDir, User, Project, Scenario,
                                 Setup, ScriptsDirectory)
     new_pythonpath = os.path.join(os.getcwd(), scripts_path)
     sys.path.append(new_pythonpath)
     log.debug('Added additional import path=%s' % new_pythonpath)
+    log.debug('sys.path=%s' % str(sys.path))
 
     import run_tsudat
 
@@ -138,12 +146,12 @@ def bootstrap():
     log.info('Running run_tsudat.run_tsudat()')
     run_tsudat.run_tsudat(json_path)
 
-    # stop this AMI ( in case run_tsudat() doesn't
+    # stop this AMI - in case run_tsudat() doesn't
     log.info('run_tsudat() finished, shutting down')
     shutdown()
 
 if __name__ == '__main__':
-    global User, Project, Scenario, Setup, Debug
+    global User, Project, Scenario, Setup, BaseDir, Debug
 
     import re
 
@@ -165,10 +173,14 @@ if __name__ == '__main__':
         args = fd.readline()    # ignore all but first line
 
     expr = re.compile(' *')
-    try:
-        (User, Project, Scenario, Setup, Debug) = expr.split(args)
-    except ValueError:
-        abort("Expected 5 args in setup string. Got '%s'" % args)
+    fields = expr.split(args)
+    if len(fields) == 5:
+        (User, Project, Scenario, Setup, BaseDir) = expr.split(args)
+        Debug = 'production'
+    elif len(fields) == 6:
+        (User, Project, Scenario, Setup, BaseDir, Debug) = expr.split(args)
+    else:
+        abort("Expected 5 or 6 args in setup string. Got '%s'" % args)
         sys.exit(10)
 
     level = log.INFO

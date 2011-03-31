@@ -31,7 +31,7 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-b2fa07db' 
+DefaultAmi = 'ami-54e71a3d' 
 
 # the authentication stuff
 AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
@@ -789,21 +789,11 @@ def run_tsudat(json_data):
 
     # bundle up the working directory, put it into S3
     # move just what we want to a temporary directory
-    here = os.getcwd()
-
-    tmp_dir = tempfile.mkdtemp(prefix='run_tsudat_ec2_')
-    tmp_root = os.path.join(tmp_dir, 'tsudat')
-    os.mkdir(tmp_root)
-    user_dir = os.path.join(project.working_directory, project.user)
-    cmd = 'cp -R %s %s' % (user_dir, tmp_root)
-    log.debug('Copying work dir: %s' % cmd)
-    os.system(cmd)
     zipname = ('%s-%s-%s-%s.zip'
                % (project.user, project.project,
                   project.scenario_name, project.setup))
-    os.chdir(tmp_dir)
-    make_dir_zip('tsudat', zipname)
-    log.debug('Making zip %s in fir %s' % (zipname, tmp_dir))
+    log.debug('Making zip %s' % zipname)
+    make_dir_zip(project.working_directory, zipname)
 
     s3_name = 'input-data/%s' % zipname
     s3 = boto.connect_s3(AccessKey, SecretKey)
@@ -814,11 +804,9 @@ def run_tsudat(json_data):
     log.debug('Done!')
     key.set_acl('public-read')
 
-    os.chdir(here)
-
     # start the EC2 instance we are using
     user_data = ' '.join([project.user, project.project, project.scenario_name,
-                          project.setup,
+                          project.setup, project.working_directory,
                           'debug' if project.debug else 'production'])
     log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))
     instance = start_ami(DefaultAmi, user_data=''.join(user_data))
