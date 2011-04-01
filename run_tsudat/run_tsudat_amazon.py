@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
 import anuga.utilities.log as log
+
 import export_depthonland_max as edm
 import export_newstage_max as enm
 
@@ -43,6 +44,9 @@ Bucket = 'tsudat.aifdr.org'
 # name of run_tsudat() file, here and on EC2 (name change)
 Ec2RunTsuDAT = 'save_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
+
+# names of additional required files
+ReqdFiles = ['export_depthonland_max.py', 'export_newstage_max.py']
 
 # name of the JSON data file
 JsonDataFilename = 'data.json'
@@ -775,11 +779,13 @@ def run_tsudat(json_data):
     build_elevation()
     build_urs_boundary(project.mux_input_filename, project.event_sts)
 
-    # add EC2 run_tsudat.py script and JSON data file to 'scripts' directory
+    # copy all required python modules to scripts directory
     ec2_name = os.path.join(ScriptsDir, Ec2RunTsuDATOnEC2)
     log.debug("Copying EC2 run file '%s' to scripts directory '%s'."
               % (Ec2RunTsuDAT, ec2_name))
     shutil.copy(Ec2RunTsuDAT, ec2_name)
+    for extra in ReqdFiles:
+        shutil.copy(extra, ScriptsDir)
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
     dump_project_py()

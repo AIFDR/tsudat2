@@ -34,9 +34,6 @@ S3Bucket = 'tsudat.aifdr.org'
 InputZipFile = './input_data.zip'
 GeneratedZipFile = './gen_data.zip'
 
-# root of the working directory
-WorkingDirectory = './tsudat'
-
 # sub-directory holding run_tsudat.py and other scripts/data
 ScriptsDirectory = 'scripts'
 
@@ -73,8 +70,8 @@ def shutdown():
 
     if Debug:
         sys.exit(0)
-#    else:
-#        os.system('sudo halt')
+    else:
+        os.system('sudo halt')
 
 def bootstrap():
     """Bootstrap the TsuDAT run into existence.
@@ -84,15 +81,22 @@ def bootstrap():
     Project   the TsuDAT project
     Scenario  the scenario
     Setup     the run setup ('trial', etc)
+    BaseDir   base of the tsudat working directory
     """
 
-    log.critical('bootstrap start')
+    log.debug('bootstrap start, user_data globals:')
+    log.debug('   User=%s' % User)
+    log.debug('   Project=%s' % Project)
+    log.debug('   Scenario=%s' % Scenario)
+    log.debug('   Setup=%s' % Setup)
+    log.debug('   BaseDir=%s' % BaseDir)
+    log.debug('   Debug=%s' % Debug)
 
     # load the input data files from S3
     s3 = boto.connect_s3(AccessKey, SecretKey)
     key_str = ('input-data/%s-%s-%s-%s.zip'
                % (User, Project, Scenario, Setup))
-    log.info('Loading %s from S3' % key_str)
+    log.info('Loading %s from S3 ...' % key_str)
     bucket = s3.get_bucket(S3Bucket)
     if bucket is None:
         abort("Can't find bucket '%s'" % S3Bucket)
@@ -103,14 +107,15 @@ def bootstrap():
     if key is None:
         abort("Can't find key '%s' in bucket '%s'" % (key_str, S3Bucket))
     key.get_contents_to_filename(InputZipFile)
+    log.info('Done')
 
     # unzip the input data ZIP file into the local directory
     log.debug('Unzipping %s ...' % InputZipFile)
     z = zipfile.ZipFile(InputZipFile)
-    z.extractall()
+    z.extractall(path='/')
     if not Debug:
         os.remove(InputZipFile)
-    log.debug('... done.')
+    log.debug('Done')
 
     # load any previous generated data
     key_str = ('gen-data/%s-%s-%s-%s.zip'
@@ -120,23 +125,22 @@ def bootstrap():
     except S3ResponseError:
         key = None
     if key:
-        log.info('Getting previously generated data %s' % GeneratedZipFile)
+        log.info('Getting previously generated data %s ...' % GeneratedZipFile)
         key.get_contents_to_filename(GeneratedZipFile)
+        log.debug('Done')
 
         log.debug('Unzipping %s ...' % GeneratedZipFile)
         z = zipfile.PyZipFile(GeneratedZipFile)
-        z.extractall()
-        log.debug('... done.')
+        z.extractall(path='/')
+        log.debug('Done')
 
-    # run the run_tsudat.py from input dir
-    # first jigger the PYTHONPATH so we can import it
-    scripts_path = os.path.join(WorkingDirectory, User, Project, Scenario,
-                                Setup, ScriptsDirectory)
-    new_pythonpath = os.path.join(os.getcwd(), scripts_path)
+    # jigger the PYTHONPATH so we can import 'run_tsudat' from the S3 data
+    new_pythonpath = os.path.join(BaseDir, User, Project, Scenario, Setup,
+                                  ScriptsDirectory)
     sys.path.append(new_pythonpath)
     log.debug('Added additional import path=%s' % new_pythonpath)
-    log.debug('sys.path=%s' % str(sys.path))
 
+    # get the code for the rest of the simulation
     import run_tsudat
 
     # get path to the JSON file in scripts dir, pass to run_tsudat()
