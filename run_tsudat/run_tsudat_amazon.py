@@ -32,7 +32,11 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-54e71a3d' 
+DefaultAmi = 'ami-46d72a2f'  # Ubuntu_10.04_TsuDAT_2.0.6
+#DefaultAmi = 'ami-b2d429db'  # Ubuntu_10.04_TsuDAT_2.0.5
+#DefaultAmi = 'ami-08d42961'  # Ubuntu_10.04_TsuDAT_2.0.4
+## BAD  DefaultAmi = 'ami-12da277b'  # Ubuntu_10.04_TsuDAT_2.0.3
+#DefaultAmi = 'ami-54e71a3d'  # Ubuntu_10.04_TsuDAT_2.0.2
 
 # the authentication stuff
 AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
@@ -185,6 +189,12 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
         touch(os.path.join(meshes, 'meshes.msh'))
 
         touch(os.path.join(polygons, 'polygon_files'))
+
+    # a fudge - because the zip process doesn't save empty directories
+    # we must write a small file into empty directories
+    placeholder = os.path.join(meshes, '.placeholder')
+    with open(placeholder, 'w') as fd:
+        pass
 
     # return paths to various places under 'base'
     return (run_dir, raw_elevation, boundaries, meshes, polygons, gauges)

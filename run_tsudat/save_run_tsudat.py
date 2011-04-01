@@ -465,6 +465,8 @@ def run_tsudat(json_data):
                 except AttributeError:
                     pass
 
+    log.debug('user=%s' % str(os.getenv('USER')))
+
     # start the result dictionary
     gen_files = {}
 
