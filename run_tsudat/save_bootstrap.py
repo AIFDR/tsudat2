@@ -9,7 +9,9 @@ The minimum code required to run ..../scripts/run_tsudat.py.
 
 import os
 import sys
+import shutil
 import zipfile
+import tempfile
 import traceback
 
 import boto
@@ -17,6 +19,7 @@ import boto
 import tsudat_log as log
 
 
+# the file to log to
 LogFile = 'tsudat.log'
 
 # the authentication stuff
@@ -41,6 +44,28 @@ ScriptsDirectory = 'scripts'
 JSONFile = 'data.json'
 
 
+def make_dir_zip(dirname, zipname):
+    """Make a ZIP file from a directory.
+
+    dirname  path to directory to zip up
+    zipname  path to ZIP file to create
+    """
+
+    def recursive_zip(zipf, directory):
+        ls = os.listdir(directory)
+
+        for f in ls:
+            f_path = os.path.join(directory, f)
+            if os.path.isdir(f_path):
+                recursive_zip(zipf, f_path)
+            else:
+                zipf.write(f_path, f_path, zipfile.ZIP_DEFLATED)
+
+    zf = zipfile.ZipFile(zipname, mode='w')
+    recursive_zip(zf, dirname)
+    zf.close()
+
+
 def abort(msg):
     """Abort a run with an error message."""
 
@@ -48,7 +73,12 @@ def abort(msg):
 
     # try to save the log file to S3 first
     try:
-        s3 = boto.connect_s3(AccessKey, SecretKey)
+        access_key = os.environ['EC2_ACCESS_KEY']
+        secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+        s3 = boto.connect_s3(access_key, secret_key)
+        access_key = 'DEADBEEF'
+        secret_key = 'DEADBEEF'
+        del access_key, secret_key
         bucket = s3.create_bucket(S3Bucket)
         key_str = ('abort/%s-%s-%s-%s.log'
                    % (User, Project, Scenario, Setup))
@@ -93,7 +123,12 @@ def bootstrap():
     log.debug('   Debug=%s' % Debug)
 
     # load the input data files from S3
-    s3 = boto.connect_s3(AccessKey, SecretKey)
+    access_key = os.environ['EC2_ACCESS_KEY']
+    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+    s3 = boto.connect_s3(access_key, secret_key)
+    access_key = 'DEADBEEF'
+    secret_key = 'DEADBEEF'
+    del access_key, secret_key
     key_str = ('input-data/%s-%s-%s-%s.zip'
                % (User, Project, Scenario, Setup))
     log.info('Loading %s from S3 ...' % key_str)
@@ -146,9 +181,45 @@ def bootstrap():
     # get path to the JSON file in scripts dir, pass to run_tsudat()
     json_path = os.path.join(new_pythonpath, JSONFile)
     log.info('Running run_tsudat.run_tsudat()')
-    run_tsudat.run_tsudat(json_path)
+    gen_files = run_tsudat.run_tsudat(json_path)
 
-    # stop this AMI ( in case run_tsudat() doesn't
+    # save all output files back to S3
+    output_dir = tempfile.mkdtemp(prefix='tsudat_savedir_')
+    for d in gen_files:
+        save_dir = os.path.join(output_dir, d)
+        os.mkdir(save_dir)
+        for f in gen_files[d]:
+            log.debug('Saving file %s' % f)
+            shutil.copy(f, save_dir)
+
+    zip_tree_prefix = os.path.join(output_dir, BaseDir)
+    log.debug('zip_tree_prefix=%s' % zip_tree_prefix)
+    zipname = os.path.join('%s_%s_%s_%s.zip'
+                           % (User, Project, Scenario, Setup))
+    make_dir_zip(zip_tree_prefix, zipname)
+    shutil.rmtree(output_dir)
+
+    s3_name = 'output-data/%s' % zipname
+    try:
+        access_key = os.environ['EC2_ACCESS_KEY']
+        secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+        s3 = boto.connect_s3(access_key, secret_key)
+        access_key = 'DEADBEEF'
+        secret_key = 'DEADBEEF'
+        del access_key, secret_key
+
+        bucket = s3.create_bucket(S3Bucket)
+        key = bucket.new_key(s3_name)
+        log.debug('Creating S3 file: %s/%s' % (S3Bucket, s3_name))
+        key.set_contents_from_filename(zipname)
+        log.debug('Done!')
+        key.set_acl('public-read')
+    except boto.exception.S3ResponseError, e:
+        log.critical('S3 error: %s' % str(e))
+        print('S3 error: %s' % str(e))
+        sys.exit(10)
+
+    # stop this AMI (in case run_tsudat() doesn't)
     log.info('run_tsudat() finished, shutting down')
     shutdown()
 
@@ -182,7 +253,7 @@ if __name__ == '__main__':
     elif len(fields) == 6:
         (User, Project, Scenario, Setup, BaseDir, Debug) = expr.split(args)
     else:
-        abort("Expected 5 or 6 args in setup string. Got '%s'" % args)
+        log.critical("Expected 5 or 6 args in setup string. Got '%s'." % args)
         sys.exit(10)
 
     level = log.INFO

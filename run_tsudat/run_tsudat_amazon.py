@@ -32,7 +32,10 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-46d72a2f'  # Ubuntu_10.04_TsuDAT_2.0.6
+DefaultAmi = 'ami-88c439e1'  # Ubuntu_10.04_TsuDAT_2.0.9
+#DefaultAmi = 'ami-e4c4398d'  # Ubuntu_10.04_TsuDAT_2.0.8
+#DefaultAmi = 'ami-00c43969'  # Ubuntu_10.04_TsuDAT_2.0.7
+#DefaultAmi = 'ami-46d72a2f'  # Ubuntu_10.04_TsuDAT_2.0.6
 #DefaultAmi = 'ami-b2d429db'  # Ubuntu_10.04_TsuDAT_2.0.5
 #DefaultAmi = 'ami-08d42961'  # Ubuntu_10.04_TsuDAT_2.0.4
 ## BAD  DefaultAmi = 'ami-12da277b'  # Ubuntu_10.04_TsuDAT_2.0.3
@@ -332,10 +335,6 @@ def setup_model():
                                * project.scale_factor
 
     # Estimate the number of triangles
-    log.debug('number_mesh_triangles(%s, %s, %s)'
-              % (str(project.interior_regions),
-                 str(project.bounding_polygon),
-                 str(project.bounding_maxarea)))
     triangle_min = number_mesh_triangles(project.interior_regions,
                                          project.bounding_polygon,
                                          project.bounding_maxarea)
@@ -812,22 +811,43 @@ def run_tsudat(json_data):
     make_dir_zip(project.working_directory, zipname)
 
     s3_name = 'input-data/%s' % zipname
-    s3 = boto.connect_s3(AccessKey, SecretKey)
-    bucket = s3.create_bucket(Bucket)
-    key = bucket.new_key(s3_name)
-    log.debug('Creating S3 file: %s/%s' % (Bucket, s3_name))
-    key.set_contents_from_filename(zipname)
-    log.debug('Done!')
-    key.set_acl('public-read')
+    try:
+        access_key = os.environ['EC2_ACCESS_KEY']
+        secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+        s3 = boto.connect_s3(access_key, secret_key)
+        access_key = 'DEADBEEF'
+        secret_key = 'DEADBEEF'
+        del access_key, secret_key
+
+        bucket = s3.create_bucket(Bucket)
+        key = bucket.new_key(s3_name)
+        log.debug('Creating S3 file: %s/%s' % (Bucket, s3_name))
+        key.set_contents_from_filename(zipname)
+        log.debug('Done!')
+        key.set_acl('public-read')
+    except boto.exception.S3ResponseError, e:
+        log.critical('S3 error: %s' % str(e))
+        print('S3 error: %s' % str(e))
+        sys.exit(10)
+
+    # clean up the local filesystem
+    dir_path = os.path.join(project.working_directory, project.user)
+    log.debug('Deleting work directory: %s' % dir_path)
+    shutil.rmtree(dir_path)
 
     # start the EC2 instance we are using
     user_data = ' '.join([project.user, project.project, project.scenario_name,
                           project.setup, project.working_directory,
                           'debug' if project.debug else 'production'])
     log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))
-    instance = start_ami(DefaultAmi, user_data=''.join(user_data))
+    try:
+        instance = start_ami(DefaultAmi, user_data=''.join(user_data))
+    except boto.exception.EC2ResponseError, e:
+        log.critical('EC2 error: %s' % str(e))
+        print('EC2 error: %s' % str(e))
+        sys.exit(10)
 
     print('*'*80)
-    print('Started instance: %s' % instance.dns_name)
+    print('* Started instance: %s' % instance.dns_name)
     print('*'*80)
     log.info('Started instance: %s' % instance.dns_name)
