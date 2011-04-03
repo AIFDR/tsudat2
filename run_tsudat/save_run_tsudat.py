@@ -42,28 +42,6 @@ project = Project()
 project.multi_mux = True
 
 
-def make_dir_zip(dirname, zipname):
-    """Make a ZIP file from a directory.
-
-    dirname  path to directory to zip up
-    zipname  path to ZIP file to create
-    """
-
-    def recursive_zip(zipf, directory):
-        ls = os.listdir(directory)
-
-        for f in ls:
-            f_path = os.path.join(directory, f)
-            if os.path.isdir(f_path):
-                recursive_zip(zipf, f_path)
-            else:
-                zipf.write(f_path, f_path, zipfile.ZIP_DEFLATED)
-
-    zf = zipfile.ZipFile(zipname, mode='w')
-    recursive_zip(zf, dirname)
-    zf.close()
-
-
 def get_sts_gauge_data(filename, verbose=False):
     """Get gauges (timeseries of index points)."""
 
@@ -486,8 +464,6 @@ def run_tsudat(json_data):
                     log.info('project.%s=%s' % (key, eval('project.%s' % key)))
                 except AttributeError:
                     pass
-
-    log.debug('user=%s' % str(os.getenv('USER')))
 
     # start the result dictionary
     gen_files = {}

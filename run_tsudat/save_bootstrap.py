@@ -184,6 +184,9 @@ def bootstrap():
     gen_files = run_tsudat.run_tsudat(json_path)
 
     # save all output files back to S3
+    zipname = os.path.join('%s_%s_%s_%s.zip'
+                           % (User, Project, Scenario, Setup))
+    log.info('Zipping generated files to %s.' % zipname)
     output_dir = tempfile.mkdtemp(prefix='tsudat_savedir_')
     for d in gen_files:
         save_dir = os.path.join(output_dir, d)
@@ -193,13 +196,11 @@ def bootstrap():
             shutil.copy(f, save_dir)
 
     zip_tree_prefix = os.path.join(output_dir, BaseDir)
-    log.debug('zip_tree_prefix=%s' % zip_tree_prefix)
-    zipname = os.path.join('%s_%s_%s_%s.zip'
-                           % (User, Project, Scenario, Setup))
     make_dir_zip(zip_tree_prefix, zipname)
     shutil.rmtree(output_dir)
 
     s3_name = 'output-data/%s' % zipname
+    log.info('Saving generated files to S3 storage as %s.' % s3_name)
     try:
         access_key = os.environ['EC2_ACCESS_KEY']
         secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
@@ -227,6 +228,14 @@ if __name__ == '__main__':
     global User, Project, Scenario, Setup, BaseDir, Debug
 
     import re
+
+    # dump our environment variables and other things
+    with os.popen('env | sort') as fd:
+        env_vars = fd.readlines()    # ignore all but first line
+    print('Env Vars=\n%s' % '\n'.join(env_vars))
+    with os.popen('whoami') as fd:
+        whoami = fd.readlines()    # ignore all but first line
+    print('whoami=%s' % '\n'.join(whoami))
 
     def excepthook(type, value, tb):
         """Exception hook routine."""

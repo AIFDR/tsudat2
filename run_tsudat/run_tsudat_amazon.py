@@ -32,7 +32,10 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-88c439e1'  # Ubuntu_10.04_TsuDAT_2.0.9
+DefaultAmi = 'ami-7a38c513'  # Ubuntu_10.04_TsuDAT_2.0.12
+#DefaultAmi = 'ami-de39c4b7'  # Ubuntu_10.04_TsuDAT_2.0.11
+#DefaultAmi = 'ami-6639c40f'  # Ubuntu_10.04_TsuDAT_2.0.10
+#DefaultAmi = 'ami-88c439e1'  # Ubuntu_10.04_TsuDAT_2.0.9
 #DefaultAmi = 'ami-e4c4398d'  # Ubuntu_10.04_TsuDAT_2.0.8
 #DefaultAmi = 'ami-00c43969'  # Ubuntu_10.04_TsuDAT_2.0.7
 #DefaultAmi = 'ami-46d72a2f'  # Ubuntu_10.04_TsuDAT_2.0.6
@@ -61,7 +64,7 @@ JsonDataFilename = 'data.json'
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
 
-# match any number of spaces beteen fields
+# match any number of spaces between fields
 SpacesPattern = re.compile(' +')
 
 # dictionary to handle attribute renaming from JSON->project
@@ -713,7 +716,12 @@ def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
     """
     """
 
-    ec2 = boto.connect_ec2(AccessKey, SecretKey)
+    access_key = os.environ['EC2_ACCESS_KEY']
+    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+    ec2 = boto.connect_ec2(access_key, secret_key)
+    access_key = 'DEADBEEF'
+    secret_key = 'DEADBEEF'
+    del access_key, secret_key
     if user_data is None:
         user_data = ''
     reservation = ec2.run_instances(image_id=ami, key_name=key_name,
