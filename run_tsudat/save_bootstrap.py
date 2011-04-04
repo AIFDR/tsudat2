@@ -11,6 +11,7 @@ import os
 import sys
 import shutil
 import zipfile
+import glob
 import tempfile
 import traceback
 
@@ -18,6 +19,13 @@ import boto
 
 import tsudat_log as log
 
+
+# the bucket to use
+S3Bucket = 'tsudat.aifdr.org'
+
+# S3 directories under S3Bucket
+InputDataDir = 'input-data'
+OutputDataDir = 'output-data'
 
 # the file to log to
 LogFile = 'tsudat.log'
@@ -28,10 +36,6 @@ SecretKey = 'yipBHX1ZEJ8YkBV09NzDqzJT79bweZXV2ncUqvcv'
 
 # URL to get user-data from
 UserDataURL = 'http://169.254.169.254/2007-01-19/user-data'
-
-# the bucket to use
-#S3Bucket = 'tsudat.aifdr.org'
-S3Bucket = 'tsudat.aifdr.org'
 
 # path to input data zip file
 InputZipFile = './input_data.zip'
@@ -129,8 +133,8 @@ def bootstrap():
     access_key = 'DEADBEEF'
     secret_key = 'DEADBEEF'
     del access_key, secret_key
-    key_str = ('input-data/%s-%s-%s-%s.zip'
-               % (User, Project, Scenario, Setup))
+    key_str = ('%s/%s-%s-%s-%s.zip'
+               % (InputDataDir, User, Project, Scenario, Setup))
     log.info('Loading %s from S3 ...' % key_str)
     bucket = s3.get_bucket(S3Bucket)
     if bucket is None:
@@ -153,8 +157,8 @@ def bootstrap():
     log.debug('Done')
 
     # load any previous generated data
-    key_str = ('gen-data/%s-%s-%s-%s.zip'
-               % (User, Project, Scenario, Setup))
+    key_str = ('%s/%s-%s-%s-%s.zip'
+               % (OutputDataDir, User, Project, Scenario, Setup))
     try:
         key = bucket.get_key(key_str)
     except S3ResponseError:
@@ -183,6 +187,16 @@ def bootstrap():
     log.info('Running run_tsudat.run_tsudat()')
     gen_files = run_tsudat.run_tsudat(json_path)
 
+    # add local log files to the 'log' entry
+    gen_files['log'] = glob.glob('*.log')
+
+    # optionally dump returned file data
+    if Debug:
+        import pprint
+        pp = pprint.PrettyPrinter(indent=4)
+        gen_str = pprint.pformat(gen_files)
+        log.debug('Returned files:\n%s' % gen_str)
+
     # save all output files back to S3
     zipname = os.path.join('%s_%s_%s_%s.zip'
                            % (User, Project, Scenario, Setup))
@@ -191,15 +205,16 @@ def bootstrap():
     for d in gen_files:
         save_dir = os.path.join(output_dir, d)
         os.mkdir(save_dir)
+        log.debug('Making directory: %s' % save_dir)
         for f in gen_files[d]:
-            log.debug('Saving file %s' % f)
+            log.debug('    Saving %s' % f)
             shutil.copy(f, save_dir)
 
-    zip_tree_prefix = os.path.join(output_dir, BaseDir)
-    make_dir_zip(zip_tree_prefix, zipname)
-    shutil.rmtree(output_dir)
+    make_dir_zip(output_dir, zipname)
+    if not Debug:
+        shutil.rmtree(output_dir)
 
-    s3_name = 'output-data/%s' % zipname
+    s3_name = '%s/%s' % (OutputDataDir, zipname)
     log.info('Saving generated files to S3 storage as %s.' % s3_name)
     try:
         access_key = os.environ['EC2_ACCESS_KEY']

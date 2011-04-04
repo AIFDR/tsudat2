@@ -536,15 +536,4 @@ def run_tsudat(json_data):
     log.info('# Simulation finished')
     log.info('#'*90)
 
-    # add the ANUGA log file in case user wants to see it
-    glob_mask = os.path.join(project.output_folder, '*.log')
-    gen_files['log'] = glob.glob(glob_mask)
-
-    # optionally dump returned file data
-    if project.debug:
-        import pprint
-        pp = pprint.PrettyPrinter(indent=4)
-        gen_str = pprint.pformat(gen_files)
-        log.debug('Returned files:\n%s' % gen_str)
-
     return gen_files

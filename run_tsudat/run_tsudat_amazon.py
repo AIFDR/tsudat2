@@ -32,7 +32,9 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-7a38c513'  # Ubuntu_10.04_TsuDAT_2.0.12
+DefaultAmi = 'ami-3836cb51'  # Ubuntu_10.04_TsuDAT_2.0.14
+#DefaultAmi = 'ami-fe37ca97'  # Ubuntu_10.04_TsuDAT_2.0.13
+#DefaultAmi = 'ami-7a38c513'  # Ubuntu_10.04_TsuDAT_2.0.12
 #DefaultAmi = 'ami-de39c4b7'  # Ubuntu_10.04_TsuDAT_2.0.11
 #DefaultAmi = 'ami-6639c40f'  # Ubuntu_10.04_TsuDAT_2.0.10
 #DefaultAmi = 'ami-88c439e1'  # Ubuntu_10.04_TsuDAT_2.0.9
