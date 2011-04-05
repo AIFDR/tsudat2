@@ -115,10 +115,6 @@ def get_sts_gauge_data(filename, verbose=False):
 def run_model():
     """Run a tsunami simulation for a scenario."""
 
-    log.info('@'*90)
-    log.info('@ Running simulation')
-    log.info('@'*90)
-
     # Read in boundary from ordered sts file
     event_sts = anuga.create_sts_boundary(project.event_sts)
 

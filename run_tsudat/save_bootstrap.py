@@ -25,9 +25,13 @@ S3Bucket = 'tsudat.aifdr.org'
 
 # S3 directories under S3Bucket
 InputS3DataDir = 'input-data'
+OutputS3DataDir = 'output-data'
 
 # form of the data ZIP filename
 DataFileFormat = '%s-%s-%s-%s.zip'
+
+# where we write generated data directory
+GenSaveDir = os.path.join('/tmp', 'tsudat_gen')
 
 # the file to log to
 LogFile = 'tsudat.log'
@@ -41,6 +45,7 @@ UserDataURL = 'http://169.254.169.254/2007-01-19/user-data'
 
 # path to input data zip file
 InputZipFile = './input_data.zip'
+OutputZipFile = './output_data.zip'
 GeneratedZipFile = './gen_data.zip'
 
 # sub-directory holding run_tsudat.py and other scripts/data
@@ -109,6 +114,23 @@ def shutdown():
     else:
         os.system('sudo halt')
 
+def s3_connect():
+    """Connect to S3 storage.
+
+    Returns a connection object.
+
+    Tries to remove sensitive data from memory as soon as possible.
+    """
+
+    access_key = os.environ['EC2_ACCESS_KEY']
+    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+    s3 = boto.connect_s3(access_key, secret_key)
+    access_key = 'DEADBEEF'
+    secret_key = 'DEADBEEF'
+    del access_key, secret_key
+
+    return s3
+
 def bootstrap():
     """Bootstrap the TsuDAT run into existence.
 
@@ -131,13 +153,10 @@ def bootstrap():
     # get name of ZIP working file
     zip_name = DataFileFormat % (User, Project, Scenario, Setup)
 
+    # get an S3 connection
+    s3 = s3_connect()
+
     # load the input data files from S3
-    access_key = os.environ['EC2_ACCESS_KEY']
-    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-    s3 = boto.connect_s3(access_key, secret_key)
-    access_key = 'DEADBEEF'
-    secret_key = 'DEADBEEF'
-    del access_key, secret_key
     key_str = ('%s/%s' % (InputS3DataDir, zip_name))
     log.info('Loading %s from S3 ...' % key_str)
     bucket = s3.get_bucket(S3Bucket)
@@ -159,6 +178,26 @@ def bootstrap():
     if not Debug:
         os.remove(InputZipFile)
     log.debug('Done')
+
+    # now load any generated data from a previous run
+    key_str = ('%s/%s' % (OutputS3DataDir, zip_name))
+    log.info('Trying to load %s from S3 ...' % key_str)
+    try:
+        bucket = s3.get_bucket(S3Bucket)
+        key = bucket.get_key(key_str)
+        if key:
+            key.get_contents_to_filename(OutputZipFile)
+            log.info('Done')
+
+            # unpack generated data into working directory
+            log.debug('Unzipping %s ...' % OutputZipFile)
+            z = zipfile.ZipFile(OutputZipFile)
+            z.extractall(path='/')
+            if not Debug:
+                os.remove(OutputZipFile)
+            log.debug('Done')
+    except S3ResponseError:
+        log.info('Generated ZIP %s not found' % key_str)
 
     # jigger the PYTHONPATH so we can import 'run_tsudat' from the S3 data
     new_pythonpath = os.path.join(BaseDir, User, Project, Scenario, Setup,
@@ -184,24 +223,30 @@ def bootstrap():
         gen_str = pprint.pformat(gen_files)
         log.debug('Returned files:\n%s' % gen_str)
 
-    # save base directory back to S3
-    log.info('Zipping working directory to %s.' % zip_name)
-    make_dir_zip(BaseDir, zip_name)
+    # save generated data to a capture directory
+    output_path = os.path.dirname(gen_files['sww'][0])
+    log.critical('output_path=%s' % output_path)
+    output_path = os.path.join(GenSaveDir, output_path)
+    log.critical('output_path=%s' % output_path)
+    os.makedirs(output_path)
+    for key in gen_files:
+        for f in gen_files[key]:
+            log.critical('Copying %s -> %s' % (f, output_path))
+            shutil.copy2(f, output_path)
 
-    s3_name = '%s/%s' % (InputS3DataDir, zip_name)
-    log.info('Saving working directory to S3 storage as %s.' % s3_name)
+    # ZIP the generated directory
+    # want same pathname for each file as in inpur ZIP archive
+    log.critical('zipping dir: %'; % os.path.join(GenSaveDir, BaseDir))
+    make_dir_zip(os.path.join(GenSaveDir, BaseDir), OutputZipFile)
+
+    # save generated directory back to S3
+    s3_name = '%s/%s' % (OutputS3DataDir, zip_name)
+    log.info('Saving generated directory to S3 storage as %s.' % s3_name)
     try:
-        access_key = os.environ['EC2_ACCESS_KEY']
-        secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-        s3 = boto.connect_s3(access_key, secret_key)
-        access_key = 'DEADBEEF'
-        secret_key = 'DEADBEEF'
-        del access_key, secret_key
-
         bucket = s3.create_bucket(S3Bucket)
         key = bucket.new_key(s3_name)
         log.debug('Creating S3 file: %s/%s' % (S3Bucket, s3_name))
-        key.set_contents_from_filename(zip_name)
+        key.set_contents_from_filename(OutputZipFile)
         log.debug('Done!')
         key.set_acl('public-read')
     except boto.exception.S3ResponseError, e:
