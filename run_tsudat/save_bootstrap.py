@@ -236,7 +236,7 @@ def bootstrap():
 
     # ZIP the generated directory
     # want same pathname for each file as in inpur ZIP archive
-    log.critical('zipping dir: %'; % os.path.join(GenSaveDir, BaseDir))
+    log.critical('zipping dir: %s' % os.path.join(GenSaveDir, BaseDir))
     make_dir_zip(os.path.join(GenSaveDir, BaseDir), OutputZipFile)
 
     # save generated directory back to S3
