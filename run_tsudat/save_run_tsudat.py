@@ -32,6 +32,9 @@ log.console_logging_level = log.CRITICAL+1    # turn console logging off
 log.log_logging_level = log.INFO
 
 
+# where the generated files are gathered
+OutputGenDir = '/tmp/tsudat_gen'
+
 # define a 'project' object
 class Project(object):
     pass
@@ -247,14 +250,20 @@ def get_youngest_input():
     youngest = 0.0	# time at epoch start
 
     # check all files in given directories
-    for dir in input_dirs:
-        for fname in glob.glob(os.path.join(dir, '*')):
+    for d in input_dirs:
+        with os.popen('ls -l %s' % d) as fd:
+            lines = fd.readlines()
+        log.debug('Directory: %s\n%s' % (d, ''.join(lines)))
+
+        for fname in glob.glob(os.path.join(d, '*')):
             mtime = os.path.getmtime(fname)
+            log.critical('%s - %s' % (fname, str(mtime)))
             youngest = max(mtime, youngest)
 
     # check individual files
     for fname in input_files:
         mtime = os.path.getmtime(fname)
+        log.critical('%s - %s' % (fname, str(mtime)))
         youngest = max(mtime, youngest)
 
     return youngest
@@ -471,16 +480,18 @@ def run_tsudat(json_data):
     # get JSON data and adorn project object with its data
     adorn_project(json_data)
 
-    # run the tsudat simulation
     if project.debug:
         dump_project_py()
 
+    # run the tsudat simulation
     youngest_input = get_youngest_input()
+    log.critical('youngest_input=%s' % str(youngest_input))
     sww_file = os.path.join(project.output_folder, project.scenario_name+'.sww')
     try:
         sww_ctime = os.path.getctime(sww_file)
     except OSError:
         sww_ctime = 0.0		# SWW file not there
+    log.critical('sww_ctime=%s' % str(sww_ctime))
 
     if project.force_run or youngest_input > sww_ctime:
         log.info('#'*90)

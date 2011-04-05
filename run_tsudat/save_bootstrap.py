@@ -24,8 +24,10 @@ import tsudat_log as log
 S3Bucket = 'tsudat.aifdr.org'
 
 # S3 directories under S3Bucket
-InputDataDir = 'input-data'
-OutputDataDir = 'output-data'
+InputS3DataDir = 'input-data'
+
+# form of the data ZIP filename
+DataFileFormat = '%s-%s-%s-%s.zip'
 
 # the file to log to
 LogFile = 'tsudat.log'
@@ -126,6 +128,9 @@ def bootstrap():
     log.debug('   BaseDir=%s' % BaseDir)
     log.debug('   Debug=%s' % Debug)
 
+    # get name of ZIP working file
+    zip_name = DataFileFormat % (User, Project, Scenario, Setup)
+
     # load the input data files from S3
     access_key = os.environ['EC2_ACCESS_KEY']
     secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
@@ -133,8 +138,7 @@ def bootstrap():
     access_key = 'DEADBEEF'
     secret_key = 'DEADBEEF'
     del access_key, secret_key
-    key_str = ('%s/%s-%s-%s-%s.zip'
-               % (InputDataDir, User, Project, Scenario, Setup))
+    key_str = ('%s/%s' % (InputS3DataDir, zip_name))
     log.info('Loading %s from S3 ...' % key_str)
     bucket = s3.get_bucket(S3Bucket)
     if bucket is None:
@@ -155,23 +159,6 @@ def bootstrap():
     if not Debug:
         os.remove(InputZipFile)
     log.debug('Done')
-
-    # load any previous generated data
-    key_str = ('%s/%s-%s-%s-%s.zip'
-               % (OutputDataDir, User, Project, Scenario, Setup))
-    try:
-        key = bucket.get_key(key_str)
-    except S3ResponseError:
-        key = None
-    if key:
-        log.info('Getting previously generated data %s ...' % GeneratedZipFile)
-        key.get_contents_to_filename(GeneratedZipFile)
-        log.debug('Done')
-
-        log.debug('Unzipping %s ...' % GeneratedZipFile)
-        z = zipfile.PyZipFile(GeneratedZipFile)
-        z.extractall(path='/')
-        log.debug('Done')
 
     # jigger the PYTHONPATH so we can import 'run_tsudat' from the S3 data
     new_pythonpath = os.path.join(BaseDir, User, Project, Scenario, Setup,
@@ -197,25 +184,12 @@ def bootstrap():
         gen_str = pprint.pformat(gen_files)
         log.debug('Returned files:\n%s' % gen_str)
 
-    # save all output files back to S3
-    zipname = os.path.join('%s_%s_%s_%s.zip'
-                           % (User, Project, Scenario, Setup))
-    log.info('Zipping generated files to %s.' % zipname)
-    output_dir = tempfile.mkdtemp(prefix='tsudat_savedir_')
-    for d in gen_files:
-        save_dir = os.path.join(output_dir, d)
-        os.mkdir(save_dir)
-        log.debug('Making directory: %s' % save_dir)
-        for f in gen_files[d]:
-            log.debug('    Saving %s' % f)
-            shutil.copy(f, save_dir)
+    # save base directory back to S3
+    log.info('Zipping working directory to %s.' % zip_name)
+    make_dir_zip(BaseDir, zip_name)
 
-    make_dir_zip(output_dir, zipname)
-    if not Debug:
-        shutil.rmtree(output_dir)
-
-    s3_name = '%s/%s' % (OutputDataDir, zipname)
-    log.info('Saving generated files to S3 storage as %s.' % s3_name)
+    s3_name = '%s/%s' % (InputS3DataDir, zip_name)
+    log.info('Saving working directory to S3 storage as %s.' % s3_name)
     try:
         access_key = os.environ['EC2_ACCESS_KEY']
         secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
@@ -227,7 +201,7 @@ def bootstrap():
         bucket = s3.create_bucket(S3Bucket)
         key = bucket.new_key(s3_name)
         log.debug('Creating S3 file: %s/%s' % (S3Bucket, s3_name))
-        key.set_contents_from_filename(zipname)
+        key.set_contents_from_filename(zip_name)
         log.debug('Done!')
         key.set_acl('public-read')
     except boto.exception.S3ResponseError, e:
@@ -240,17 +214,9 @@ def bootstrap():
     shutdown()
 
 if __name__ == '__main__':
-    global User, Project, Scenario, Setup, BaseDir, Debug
-
     import re
 
-    # dump our environment variables and other things
-    with os.popen('env | sort') as fd:
-        env_vars = fd.readlines()    # ignore all but first line
-    print('Env Vars=\n%s' % '\n'.join(env_vars))
-    with os.popen('whoami') as fd:
-        whoami = fd.readlines()    # ignore all but first line
-    print('whoami=%s' % '\n'.join(whoami))
+    global User, Project, Scenario, Setup, BaseDir, Debug
 
     def excepthook(type, value, tb):
         """Exception hook routine."""

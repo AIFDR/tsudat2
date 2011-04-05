@@ -32,19 +32,8 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-3836cb51'  # Ubuntu_10.04_TsuDAT_2.0.14
-#DefaultAmi = 'ami-fe37ca97'  # Ubuntu_10.04_TsuDAT_2.0.13
-#DefaultAmi = 'ami-7a38c513'  # Ubuntu_10.04_TsuDAT_2.0.12
-#DefaultAmi = 'ami-de39c4b7'  # Ubuntu_10.04_TsuDAT_2.0.11
-#DefaultAmi = 'ami-6639c40f'  # Ubuntu_10.04_TsuDAT_2.0.10
-#DefaultAmi = 'ami-88c439e1'  # Ubuntu_10.04_TsuDAT_2.0.9
-#DefaultAmi = 'ami-e4c4398d'  # Ubuntu_10.04_TsuDAT_2.0.8
-#DefaultAmi = 'ami-00c43969'  # Ubuntu_10.04_TsuDAT_2.0.7
-#DefaultAmi = 'ami-46d72a2f'  # Ubuntu_10.04_TsuDAT_2.0.6
-#DefaultAmi = 'ami-b2d429db'  # Ubuntu_10.04_TsuDAT_2.0.5
-#DefaultAmi = 'ami-08d42961'  # Ubuntu_10.04_TsuDAT_2.0.4
-## BAD  DefaultAmi = 'ami-12da277b'  # Ubuntu_10.04_TsuDAT_2.0.3
-#DefaultAmi = 'ami-54e71a3d'  # Ubuntu_10.04_TsuDAT_2.0.2
+DefaultAmi = 'ami-ae23dec7'  # Ubuntu_10.04_TsuDAT_2.0.17
+#DefaultAmi = 'ami-9633ceff'  # Ubuntu_10.04_TsuDAT_2.0.16
 
 # the authentication stuff
 AccessKey = 'AKIAIKGYJFXGT5TFJJOA'

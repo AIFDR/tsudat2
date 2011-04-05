@@ -13,12 +13,12 @@ import os
 import boto
 
 
-ACCESS_KEY = 'AKIAIKGYJFXGT5TFJJOA'
-SECRET_KEY = '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'
+ACCESS_KEY = 'AKIAIV6EGXIX4D7MIV3A'
+SECRET_KEY = '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'
 
 S3_FILE = 'input-data/user-project-VictorHarbour-trial.zip'
 
-ZIP_FILE = 'tsudat_user_project_VictorHarbour_trial.zip'
+ZIP_FILE = 'tsudat-user-project-VictorHarbour-trial.zip'
 
 BUCKET = 'tsudat.aifdr.org'
 
