@@ -31,7 +31,7 @@ OutputS3DataDir = 'output-data'
 DataFileFormat = '%s-%s-%s-%s.zip'
 
 # where we write generated data directory
-GenSaveDir = os.path.join('/tmp', 'tsudat_gen')
+GenSaveDir = '/tmp/tsudat_gen'
 
 # the file to log to
 LogFile = 'tsudat.log'
@@ -225,9 +225,10 @@ def bootstrap():
 
     # save generated data to a capture directory
     output_path = os.path.dirname(gen_files['sww'][0])
-    log.critical('output_path=%s' % output_path)
-    output_path = os.path.join(GenSaveDir, output_path)
-    log.critical('output_path=%s' % output_path)
+    log.info('output_path=%s' % output_path)
+    log.info('GenSaveDir=%s' % GenSaveDir)
+    output_path = os.path.join(GenSaveDir, output_path[1:])
+    log.info('output_path=%s' % output_path)
     os.makedirs(output_path)
     for key in gen_files:
         for f in gen_files[key]:
