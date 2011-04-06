@@ -41,6 +41,10 @@ SecretKey = 'yipBHX1ZEJ8YkBV09NzDqzJT79bweZXV2ncUqvcv'
 # bucket name in S3
 Bucket = 'tsudat.aifdr.org'
 
+# names of sub-dirs under Bucket
+InputS3Dir = 'input-data'
+
+
 # name of run_tsudat() file, here and on EC2 (name change)
 Ec2RunTsuDAT = 'save_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
@@ -759,6 +763,22 @@ def dump_json_to_file(project, json_file):
     with open(json_file, 'w') as fd:
         json.dump(ui_dict, fd, indent=2, separators=(',', ':'))
 
+def s3_connect():
+    """Get an S3 connection object.
+
+    Returns an S3 connection object.
+
+    Tries hard not to expose keys in memory.
+    """
+
+    access_key = os.environ['EC2_ACCESS_KEY']
+    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+    s3 = boto.connect_s3(access_key, secret_key)
+    access_key = 'DEADBEEF'
+    secret_key = 'DEADBEEF'
+    del access_key, secret_key
+
+    return s3
 
 def run_tsudat(json_data):
     """Run ANUGA on the Amazon EC2.
@@ -783,8 +803,11 @@ def run_tsudat(json_data):
     log.info('#'*90)
     log.info('# Preparing simulation')
     log.info('#'*90)
+    log.info('Calling: setup_model()')
     setup_model()
+    log.info('Calling: build_elevation()')
     build_elevation()
+    log.info('Calling: build_urs_boundary()')
     build_urs_boundary(project.mux_input_filename, project.event_sts)
 
     # copy all required python modules to scripts directory
@@ -798,7 +821,7 @@ def run_tsudat(json_data):
     # dump the current 'projects' object back into JSON, put in 'scripts'
     dump_project_py()
     json_file = os.path.join(ScriptsDir, JsonDataFilename)
-    log.debug('Dumping JSON to file %s' % json_file)
+    log.info('Dumping JSON to file %s' % json_file)
     dump_json_to_file(project, json_file)
 
     # bundle up the working directory, put it into S3
@@ -806,23 +829,18 @@ def run_tsudat(json_data):
     zipname = ('%s-%s-%s-%s.zip'
                % (project.user, project.project,
                   project.scenario_name, project.setup))
-    log.debug('Making zip %s' % zipname)
-    make_dir_zip(project.working_directory, zipname)
+    zippath = os.path.join('/tmp', zipname)
+    log.info('Making zip %s' % zippath)
+    make_dir_zip(project.working_directory, zippath)
 
-    s3_name = 'input-data/%s' % zipname
+    s3_name = os.path.join(InputS3Dir, zipname)
     try:
-        access_key = os.environ['EC2_ACCESS_KEY']
-        secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-        s3 = boto.connect_s3(access_key, secret_key)
-        access_key = 'DEADBEEF'
-        secret_key = 'DEADBEEF'
-        del access_key, secret_key
-
+        s3 = s3_connect()
         bucket = s3.create_bucket(Bucket)
         key = bucket.new_key(s3_name)
-        log.debug('Creating S3 file: %s/%s' % (Bucket, s3_name))
-        key.set_contents_from_filename(zipname)
-        log.debug('Done!')
+        log.info('Creating S3 file: %s/%s' % (Bucket, s3_name))
+        key.set_contents_from_filename(zippath)
+        log.info('Done!')
         key.set_acl('public-read')
     except boto.exception.S3ResponseError, e:
         log.critical('S3 error: %s' % str(e))
@@ -833,6 +851,8 @@ def run_tsudat(json_data):
     dir_path = os.path.join(project.working_directory, project.user)
     log.debug('Deleting work directory: %s' % dir_path)
     shutil.rmtree(dir_path)
+    log.debug('Deleting zipped S3 data: %s' % zippath)
+    os.remove(zippath)
 
     # start the EC2 instance we are using
     user_data = ' '.join([project.user, project.project, project.scenario_name,
