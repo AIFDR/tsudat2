@@ -29,7 +29,7 @@ import export_depthonland_max as edm
 import export_newstage_max as enm
 
 log.console_logging_level = log.CRITICAL+1    # turn console logging off
-log.log_logging_level = log.INFO
+log.log_logging_level = log.DEBUG
 
 
 # where the generated files are gathered
@@ -249,17 +249,14 @@ def get_youngest_input():
     for d in input_dirs:
         with os.popen('ls -l %s' % d) as fd:
             lines = fd.readlines()
-        log.debug('Directory: %s\n%s' % (d, ''.join(lines)))
 
         for fname in glob.glob(os.path.join(d, '*')):
             mtime = os.path.getmtime(fname)
-            log.critical('%s - %s' % (fname, str(mtime)))
             youngest = max(mtime, youngest)
 
     # check individual files
     for fname in input_files:
         mtime = os.path.getmtime(fname)
-        log.critical('%s - %s' % (fname, str(mtime)))
         youngest = max(mtime, youngest)
 
     return youngest
@@ -481,13 +478,11 @@ def run_tsudat(json_data):
 
     # run the tsudat simulation
     youngest_input = get_youngest_input()
-    log.critical('youngest_input=%s' % str(youngest_input))
     sww_file = os.path.join(project.output_folder, project.scenario_name+'.sww')
     try:
         sww_ctime = os.path.getctime(sww_file)
     except OSError:
         sww_ctime = 0.0		# SWW file not there
-    log.critical('sww_ctime=%s' % str(sww_ctime))
 
     if project.force_run or youngest_input > sww_ctime:
         log.info('#'*90)
@@ -498,7 +493,6 @@ def run_tsudat(json_data):
     else:
         log.info('#'*90)
         log.info('# Not running simulation')
-        log.debug('# SWW file %s is younger than input data' % sww_file)
         log.info('# If you want to force a simulation run, select FORCE RUN')
         log.info('#'*90)
 

@@ -31,7 +31,7 @@ OutputS3DataDir = 'output-data'
 DataFileFormat = '%s-%s-%s-%s.zip'
 
 # where we write generated data directory
-GenSaveDir = '/tmp/tsudat_gen'
+GenSaveDir = 'tmp'
 
 # the file to log to
 LogFile = 'tsudat.log'
@@ -62,6 +62,15 @@ def make_dir_zip(dirname, zipname):
     zipname  path to ZIP file to create
     """
 
+    os.system('zip -q -r %s %s' % (zipname, dirname))
+
+def make_dir_zip2(dirname, zipname):
+    """Make a ZIP file from a directory.
+
+    dirname  path to directory to zip up
+    zipname  path to ZIP file to create
+    """
+
     def recursive_zip(zipf, directory):
         ls = os.listdir(directory)
 
@@ -84,12 +93,7 @@ def abort(msg):
 
     # try to save the log file to S3 first
     try:
-        access_key = os.environ['EC2_ACCESS_KEY']
-        secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-        s3 = boto.connect_s3(access_key, secret_key)
-        access_key = 'DEADBEEF'
-        secret_key = 'DEADBEEF'
-        del access_key, secret_key
+        s3 = s3_connect()
         bucket = s3.create_bucket(S3Bucket)
         key_str = ('abort/%s-%s-%s-%s.log'
                    % (User, Project, Scenario, Setup))
@@ -142,13 +146,13 @@ def bootstrap():
     BaseDir   base of the tsudat working directory
     """
 
-    log.debug('bootstrap start, user_data globals:')
-    log.debug('   User=%s' % User)
-    log.debug('   Project=%s' % Project)
-    log.debug('   Scenario=%s' % Scenario)
-    log.debug('   Setup=%s' % Setup)
-    log.debug('   BaseDir=%s' % BaseDir)
-    log.debug('   Debug=%s' % Debug)
+    log.info('bootstrap start, user_data globals:')
+    log.info('   User=%s' % User)
+    log.info('   Project=%s' % Project)
+    log.info('   Scenario=%s' % Scenario)
+    log.info('   Setup=%s' % Setup)
+    log.info('   BaseDir=%s' % BaseDir)
+    log.info('   Debug=%s' % Debug)
 
     # get name of ZIP working file
     zip_name = DataFileFormat % (User, Project, Scenario, Setup)
@@ -196,8 +200,10 @@ def bootstrap():
             if not Debug:
                 os.remove(OutputZipFile)
             log.debug('Done')
+        else:
+            log.info('Previously generated data not found')
     except S3ResponseError:
-        log.info('Generated ZIP %s not found' % key_str)
+        log.info('Previously generated data not found')
 
     # jigger the PYTHONPATH so we can import 'run_tsudat' from the S3 data
     new_pythonpath = os.path.join(BaseDir, User, Project, Scenario, Setup,
@@ -223,22 +229,19 @@ def bootstrap():
         gen_str = pprint.pformat(gen_files)
         log.debug('Returned files:\n%s' % gen_str)
 
-    # save generated data to a capture directory
-    output_path = os.path.dirname(gen_files['sww'][0])
-    log.info('output_path=%s' % output_path)
-    log.info('GenSaveDir=%s' % GenSaveDir)
-    output_path = os.path.join(GenSaveDir, output_path[1:])
-    log.info('output_path=%s' % output_path)
-    os.makedirs(output_path)
+    # save generated data to a staging directory
+    # want same pathname for each file as in input ZIP archive
+    save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
+    log.debug('save_zip_base=%s' % save_zip_base)
+    os.makedirs(save_zip_base)
     for key in gen_files:
         for f in gen_files[key]:
-            log.critical('Copying %s -> %s' % (f, output_path))
-            shutil.copy2(f, output_path)
+            log.debug('Copying %s -> %s' % (f, save_zip_base))
+            shutil.copy2(f, save_zip_base)
 
     # ZIP the generated directory
-    # want same pathname for each file as in inpur ZIP archive
-    log.critical('zipping dir: %s' % os.path.join(GenSaveDir, BaseDir))
-    make_dir_zip(os.path.join(GenSaveDir, BaseDir), OutputZipFile)
+    log.debug('zipping dir: %s' % save_zip_base)
+    make_dir_zip(save_zip_base, OutputZipFile)
 
     # save generated directory back to S3
     s3_name = '%s/%s' % (OutputS3DataDir, zip_name)
@@ -252,7 +255,6 @@ def bootstrap():
         key.set_acl('public-read')
     except boto.exception.S3ResponseError, e:
         log.critical('S3 error: %s' % str(e))
-        print('S3 error: %s' % str(e))
         sys.exit(10)
 
     # stop this AMI (in case run_tsudat() doesn't)

@@ -32,8 +32,7 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-ae23dec7'  # Ubuntu_10.04_TsuDAT_2.0.17
-#DefaultAmi = 'ami-9633ceff'  # Ubuntu_10.04_TsuDAT_2.0.16
+DefaultAmi = 'ami-740ff21d'  # Ubuntu_10.04_TsuDAT_2.0.20
 
 # the authentication stuff
 AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
@@ -153,7 +152,8 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
 
     # now create major sub-dirs under $setup
     for sd in MajorSubDirs:
-        makedirs_noerror(os.path.join(run_dir, sd))
+        new_dir = os.path.join(run_dir, sd)
+        makedirs_noerror(new_dir)
 
     # get extra return paths
     boundaries = os.path.join(run_dir, 'boundaries')
