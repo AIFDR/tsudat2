@@ -28,6 +28,7 @@ S3Bucket = 'tsudat.aifdr.org'
 # S3 directories under S3Bucket
 InputS3DataDir = 'input-data'
 OutputS3DataDir = 'output-data'
+S3AbortDir = 'abort'
 
 # the SQS queue name used here
 SQSQueueName = 'tsudat_aifdr_org'
@@ -81,16 +82,15 @@ def abort(msg):
     try:
         s3 = s3_connect()
         bucket = s3.create_bucket(S3Bucket)
-        key_str = ('abort/%s-%s-%s-%s.log'
-                   % (User, Project, Scenario, Setup))
+        key_str = ('%s/%s-%s-%s-%s.log'
+                   % (S3AbortDir, User, Project, Scenario, Setup))
         key = bucket.new_key(key_str)
         key.set_contents_from_filename(LogFile)
         key.set_acl('public-read')
+        send_sqs_message(status='ABORT', generated_datafile=key_str)
     except:
         # if we get here, we can't save the log file
-        pass
-
-    send_sqs_message(status='ABORT')
+        send_sqs_message(status='ABORT')
 
     # then stop the AMI
     shutdown()
