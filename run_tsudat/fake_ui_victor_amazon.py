@@ -19,6 +19,7 @@ User = 'user'
 Project = 'project'
 Scenario = 'VictorHarbour'
 Setup = 'trial'
+#Setup = 'final'
 Event = 58342
 
 # the directory containing all data files required
@@ -72,8 +73,8 @@ def main():
                  'ascii_grid_filenames': [],
                  'zone': 54,
                  'force_run': False, # if True, *forces* a simulation
-                 'debug': False}	# if True, forces DEBUG logging
-#                 'debug': True}	# if True, forces DEBUG logging
+#                 'debug': False}	# if True, forces DEBUG logging
+                 'debug': True}	# if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))

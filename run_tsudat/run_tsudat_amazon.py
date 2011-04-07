@@ -32,7 +32,7 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-740ff21d'  # Ubuntu_10.04_TsuDAT_2.0.20
+DefaultAmi = 'ami-647a870d'  # Ubuntu_10.04_TsuDAT_2.0.21
 
 # the authentication stuff
 AccessKey = 'AKIAIKGYJFXGT5TFJJOA'

@@ -12,6 +12,8 @@ import sys
 import shutil
 import zipfile
 import glob
+import json
+import time
 import tempfile
 import traceback
 
@@ -26,6 +28,9 @@ S3Bucket = 'tsudat.aifdr.org'
 # S3 directories under S3Bucket
 InputS3DataDir = 'input-data'
 OutputS3DataDir = 'output-data'
+
+# the SQS queue name used here
+SQSQueueName = 'tsudat_aifdr_org'
 
 # form of the data ZIP filename
 DataFileFormat = '%s-%s-%s-%s.zip'
@@ -42,6 +47,9 @@ SecretKey = 'yipBHX1ZEJ8YkBV09NzDqzJT79bweZXV2ncUqvcv'
 
 # URL to get user-data from
 UserDataURL = 'http://169.254.169.254/2007-01-19/user-data'
+
+# URL to get instance ID
+InstanceURL = 'http://169.254.169.254/latest/meta-data/instance-id'
 
 # path to input data zip file
 InputZipFile = './input_data.zip'
@@ -64,28 +72,6 @@ def make_dir_zip(dirname, zipname):
 
     os.system('zip -q -r %s %s' % (zipname, dirname))
 
-def make_dir_zip2(dirname, zipname):
-    """Make a ZIP file from a directory.
-
-    dirname  path to directory to zip up
-    zipname  path to ZIP file to create
-    """
-
-    def recursive_zip(zipf, directory):
-        ls = os.listdir(directory)
-
-        for f in ls:
-            f_path = os.path.join(directory, f)
-            if os.path.isdir(f_path):
-                recursive_zip(zipf, f_path)
-            else:
-                zipf.write(f_path, f_path, zipfile.ZIP_DEFLATED)
-
-    zf = zipfile.ZipFile(zipname, mode='w')
-    recursive_zip(zf, dirname)
-    zf.close()
-
-
 def abort(msg):
     """Abort a run with an error message."""
 
@@ -104,6 +90,8 @@ def abort(msg):
         # if we get here, we can't save the log file
         pass
 
+    send_sqs_message(status='ABORT')
+
     # then stop the AMI
     shutdown()
 
@@ -121,7 +109,7 @@ def shutdown():
 def s3_connect():
     """Connect to S3 storage.
 
-    Returns a connection object.
+    Returns an S3 connection object.
 
     Tries to remove sensitive data from memory as soon as possible.
     """
@@ -134,6 +122,40 @@ def s3_connect():
     del access_key, secret_key
 
     return s3
+
+def send_sqs_message(**kwargs):
+    """Send an SQS message.
+
+    kwargs   a dict of keyword arguments
+
+    Send a JSON representation of the kwargs dict.
+    Add the User, Project, Scenario, Setup global values.
+    """
+
+    # add the global values
+    kwargs['user'] = User
+    kwargs['project'] = Project
+    kwargs['scenario'] = Scenario
+    kwargs['setup'] = Setup
+    kwargs['instance'] = Instance
+
+    # add time string (UTC, ISO 8601 format)
+    kwargs['timestamp'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+
+    # get JSON string
+    msg = json.dumps(kwargs)
+    log.debug('SQS message JSON: %s' % msg)
+
+    # send the JSON
+    sqs = boto.connect_sqs(os.environ['EC2_ACCESS_KEY'],
+                           os.environ['EC2_SECRET_ACCESS_KEY'])
+    log.debug('Creating SQS queue %s' % SQSQueueName)
+    queue = sqs.create_queue(SQSQueueName)
+    m = boto.sqs.message.Message()
+    m.set_body(msg)
+    log.debug('Writing SQS message')
+    status = queue.write(m)
+    
 
 def bootstrap():
     """Bootstrap the TsuDAT run into existence.
@@ -153,6 +175,9 @@ def bootstrap():
     log.info('   Setup=%s' % Setup)
     log.info('   BaseDir=%s' % BaseDir)
     log.info('   Debug=%s' % Debug)
+    log.info('   Instance=%s' % Instance)
+
+    send_sqs_message(status='STARTING')
 
     # get name of ZIP working file
     zip_name = DataFileFormat % (User, Project, Scenario, Setup)
@@ -257,14 +282,16 @@ def bootstrap():
         log.critical('S3 error: %s' % str(e))
         sys.exit(10)
 
-    # stop this AMI (in case run_tsudat() doesn't)
+    send_sqs_message(status='STOPPING', generated_datafile=s3_name)
+
+    # stop this AMI
     log.info('run_tsudat() finished, shutting down')
     shutdown()
 
 if __name__ == '__main__':
     import re
 
-    global User, Project, Scenario, Setup, BaseDir, Debug
+    global User, Project, Scenario, Setup, BaseDir, Debug, Instance
 
     def excepthook(type, value, tb):
         """Exception hook routine."""
@@ -279,6 +306,10 @@ if __name__ == '__main__':
     # plug our handler into the python system
     sys.excepthook = excepthook
         
+    # wget instance ID
+    with os.popen('wget -O - -q %s' % InstanceURL) as fd:
+        Instance = fd.readline()
+
     # wget user-data into a string & split into params
     with os.popen('wget -O - -q %s' % UserDataURL) as fd:
         args = fd.readline()    # ignore all but first line
