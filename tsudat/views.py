@@ -2,7 +2,7 @@ import sys, traceback
 import simplejson
 import geojson
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponse
 from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt, csrf_response_exempt
@@ -18,7 +18,7 @@ from tsudat.tasks import run_tsudat_simulation
 geoj = GeoJSON.GeoJSON()
 
 def index(request):
-    return render_to_response('tsudat/index.html')
+    return redirect('/tsudat2-client/')
 
 def return_period(request):
     if not "wh" in request.GET: 
@@ -30,9 +30,6 @@ def return_period(request):
     else:
         try:
             hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
-        except:
-            return HttpResponse('Invalid Hazard Point', status=400) 
-        try:
             wh = float(request.GET.get('wh'))
             whd = float(request.GET.get('whd'))
             hpd = HazardPointDetail.objects.filter(hazard_point=hp, wave_height__gte=wh-whd, wave_height__lte=wh+whd).order_by('return_period')
@@ -41,8 +38,9 @@ def return_period(request):
                 # Should handle for this and pick a return period that is 'close'
                 return HttpResponse('No return periods in range', status=400)
             return HttpResponse(serializers.serialize("json", [hpd[int(length/2)]], fields=('return_period')))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Hazard Point', status=400) 
         except:
-            #traceback.print_exc(file=sys.stdout)
             return HttpResponse('Unexpected Error', status=500)
 
 def return_periods(request):
@@ -63,9 +61,12 @@ def hazard_points(request):
         '''
         return HttpResponse("not yet", status=501)
     else:
-        hp = HazardPoint.objects.all()
-        djf = Django.Django(geodjango="geom", properties=['tsudat_id'])
-        return HttpResponse(geoj.encode(djf.decode(hp)))
+        try:
+            hp = HazardPoint.objects.all()
+            djf = Django.Django(geodjango="geom", properties=['tsudat_id'])
+            return HttpResponse(geoj.encode(djf.decode(hp)))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
 
 def source_zones(request):
     # Currently the geom fields are not populated
@@ -76,32 +77,38 @@ def source_zone(request):
         try:
             sf = SubFault.objects.get(tsudat_id=int(request.GET.get('sf')))
             return HttpResponse(serializers.serialize("json", [sf.source_zone]))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Hazard Point', status=400) 
         except:
-            # ToDo catch individual errors
-            return HttpResponse('Error', status=400)
+            return HttpResponse('Unexpected Error', status=500)
     else:
         return HttpResponse('Sub Fault must be specified', status=400)
 
-
 def sub_faults(request):
-    if "sz" in request.GET:
-        try:
-            sz = SourceZone.objects.get(id=int(request.GET.get('sz')))
-            sf = SubFault.objects.filter(source_zone = sz)
-        except:
-            return HttpResponse("invalid source zone", status=404)
-    elif "event" in request.GET:
+    if "event" in request.GET:
         try:
             event = Event.objects.get(tsudat_id=int(request.GET.get("event")))
             return HttpResponse(serializers.serialize("json", event.sub_faults.all()))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Event', status=404)
         except:
-            # ToDo catch individual errors
-            return HttpResponse('Error', status=400)
+            return HttpResponse('Unexpected Error', status=500)
+    elif "sz" in request.GET:
+        try:
+            sz = SourceZone.objects.get(id=int(request.GET.get('sz')))
+            sf = SubFault.objects.filter(source_zone = sz)
+        except ObjectDoesNotExist:
+            return HttpResponse("invalid source zone", status=404)
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     else:
         sf = SubFault.objects.all()
-        # How do we serialize the source_zone properly   
-    djf = Django.Django(geodjango="geom", properties=['tsudat_id', 'dip', 'strike'])
-    return HttpResponse(geoj.encode(djf.decode(sf)))
+        # How do we serialize the source_zone properly
+    if(sf != None):
+        djf = Django.Django(geodjango="geom", properties=['tsudat_id', 'dip', 'strike'])
+        return HttpResponse(geoj.encode(djf.decode(sf)))
+    else:
+        return HttpResponse("invalid source zone", status=404)
 
 def events(request):
     if not "wh" in request.GET: 
@@ -114,23 +121,22 @@ def events(request):
         return HttpResponse('Source Zone must be specified', status=400)
     else:
         try:
-            hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
-        except:
-            return HttpResponse('Invalid Hazard Point', status=400) 
-        try:
-            sz = SourceZone.objects.get(tsudat_id=int(request.GET.get('sz')))
-        except:
-            return HttpResponse('Invalid Hazard Point', status=400) 
-        try:
-            wh = float(request.GET.get('wh'))
-            whd = float(request.GET.get('whd'))
-        except:
-            return HttpResponse('Invalid Wave Height or Delta', status=400) 
-        try:
+            try:
+                hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
+            except ObjectDoesNotExist:
+                return HttpResponse('Invalid Hazard Point', status=400) 
+            try:
+                sz = SourceZone.objects.get(tsudat_id=int(request.GET.get('sz')))
+            except ObjectDoesNotExist:
+                return HttpResponse('Invalid Source Zone', status=400) 
+            try:
+                wh = float(request.GET.get('wh'))
+                whd = float(request.GET.get('whd'))
+            except ValueError:
+                return HttpResponse('Invalid Wave Height or Delta', status=400) 
             ewh = EventWaveHeight.objects.filter(event__source_zone=sz, hazard_point=hp, wave_height__gte=wh-whd, wave_height__lte=wh+whd)
             return HttpResponse(serializers.serialize("json", ewh))
         except:
-            #traceback.print_exc(file=sys.stdout) 
             return HttpResponse('Unexpected Error', status=400) 
 
 def wave_height(request):
@@ -141,7 +147,7 @@ def wave_height(request):
     else:
         try:
             hp = HazardPoint.objects.get(tsudat_id=int(request.GET.get('hp')))
-        except:
+        except ObjectDoesNotExist:
             return HttpResponse('Invalid Hazard Point', status=400) 
         try:
             if(int(request.GET.get('rp')) not in RETURN_PERIODS):
@@ -154,25 +160,53 @@ def wave_height(request):
             hpd = HazardPointDetail.objects.get(hazard_point=hp, return_period=rp)
             return HttpResponse(serializers.serialize("json", [hpd]))
         except:
-            #traceback.print_exc(file=sys.stdout) 
             return HttpResponse('Unexpected Error', status=500)
 
 @csrf_exempt
 def project(request, id=None):
     if id == None and request.method == "POST":
-        data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
-        p = Project()
-        p.from_json(data)
-        djf = Django.Django(geodjango="geom", properties=['name'])
-        return HttpResponse(geoj.encode(djf.decode([p])))
-    elif id != None and id != "all":
-        p = Project.objects.get(pk=id)
-        djf = Django.Django(geodjango="geom", properties=['name'])
-        return HttpResponse(geoj.encode(djf.decode([p])))
+        try:
+            data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+            p = Project()
+            p.from_json(data)
+            djf = Django.Django(geodjango="geom", properties=['name'])
+            return HttpResponse(geoj.encode(djf.decode([p])))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and request.method == "PUT":
+        try:
+            data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+            p = Project.objects.get(pk=id)
+            p.from_json(data)
+            p.from_json(data)
+            djf = Django.Django(geodjango="geom", properties=['name'])
+            return HttpResponse(geoj.encode(djf.decode([p])))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and request.method == "DELETE":
+        try:
+            p = Project.objects.get(pk=id)
+            p.delete()
+            data = {'status': 'success', 'msg': 'project deleted'}
+            return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Project', status=404)
+        except:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and id != "all" and request.method == "GET":
+        try:
+            p = Project.objects.get(pk=id)
+            djf = Django.Django(geodjango="geom", properties=['name'])
+            return HttpResponse(geoj.encode(djf.decode([p])))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     else:
-        projects = Project.objects.all()
-        djf = Django.Django(geodjango="geom", properties=['name'])
-        return HttpResponse(geoj.encode(djf.decode(projects)))
+        try:
+            projects = Project.objects.all()
+            djf = Django.Django(geodjango="geom", properties=['name'])
+            return HttpResponse(geoj.encode(djf.decode(projects)))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
 
 def internal_polygon_types(request):
     return HttpResponse(simplejson.dumps(IP_TYPE_CHOICES))
@@ -187,19 +221,39 @@ def internal_polygon(request, id=None):
             ip.from_json(data)
             djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
             return HttpResponse(geoj.encode(djf.decode([ip])))
-            return HttpResponse("")
         except:
             return HttpResponse('Unexpected Error', status=500)
-            #traceback.print_exc(file=sys.stdout) 
-	    
-    elif id != None and id != "all":
-        ip = InternalPolygon.objects.get(pk=id)
-        djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
-        return HttpResponse(geoj.encode(djf.decode([ip])))
+    elif id != None and request.method == "PUT":
+        try:
+            data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+            ip = InternalPolygon.objects.get(pk=id)
+            ip.from_json(data)
+            djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+            return HttpResponse(geoj.encode(djf.decode([ip])))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and request.method == "DELETE":
+        try:
+            ip = InternalPolygon.objects.get(pk=id)
+            ip.delete()
+            data = {'status': 'success', 'msg': 'internal polygon deleted'}
+            return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+        except:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and id != "all" and request.method == "GET":
+        try:
+            ip = InternalPolygon.objects.get(pk=id)
+            djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+            return HttpResponse(geoj.encode(djf.decode([ip])))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     else:
-        ips = InternalPolygon.objects.all()
-        djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
-        return HttpResponse(geoj.encode(djf.decode(ips)))
+        try:
+            ips = InternalPolygon.objects.all()
+            djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+            return HttpResponse(geoj.encode(djf.decode(ips)))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
 
 @csrf_exempt
 def gauge_point(request, id=None):
@@ -207,18 +261,42 @@ def gauge_point(request, id=None):
     if id == None and request.method == "POST":
         try:
             data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
-            gp = GaugePoint.encode(djf.decode(data))
+            gp = GaugePoint()
             gp.from_json(data)
             djf = Django.Django(geodjango="geom", properties=['project_id','name'])
             return HttpResponse(geoj.encode(djf.decode([gp])))
         except:
-	    # Todo catch specific errors and return proper http response code and message
             return HttpResponse('Unexpected Error', status=500)
-            #traceback.print_exc(file=sys.stdout) 
+    elif id != None and request.method == "PUT":
+        try:
+            data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
+            gp = GaugePoint.objects.get(pk=id)
+            gp.from_json(data)
+            djf = Django.Django(geodjango="geom", properties=['project_id','name'])
+            return HttpResponse(geoj.encode(djf.decode([gp])))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Gauge Point', status=500)
+        except:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and request.method == "DELETE":
+        try:
+            gp = GaugePoint.objects.get(pk=id)
+            gp.delete()
+            data = {'status': 'success', 'msg': 'gauge point deleted'}
+            return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Gauge Point', status=500)
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     elif id != None and id != "all":
-        gp = GaugePoint.objects.get(pk=id)
-        djf = Django.Django(geodjango="geom", properties=['project_id','name'])
-        return HttpResponse(geoj.encode(djf.decode([gp])))
+        try:
+            gp = GaugePoint.objects.get(pk=id)
+            djf = Django.Django(geodjango="geom", properties=['project_id','name'])
+            return HttpResponse(geoj.encode(djf.decode([gp])))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Gauge Point', status=404)
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     else:
         gps = GaugePoint.objects.all()
         djf = Django.Django(geodjango="geom", properties=['project_id','name'])
@@ -234,9 +312,27 @@ def scenario(request, id=None):
             scenario.from_json(data)
             return HttpResponse(serializers.serialize("json", [scenario]))
         except:
-	    # Todo catch specific errors and return proper http response code and message
             return HttpResponse('Unexpected Error', status=500)
-            #traceback.print_exc(file=sys.stdout)
+    elif id != None and request.method == "PUT":
+        try:
+            data = simplejson.loads(request.raw_post_data) 
+            scenario = Scenario(pk=id)
+            scenario.from_json(data)
+            return HttpResponse(serializers.serialize("json", [scenario]))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Scenario', status=404)
+        except ObjectDoesNotExist:
+            return HttpResponse('Unexpected Error', status=500)
+    elif id != None and request.method == "DELETE":
+        try:
+            scenario = Scenario(pk=id)
+            scenario.delete()
+            data = {'status': 'success', 'msg': 'scenario deleted'}
+            return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid Scenario', status=404)
+        except ObjectDoesNotExist:
+            return HttpResponse('Unexpected Error', status=500)
     elif id != None and id != "all":
         scenario = Scenario.objects.get(pk=id)
         return HttpResponse(serializers.serialize("json", [scenario]))
@@ -247,36 +343,44 @@ def scenario(request, id=None):
 @csrf_exempt
 def data_set(request, id=None):
     if("project_id" in request.GET):
-    	project = Project.objects.get(id=int(request.GET.get('project_id')))
-        project_geom = project.geom
-	ds = DataSet.objects.filter(geom__intersects=project_geom)
-	return HttpResponse(serializers.serialize("json", ds))
+        try:
+            project = Project.objects.get(id=int(request.GET.get('project_id')))
+            project_geom = project.geom
+            ds = DataSet.objects.filter(geom__intersects=project_geom)
+            return HttpResponse(serializers.serialize("json", ds))
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     elif id != None and id != "all":
-        data_set = DataSet.objects.get(pk=id)
-        return HttpResponse(serializers.serialize("json", [data_set]))
+        try:
+            data_set = DataSet.objects.get(pk=id)
+            return HttpResponse(serializers.serialize("json", [data_set]))
+        except ObjectDoesNotExist:
+            return HttpResponse('Invalid DataSet', status=404)
+        except:
+            return HttpResponse('Unexpected Error', status=500)
     else:
-	#Update from GeoNode Database
-	coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
-	for layer in coverage_layers:
-		try:
-			ds = DataSet.objects.get(geonode_layer_uuid=layer.uuid)
-			#update existing?
-		except ObjectDoesNotExist:
-			ds = DataSet()
-			ds.geonode_layer_uuid = layer.uuid
-			ds.data_type = 'U'
-			ds.resolution = 0
-			geom_wkt = layer.geographic_bounding_box
-			if(geom_wkt.find('EPSG') != -1):
-				epsg = (geom_wkt.split(';')[0].split('=')[1])
-                		geom = GEOSGeometry(geom_wkt.split(';')[1])
-				srs = SpatialReference(epsg)
-                		geom.set_srid(srs.srid)
-                		geom.transform(4326)
-				ds.geom = geom
-			else:
-				ds.geom = GEOSGeometry(geom_wkt)
-			ds.save()
+        #Update from GeoNode Database
+        coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+        for layer in coverage_layers:
+            try:
+                ds = DataSet.objects.get(geonode_layer_uuid=layer.uuid)
+                #update existing?
+            except ObjectDoesNotExist:
+                ds = DataSet()
+                ds.geonode_layer_uuid = layer.uuid
+                ds.data_type = 'U'
+                ds.resolution = 0
+                geom_wkt = layer.geographic_bounding_box
+                if(geom_wkt.find('EPSG') != -1):
+                    epsg = (geom_wkt.split(';')[0].split('=')[1])
+                    geom = GEOSGeometry(geom_wkt.split(';')[1])
+                    srs = SpatialReference(epsg)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                    ds.geom = geom
+                else:
+                    ds.geom = GEOSGeometry(geom_wkt)
+                    ds.save()
         data_sets = DataSet.objects.all()
         return HttpResponse(serializers.serialize("json", data_sets))
 
@@ -289,12 +393,33 @@ def project_data_set(request, id=None):
             project_data_set.from_json(data)
             return HttpResponse(serializers.serialize("json", [project_data_set]))
         except:
-	    # Todo catch specific errors and return proper http response code and message
             return HttpResponse('Unexpected Error ' + str(sys.exc_info()[0]), status=500)
-            #traceback.print_exc(file=sys.stdout)
+    elif id != None and request.method == "PUT":
+        try:
+            data = simplejson.loads(request.raw_post_data) 
+            project_data_set = ProjectDataSet(pk=id)
+            project_data_set.from_json(data)
+            return HttpResponse(serializers.serialize("json", [project_data_set]))
+        except ObjectDoesNotExist:
+            return HttpResponse("Invalid ProjectDataSet", status=404)
+        except:
+            return HttpResponse('Unexpected Error ' + str(sys.exc_info()[0]), status=500)
+    elif id != None and request.method == "DELETE":
+        try:
+            project_data_set = ProjectDataSet(pk=id)
+            project_data_set.delete()
+            data = {'status': 'success', 'msg': 'project deleted'}
+            return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+        except ObjectDoesNotExist:
+            return HttpResponse("Invalid ProjectDataSet", status=404)
+        except:
+            return HttpResponse('Unexpected Error ' + str(sys.exc_info()[0]), status=500)
     elif id != None and id != "all":
-        project_data_set = ProjectDataSet.objects.get(pk=id)
-        return HttpResponse(serializers.serialize("json", [project_data_set]))
+        try:
+            project_data_set = ProjectDataSet.objects.get(pk=id)
+            return HttpResponse(serializers.serialize("json", [project_data_set]))
+        except ObjectDoesNotExist:
+            return 
     else:
         project_data_sets = ProjectDataSet.objects.all()
         return HttpResponse(serializers.serialize("json", project_data_sets))
