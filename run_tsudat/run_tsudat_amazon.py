@@ -46,7 +46,7 @@ InputS3Dir = 'input-data'
 
 
 # name of run_tsudat() file, here and on EC2 (name change)
-Ec2RunTsuDAT = 'save_run_tsudat.py'
+Ec2RunTsuDAT = 'ec2_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
 # names of additional required files
