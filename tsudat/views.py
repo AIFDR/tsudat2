@@ -225,8 +225,8 @@ def project(request, id=None):
                 data = {'status': 'failure', 'msg': 'Project Update Failed', 'reason': reason}
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             else:
-                djf = Django.Django(geodjango="geom", properties=['name'])
-                return HttpResponse(geoj.encode(djf.decode([p])))
+                data = {'status': 'success', 'msg': 'Project Update Successful', 'id': p.pk}
+                return HttpResponse(json.dumps(data), mimetype='application/json')
         except:
             data = {'status': 'failure', 'msg': 'Project Update Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
