@@ -1,8 +1,9 @@
-import sys
+import sys, traceback
 import geojson
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.gdal import SpatialReference
 from django.contrib.gis.db import models
+from django.core.exceptions import ObjectDoesNotExist
 
 RETURN_PERIOD_CHOICES = (
     (10, '10 years'),
@@ -133,13 +134,16 @@ class Project(models.Model):
 
     def from_json(self, data):
         try:
-            geom = GEOSGeometry(str(data.geometry))
-            if(hasattr(data.geometry.crs, 'properties')):
-                crs = data.geometry.crs.properties['name']
-                srs = SpatialReference(crs)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-            self.geom = geom
+            try:
+                geom = GEOSGeometry(str(data.geometry))
+                if(hasattr(data.geometry.crs, 'properties')):
+                    crs = data.geometry.crs.properties['name']
+                    srs = SpatialReference(crs)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                self.geom = geom
+            except:
+                return None, 'Error Creating Geometry'
             if('name' in data.__dict__['properties']):
                 self.name = data.__dict__['properties']['name']
             else:
@@ -181,25 +185,126 @@ class Scenario(models.Model):
     def from_json(self, data):
         try:
             data = data['fields']
-            self.name = data['name']
-            self.project = Project.objects.get(pk=int(data['project']))
-            self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
-            self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
-            self.return_period = int(data['return_period'])
-            self.wave_height = float(data['wave_height'])
-            self.wave_height_delta = float(data['wave_height_delta'])
-            self.event = Event.objects.get(pk=int(data['event'])) 
-            self.start_time = int(data['start_time'])
-            self.end_time = int(data['end_time'])
-            self.initial_tidal_stage = float(data['initial_tidal_stage'])
-            self.smoothing_param = float(data['smoothing_param'])
-            self.default_friction_value = float(data['default_friction_value'])
-            self.model_setup = data['model_setup']
+            if("name" in data):
+                self.name = data['name']
+            else:
+                return None, "Name is Required"
+            if("project" in data):
+                try:
+                    self.project = Project.objects.get(pk=int(data['project']))
+                except ObjectDoesNotExist:
+                    return None, "Invalid Project"
+            else:
+                return None, "Project is Required"
+            if("hazard_point" in data):
+                try:
+                    self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
+                except ObjectDoesNotExist:
+                    return None, "Invalid Hazard Point"
+            else:
+                return None, "Hazard Point is Required"
+            if("source_zone" in data):
+                try:
+                    self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
+                except ObjectDoesNotExist:
+                    return None, "Invalid Source Zone"
+            else:
+                return None, "Source Zone is Required"
+            if("return_period" in data):
+                try:
+                    self.return_period = int(data['return_period'])
+                except ValueError:
+                    return None, "Invalid Return Period"
+            else:
+                return None, "Return Period is Required"
+            if("wave_height" in data):
+                try:
+                    self.wave_height = float(data['wave_height'])
+                except ValueError:
+                    return None, "Invalid Wave Height"
+            else:
+                return None, "Wave Height is Required"
+            if("wave_height_delta" in data):
+                try:
+                    self.wave_height_delta = float(data['wave_height_delta'])
+                except ValueError:
+                    return None, "Invalid Wave Height Delta"
+            else:
+                return None, "Wave Height Delta is Required"
+            if("event" in data):
+                try:
+                    self.event = Event.objects.get(pk=int(data['event'])) 
+                except ObjectDoesNotExist:
+                    return None, "Invalid Event"
+            else:
+                return None, "Event is Required"
+            if("start_time" in data):
+                try:
+                    self.start_time = int(data['start_time'])
+                except ValueError:
+                    return None, "Invalid Start Time"
+            else:
+                return None, "Start Time is Required"
+            if("end_time" in data):
+                try:
+                    self.end_time = int(data['end_time'])
+                except ValueError:
+                    return None, "Invalid End Time"
+            else:
+                return None, "End Time is Required"
+            if("initial_tidal_stage" in data):
+                try:
+                    self.initial_tidal_stage = float(data['initial_tidal_stage'])
+                except ValueError:
+                    return None, "Invalid Initial Tidal Stage"
+            else:
+                return None, "Initial Tidal Stage is required"
+            if("smoothing_param" in data):
+                try:
+                    self.smoothing_param = float(data['smoothing_param'])
+                except ValueError:
+                    return None, "Invalid Smoothing Param"
+            else:
+                return None, "Smoothing Param Required"
+            if("default_friction_value" in data):
+                try:
+                    self.default_friction_value = float(data['default_friction_value'])
+                except ValueError:
+                    return None, "Invalid Default Friction Value"
+            else:
+                return None, "Default Friction Value Required"
+            if("model_setup" in data):
+                if(data['model_setup'] in ['T','B','F']):
+                    self.model_setup = data['model_setup']
+                else:
+                    return None, "Invalid Model Setup"
+            else:
+                return None, "Model Setup Required"
+            if("raster_resolution" in data):
+                try:
+                    self.raster_resolution = int(data["raster_resolution"])
+                except ValueError:
+                    return None, "Invalid Raster Resolution"
+            else:
+                 return None, "Raster Resolution Required"
+            
             self.save()
-            return self
+            if("output_layers" in data):
+                try:
+                    layers = []
+                    for layer in data["output_layers"]:
+                        sol = ScenarioOutputLayer.objects.get(name=layer)
+                        layers.append(sol)
+                    self.output_layers = layers
+                except ObjectDoesNotExist:
+                    traceback.print_exc(file=sys.stdout)
+                    self.delete()
+                    return None, "Invalid Scenario Output Layer"
+            self.save()
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            traceback.print_exc(file=sys.stdout)
+            return None, 'Unknown'
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
