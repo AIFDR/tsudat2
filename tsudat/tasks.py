@@ -15,12 +15,12 @@ from tsudat.models import *
 from celery.decorators import task
 from geonode.maps.models import *
 
-import gdal
-from gdalconst import *
-import osr
+#import gdal
+#from gdalconst import *
+#import osr
 
 from util.LatLongUTMconversion import LLtoUTM 
-from run_tsudat import run_tsudat
+#from run_tsudat import run_tsudat
 
 try:
     from notification import models as notification
@@ -41,9 +41,9 @@ def run_tsudat_simulation(user, scenario_id):
     print DataFilesDir
 
     # create the user working directory
-    (run_dir, raw_elevations, boundaries, meshes,
-     polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username, scenario.project.name,
-                                                    scenario.name, scenario.model_setup, scenario.event.tsudat_id)
+    #(run_dir, raw_elevations, boundaries, meshes,
+            # polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username, scenario.project.name,
+                    #                                        scenario.name, scenario.model_setup, scenario.event.tsudat_id)
 
     project_geom = scenario.project.geom
     project_extent = scenario.project.geom.extent
@@ -88,6 +88,7 @@ def run_tsudat_simulation(user, scenario_id):
 
     wcs_url = settings.GEOSERVER_BASE_URL + 'wcs'
 
+    '''
     wcs = WebCoverageService(wcs_url, version='1.0.0')
     pds = ProjectDataSet.objects.filter(project=scenario.project).order_by('ranking')
     output_format = "AAIGrid"
@@ -134,8 +135,8 @@ def run_tsudat_simulation(user, scenario_id):
         #os.remove(tif_file_path + ".tmp")
         
         RawElevationFiles.append(asc_file_path)
-
-        '''
+    '''
+    '''
         src_ds = gdal.Open( str(tif_file_path), GA_ReadOnly )
         dst_ds_tmp = driver.CreateCopy( str(asc_file_name + '.tmp'), src_ds, 0)
         dst_ds = driver.Create( str(asc_file_path), dst_ds_tmp.RasterXSize, dst_ds_tmp.RasterYSize)
@@ -143,7 +144,7 @@ def run_tsudat_simulation(user, scenario_id):
         dst_ds = None
         dst_ds_tmp = None
         src_ds = None
-        '''
+    '''
 
     # Boundaries TODO
     LandwardBoundary = 'landward_boundary.csv'
@@ -217,7 +218,7 @@ def run_tsudat_simulation(user, scenario_id):
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
     # now run the simulation
-    run_tsudat.run_tsudat(json_file)
+    #run_tsudat.run_tsudat(json_file)
 
     # Setup the new layers in the GeoNode
 
