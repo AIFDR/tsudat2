@@ -1,4 +1,4 @@
-import sys, traceback
+import sys
 import simplejson as json
 import geojson
 
@@ -214,7 +214,6 @@ def project(request, id=None):
                 data = {'status': 'success', 'msg': 'Project Creation Successful', 'id': p.pk}
                 return HttpResponse(json.dumps(data), mimetype='application/json')
         except:
-            traceback.print_exc(file=sys.stdout) 
             data = {'status': 'failure', 'msg': 'Project Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "PUT":
@@ -379,29 +378,34 @@ def scenario(request, id=None):
     if id == None and request.method == "POST":
         try:
             data = json.loads(request.raw_post_data) 
-            scenario = Scenario()
-            scenario = scenario.from_json(data)
-            if scenario is None:
-                data = {'status': 'failure', 'msg': 'Scenario Creation Failed'}
+            s = Scenario()
+            s,reason = s.from_json(data)
+            if s is None:
+                data = {'status': 'failure', 'msg': 'Scenario Creation Failed', 'reason': reason}
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             else:
-                return HttpResponse(serializers.serialize("json", [scenario]))
+                data = {'status': 'success', 'msg': 'Scenario Creation Successful', 'id': s.pk}
+                return HttpResponse(json.dumps(data), mimetype='application/json')
         except:
-            return HttpResponse('Unexpected Error', status=500)
+            data = {'status': 'failure', 'msg': 'Scenario Creation Failed', 'reason': 'Unexpected Error'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "PUT":
         try:
             data = json.loads(request.raw_post_data) 
-            scenario = Scenario(pk=id)
-            scenario = scenario.from_json(data)
-            if scenario is None:
-                data = {'status': 'failure', 'msg': 'Scenario Update Failed'}
+            s = Scenario(pk=id)
+            s, reason = s.from_json(data)
+            if s is None:
+                data = {'status': 'failure', 'msg': 'Scenario Update Failed', 'reason': reason}
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             else:
-                return HttpResponse(serializers.serialize("json", [scenario]))
+                data = {'status': 'success', 'msg': 'Scenario Update Successful', 'id': s.pk}
+                return HttpResponse(json.dumps(data), mimetype='application/json')
         except ObjectDoesNotExist:
-            return HttpResponse('Invalid Scenario', status=404)
+            data = {'status': 'failure', 'msg': 'Scenario Update Failed', 'reason': 'Invalid Scenario'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
         except ObjectDoesNotExist:
-            return HttpResponse('Unexpected Error', status=500)
+            data = {'status': 'failure', 'msg': 'Scenario Update Failed', 'reason': 'Unexpected Error'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "DELETE":
         try:
             scenario = Scenario(pk=id)
@@ -409,15 +413,25 @@ def scenario(request, id=None):
             data = {'status': 'success', 'msg': 'scenario deleted'}
             return HttpResponse(json.dumps(data), mimetype='application/json')
         except ObjectDoesNotExist:
-            return HttpResponse('Invalid Scenario', status=404)
-        except ObjectDoesNotExist:
-            return HttpResponse('Unexpected Error', status=500)
+            data = {'status': 'failure', 'msg': 'Scenario Delete Failed', 'reason': 'Invalid Scenario'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
+        except:
+            data = {'status': 'failure', 'msg': 'Scenario Delete Failed', 'reason': 'Unexpected Error'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and id != "all":
-        scenario = Scenario.objects.get(pk=id)
-        return HttpResponse(serializers.serialize("json", [scenario]))
+        try:
+            scenario = Scenario.objects.get(pk=id)
+            return HttpResponse(serializers.serialize("json", [scenario]))
+        except:
+            data = {'status': 'failure', 'msg': 'Scenario Get Failed', 'reason': 'Invalid Scenario'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     else:
-        scenarios = Scenario.objects.all()
-        return HttpResponse(serializers.serialize("json", scenarios))
+        try:
+            scenarios = Scenario.objects.all()
+            return HttpResponse(serializers.serialize("json", scenarios))
+        except:
+            data = {'status': 'failure', 'msg': 'Scenario Get Failed', 'reason': 'Unexpected Error'}
+            return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
 
 @csrf_exempt
 def data_set(request, id=None):
