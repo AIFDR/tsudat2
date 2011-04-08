@@ -1,4 +1,4 @@
-import sys,traceback
+import sys
 import geojson
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.gdal import SpatialReference
@@ -50,6 +50,7 @@ MODEL_SETUP_CHOICES = (
     ('B', 'Basic'),
     ('F', 'Final'),
 )
+
 
 #Required to do a ManyToMany in Scenario
 class ScenarioOutputLayer(models.Model):
@@ -138,16 +139,23 @@ class Project(models.Model):
                 srs = SpatialReference(crs)
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
-            name = data.__dict__['properties']['name']
             self.geom = geom
-            self.name = name
+            if('name' in data.__dict__['properties']):
+                self.name = data.__dict__['properties']['name']
+            else:
+                return None, 'Name is required'
+            if('max_area' in data.__dict__['properties']):
+                try:
+                    self.max_area = int(data.__dict__['properties']['max_area'])
+                except ValueError:
+                    return None, 'Invalid Max Area'
+            else:
+                return None, 'Max Area is Required'
             self.save()
-            return self
+            return self, None
         except:
-	    # ToDo catch errors specifically and return message/code in json
-	    pass
-            #traceback.print_exc(file=sys.stdout) 
-        return None
+            # ToDo catch errors specifically and return message/code
+            return None, 'Unknown'
 
 class Scenario(models.Model):
     name = models.CharField(max_length=50)
@@ -171,8 +179,8 @@ class Scenario(models.Model):
         return self.name
 
     def from_json(self, data):
-	try:
-       	    data = data['fields']
+        try:
+            data = data['fields']
             self.name = data['name']
             self.project = Project.objects.get(pk=int(data['project']))
             self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
@@ -190,10 +198,8 @@ class Scenario(models.Model):
             self.save()
             return self
         except:
-	    # ToDo catch errors specifically and return message/code in json
-	    pass
-            #traceback.print_exc(file=sys.stdout) 
-	return None
+            # ToDo catch errors specifically and return message/code
+            return None 
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
@@ -222,10 +228,8 @@ class GaugePoint(models.Model):
             self.save()
             return self
         except:
-	    # ToDo catch errors specifically and return message/code in json
-	    pass
-            #traceback.print_exc(file=sys.stdout) 
-        return None
+            # ToDo catch errors specifically and return message/code
+            return None 
 
 class InternalPolygon(models.Model):
     project = models.ForeignKey(Project)
@@ -243,6 +247,7 @@ class InternalPolygon(models.Model):
                 srs = SpatialReference(crs)
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
+            # ToDo Topology Check (Simple Polygon, Doesnt Intersect Others)
             type = data.__dict__['properties']['type']
             project_id = data.__dict__['properties']['project_id']
             value = data.__dict__['properties']['value']
@@ -254,10 +259,8 @@ class InternalPolygon(models.Model):
             self.save()
             return self
         except:
-	    # ToDo catch errors specifically and return message/code in json
-	    pass
-            #traceback.print_exc(file=sys.stdout) 
-        return None
+            # ToDo catch errors specifically and return message/code
+            return None 
 
 class DataSet(models.Model):
     geonode_layer_uuid = models.CharField(max_length=36)
@@ -275,15 +278,13 @@ class ProjectDataSet(models.Model):
     ranking = models.PositiveIntegerField() # 1 = lowest resolution -> Highest
 
     def from_json(self, data):
-	try:
-       	    data = data['fields']
+        try:
+            data = data['fields']
             self.project = Project.objects.get(pk=int(data['project']))
             self.dataset = DataSet.objects.get(pk=int(data['dataset'])) 
             self.ranking = int(data['ranking'])
             self.save()
             return self
         except:
-	    # ToDo catch errors specifically and return message/code in json
-	    pass
-            #traceback.print_exc(file=sys.stdout) 
-	return None
+            # ToDo catch errors specifically and return message/code
+            return None 
