@@ -1,4 +1,4 @@
-import sys, traceback
+import sys
 import geojson
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.gdal import SpatialReference
@@ -297,13 +297,11 @@ class Scenario(models.Model):
                         layers.append(sol)
                     self.output_layers = layers
                 except ObjectDoesNotExist:
-                    traceback.print_exc(file=sys.stdout)
                     self.delete()
                     return None, "Invalid Scenario Output Layer"
             self.save()
             return self, None
         except:
-            traceback.print_exc(file=sys.stdout)
             return None, 'Unknown'
 
 class GaugePoint(models.Model):
