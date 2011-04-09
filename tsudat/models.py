@@ -1,4 +1,4 @@
-import sys
+import sys, traceback
 import geojson
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.gdal import SpatialReference
@@ -192,21 +192,21 @@ class Scenario(models.Model):
             if("project" in data):
                 try:
                     self.project = Project.objects.get(pk=int(data['project']))
-                except ObjectDoesNotExist:
+                except (ValueError, ObjectDoesNotExist):
                     return None, "Invalid Project"
             else:
                 return None, "Project is Required"
             if("hazard_point" in data):
                 try:
                     self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
-                except ObjectDoesNotExist:
+                except (ValueError, ObjectDoesNotExist):
                     return None, "Invalid Hazard Point"
             else:
                 return None, "Hazard Point is Required"
             if("source_zone" in data):
                 try:
                     self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
-                except ObjectDoesNotExist:
+                except (ValueError, ObjectDoesNotExist):
                     return None, "Invalid Source Zone"
             else:
                 return None, "Source Zone is Required"
@@ -234,7 +234,7 @@ class Scenario(models.Model):
             if("event" in data):
                 try:
                     self.event = Event.objects.get(pk=int(data['event'])) 
-                except ObjectDoesNotExist:
+                except (ValueError, ObjectDoesNotExist):
                     return None, "Invalid Event"
             else:
                 return None, "Event is Required"
@@ -306,9 +306,9 @@ class Scenario(models.Model):
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
-    name = models.CharField(max_length=20)
     geom = models.PointField()
-    
+    name = models.CharField(max_length=20)
+
     objects = models.GeoManager()
 
     def __unicode__(self):
@@ -316,23 +316,31 @@ class GaugePoint(models.Model):
     
     def from_json(self, data):
         try:
-            geom = GEOSGeometry(str(data.geometry))
-            if(hasattr(data.geometry.crs, 'properties')):
-                crs = data.geometry.crs.properties['name']
-                srs = SpatialReference(crs)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-            project_id = data.__dict__['properties']['project_id']
-            name = data.__dict__['properties']['name']
-            self.geom = geom
-            self.name = name
-            project = Project.objects.get(id=int(project_id))
-            self.project = project
+            try:
+                geom = GEOSGeometry(str(data.geometry))
+                if(hasattr(data.geometry.crs, 'properties')):
+                    crs = data.geometry.crs.properties['name']
+                    srs = SpatialReference(crs)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                self.geom = geom
+            except:
+                return None, "Invalid Geometry"
+            if('project_id' in data.__dict__['properties']):
+                try:
+                    self.project = Project.objects.get(id=int(data.__dict__['properties']['project_id']))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project is required"
+            if('name' in data.__dict__['properties']):
+                self.name = data.__dict__['properties']['name']
+            else:
+                return None, "Name is Required"
             self.save()
-            return self
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            return None, "Unexpected Error"
 
 class InternalPolygon(models.Model):
     project = models.ForeignKey(Project)
@@ -344,26 +352,48 @@ class InternalPolygon(models.Model):
     
     def from_json(self, data):
         try:
-            geom = GEOSGeometry(str(data.geometry))
-            if(hasattr(data.geometry.crs, 'properties')):
-                crs = data.geometry.crs.properties['name']
-                srs = SpatialReference(crs)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-            # ToDo Topology Check (Simple Polygon, Doesnt Intersect Others)
-            type = data.__dict__['properties']['type']
-            project_id = data.__dict__['properties']['project_id']
-            value = data.__dict__['properties']['value']
-            self.geom = geom
-            self.type = int(type)
-            self.value = float(value)
-            project = Project.objects.get(id=int(project_id))
-            self.project = project
+            try:
+                geom = GEOSGeometry(str(data.geometry))
+                if(hasattr(data.geometry.crs, 'properties')):
+                    crs = data.geometry.crs.properties['name']
+                    srs = SpatialReference(crs)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                # ToDo Topology Check (Simple Polygon, Doesnt Intersect Others)
+                self.geom = geom
+            except:
+                return None, "Invalid Geometry"
+            if('type' in data.__dict__['properties']):
+                try:
+                    type = int(data.__dict__['properties']['type']) 
+                    if(type in [1,2,3,4]):
+                        self.type = type
+                    else:
+                        return None, "Invalid Type"
+                except ValueError:
+                    return None, "Invalid Type"
+            else:
+                return None, "Type is Required"
+            if("project_id" in data.__dict__['properties']):
+                try:
+                    project_id = data.__dict__['properties']['project_id']
+                    self.project = Project.objects.get(id=int(project_id))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project is Required"
+            if("value" in  data.__dict__['properties']):
+                try:
+                    self.value = float(data.__dict__['properties']['value'])
+                except ValueError:
+                    return None, "Invalid Value"
+            else:
+                return None, "Value is Required"
             self.save()
-            return self
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            traceback.print_exc(file=sys.stdout)
+            return None, "Unexpected Error"
 
 class DataSet(models.Model):
     geonode_layer_uuid = models.CharField(max_length=36)
@@ -383,11 +413,28 @@ class ProjectDataSet(models.Model):
     def from_json(self, data):
         try:
             data = data['fields']
-            self.project = Project.objects.get(pk=int(data['project']))
-            self.dataset = DataSet.objects.get(pk=int(data['dataset'])) 
-            self.ranking = int(data['ranking'])
+            if('project' in data):
+                try:
+                    self.project = Project.objects.get(pk=int(data['project']))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project Required"
+            if('dataset' in data):
+                try:
+                    self.dataset = DataSet.objects.get(pk=int(data['dataset'])) 
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Dataset"
+            else:
+                return None, "Dataset is Required"
+            if('ranking' in data):
+                try:
+                    self.ranking = int(data['ranking'])
+                except ValueError:
+                    return None, "Invalid Ranking"
+            else:
+                return None, "Ranking is required"
             self.save()
-            return self
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            return None, "Unexpected Error" 
