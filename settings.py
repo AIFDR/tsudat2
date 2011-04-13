@@ -32,6 +32,10 @@ DATABASES = {
     }
 }
 
+DATABASE_ROUTERS = ['dbrouter.GeoNodeRouter']
+
+TEST_RUNNER = 'test_runner.TsuDatTestSuiteRunner'
+
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
 GEOSERVER_CREDENTIALS = "admin", "geoserver" 
 GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
@@ -139,6 +143,7 @@ INSTALLED_APPS = (
     'proxy',
     'tsudat',
     'geonode.maps',
+    'geonode.core',
     'djcelery',
     'djkombu',
 
