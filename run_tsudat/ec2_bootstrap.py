@@ -42,10 +42,6 @@ GenSaveDir = 'tmp'
 # the file to log to
 LogFile = 'tsudat.log'
 
-# the authentication stuff
-AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
-SecretKey = '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'
-
 # URL to get user-data from
 UserDataURL = 'http://169.254.169.254/2007-01-19/user-data'
 
@@ -270,7 +266,9 @@ def bootstrap():
 
     # save generated directory back to S3
     s3_name = '%s/%s' % (OutputS3DataDir, zip_name)
-    log.info('Saving generated directory to S3 storage as %s.' % s3_name)
+    zip_size = os.path.getsize(OutputZipFile)
+    zip_size_mb = float(zip_size) / (1024*1024)
+    log.info('Saving %s (%.2fMB) to S3.' % (s3_name, zip_size_mb))
     try:
         bucket = s3.create_bucket(S3Bucket)
         key = bucket.new_key(s3_name)
@@ -314,6 +312,7 @@ if __name__ == '__main__':
     with os.popen('wget -O - -q %s' % UserDataURL) as fd:
         args = fd.readline()    # ignore all but first line
 
+    Debug = None
     expr = re.compile(' *')
     fields = expr.split(args)
     if len(fields) == 5:
@@ -322,13 +321,16 @@ if __name__ == '__main__':
     elif len(fields) == 6:
         (User, Project, Scenario, Setup, BaseDir, Debug) = expr.split(args)
     else:
-        log.critical("Expected 5 or 6 args in setup string. Got '%s'." % args)
+        # no logging yet, just write to bootstrap log
+        print("Expected 5 or 6 args in setup string. Got '%s'.\n" % args)
         sys.exit(10)
 
-    level = log.INFO
-    if Debug == 'debug':
+    if str(Debug).lower() == 'debug':
         Debug = True
         level = log.DEBUG
+    else:
+        Debug = False
+        level = log.INFO
 
     log = log.Log(LogFile, level=level)
 
