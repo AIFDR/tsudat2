@@ -32,6 +32,10 @@ DATABASES = {
     }
 }
 
+SERIALIZATION_MODULES = {
+    'json': 'wadofstuff.django.serializers.json'
+}
+
 DATABASE_ROUTERS = ['dbrouter.GeoNodeRouter']
 
 TEST_RUNNER = 'test_runner.TsuDatTestSuiteRunner'
