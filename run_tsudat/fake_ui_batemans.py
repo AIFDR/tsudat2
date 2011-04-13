@@ -44,7 +44,7 @@ Elevation = 'combined_elevation.pts'
 
 
 def main():
-    """Behave like the UI and run a TsuDAT sinulation locally."""
+    """Behave like the UI and run a TsuDAT simulation locally."""
 
     # build the appropriate json data file
     (_, json_file) = tempfile.mkstemp(suffix='.json',
