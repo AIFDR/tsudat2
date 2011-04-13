@@ -1,4 +1,5 @@
-import sys, traceback
+import sys
+import traceback
 import simplejson as json
 import geojson
 
@@ -38,7 +39,7 @@ def return_period(request):
             if(length == 0):
                 # Should handle for this and pick a return period that is 'close'
                 return HttpResponse('No return periods in range', status=400)
-            return HttpResponse(serializers.serialize("json", [hpd[int(length/2)]], fields=('return_period')))
+            return HttpResponse(json.dumps(hpd[int(length/2)]))
         except ObjectDoesNotExist:
             return HttpResponse('Invalid Hazard Point', status=404) 
         except ValueError:
@@ -138,7 +139,7 @@ def events(request):
             except ValueError:
                 return HttpResponse('Invalid Wave Height or Delta', status=400) 
             ewh = EventWaveHeight.objects.filter(event__source_zone=sz, hazard_point=hp, wave_height__gte=wh-whd, wave_height__lte=wh+whd)
-            return HttpResponse(serializers.serialize("json", ewh))
+            return HttpResponse(serializers.serialize('json', ewh, relations=('event',)))
         except:
             return HttpResponse('Unexpected Error', status=400) 
 
@@ -284,7 +285,6 @@ def internal_polygon(request, id=None):
                 data = {'status': 'success', 'msg': 'Internal Polygon Creation Successful', 'id': ip.pk}
                 return HttpResponse(json.dumps(data), mimetype='application/json')
         except:
-            traceback.print_exc(file=sys.stdout)
             data = {'status': 'failure', 'msg': 'Internal Polygon Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), mimetype='application/json')
     elif id != None and request.method == "PUT":
