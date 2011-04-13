@@ -32,11 +32,7 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-647a870d'  # Ubuntu_10.04_TsuDAT_2.0.21
-
-# the authentication stuff
-AccessKey = 'AKIAIKGYJFXGT5TFJJOA'
-SecretKey = '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'
+DefaultAmi = 'ami-48a65a21'  # Ubuntu_10.04_TsuDAT_2.0.23
 
 # bucket name in S3
 Bucket = 'tsudat.aifdr.org'
@@ -93,20 +89,7 @@ def make_dir_zip(dirname, zipname):
     zipname  path to ZIP file to create
     """
 
-    def recursive_zip(zipf, directory):
-        ls = os.listdir(directory)
-
-        for f in ls:
-            f_path = os.path.join(directory, f)
-            if os.path.isdir(f_path):
-                recursive_zip(zipf, f_path)
-            else:
-                zipf.write(f_path, f_path, zipfile.ZIP_DEFLATED)
-
-    zf = zipfile.ZipFile(zipname, mode='w')
-    recursive_zip(zf, dirname)
-    zf.close()
-
+    os.system('zip -q -r %s %s' % (zipname, dirname))
 
 def make_tsudat_dir(base, user, proj, scen, setup, event,
                     nuke=False, make_files=False):
@@ -199,7 +182,6 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
 
     # return paths to various places under 'base'
     return (run_dir, raw_elevation, boundaries, meshes, polygons, gauges)
-
 
 def setup_model():
     """Perform sanity checks.
@@ -339,7 +321,6 @@ def setup_model():
 
     log.info('minimum estimated number of triangles=%d' % triangle_min)
 
-
 def get_multimux(event, multimux_dir, output_file):
     """Does exactly what David Burbidge's 'get_multimux' program does.
 
@@ -416,12 +397,16 @@ def get_multimux(event, multimux_dir, output_file):
         infd.close()
     outfd.close()
 
-
 def build_elevation():
     """Create combined elevation data.
 
     Combine all raw elevation data and clip to bounding polygon.
     """
+
+    # FUDGE FOR TESTING
+    # if no elevation to be combined, we already have a combined elevation file
+    if not project.ascii_grid_filenames and not project.point_filenames:
+        return
 
     # Create Geospatial data from ASCII files
     geospatial_data = {}
@@ -461,7 +446,6 @@ def build_elevation():
     # Use for comparision in ARC
     # DO WE NEED THIS?
     G.export_points_file(project.combined_elevation + '.txt')
-
 
 def get_sts_gauge_data(filename, verbose=False):
     """Get gauges (timeseries of index points)."""
@@ -528,7 +512,6 @@ def get_sts_gauge_data(filename, verbose=False):
     fid.close()
 
     return (quantities, elevation, time)
-
 
 def build_urs_boundary(event_file, output_dir):
     """Build a boundary STS file from a set of MUX files.
@@ -599,7 +582,6 @@ def build_urs_boundary(event_file, output_dir):
 
     (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
     log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
-
 
 def adorn_project(json_data):
     """Adorn the project object with data from the json file.
@@ -695,7 +677,6 @@ def adorn_project(json_data):
     except AttributeError:
         project.force_run = True
 
-
 def excepthook(type, value, tb):
     """Exception hook routine."""
 
@@ -704,7 +685,6 @@ def excepthook(type, value, tb):
     msg += ''.join(traceback.format_exception(type, value, tb))
     msg += '='*80 + '\n'
     log.critical(msg)
-
 
 def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
               user_data=None):
@@ -733,7 +713,6 @@ def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
 
     return instance
 
-
 def dump_project_py():
     """Debug routine - dump project attributes to the log."""
 
@@ -744,7 +723,6 @@ def dump_project_py():
                 log.info('project.%s=%s' % (key, eval('project.%s' % key)))
             except AttributeError:
                 pass
-
 
 def dump_json_to_file(project, json_file):
     """Dump project object back to a JSON file.
