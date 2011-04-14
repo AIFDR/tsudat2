@@ -185,9 +185,9 @@ def polygon_from_csv(request):
                 count += 1
             coords.append(row0)
             geom = Polygon(coords)
-            if "epsg" in request.POST:
-                epsg = request.POST.get('epsg')
-                srs = SpatialReference(int(epsg))
+            if "srs" in request.POST:
+                srs = request.POST.get('srs')
+                srs = SpatialReference(srs)
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
             return HttpResponse(geom.json, mimetype='application/json')
