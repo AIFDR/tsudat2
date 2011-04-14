@@ -39,12 +39,13 @@ def return_period(request):
             if(length == 0):
                 # Should handle for this and pick a return period that is 'close'
                 return HttpResponse('No return periods in range', status=400)
-            return HttpResponse(json.dumps(hpd[int(length/2)]))
+            return HttpResponse(serializers.serialize("json", [hpd[int(length/2)]], fields=('return_period')))
         except ObjectDoesNotExist:
             return HttpResponse('Invalid Hazard Point', status=404) 
         except ValueError:
             return HttpResponse('Invalid Wave Height or Wave Height Delta', status=400)
         except:
+            traceback.print_exc(file=sys.stdout)
             return HttpResponse('Unexpected Error', status=500)
 
 def return_periods(request):
