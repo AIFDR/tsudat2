@@ -5,7 +5,7 @@ DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 SERVE_MEDIA = True
 
-SITEURL = "http://tsudat.dev.aifdr.org/"
+SITEURL = "http://tsudat.dev.opengeo.org/"
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
