@@ -346,7 +346,7 @@ class InternalPolygon(models.Model):
     project = models.ForeignKey(Project)
     geom = models.PolygonField()
     type = models.IntegerField(choices=IP_TYPE_CHOICES)
-    value = models.FloatField() # MR = Int MF = Float
+    value = models.FloatField(null=True, blank=True) # MR = Int MF = Float
     
     objects = models.GeoManager()
     
@@ -388,7 +388,8 @@ class InternalPolygon(models.Model):
                 except ValueError:
                     return None, "Invalid Value"
             else:
-                return None, "Value is Required"
+                if(self.type != 3): # Value is not required for AOI
+                    return None, "Value is Required"
             self.save()
             return self, None
         except:
