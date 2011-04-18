@@ -190,13 +190,13 @@ def polygon_from_csv(request):
                 srs = SpatialReference(srs)
                 geom.set_srid(srs.srid)
                 geom.transform(4326)
-            return HttpResponse(geom.json, mimetype='application/json')
+            return HttpResponse(geom.json, mimetype='text/html')
         except:
             data = {'status': 'failure', 'msg': 'Conversion to Polygon Failed', 'reason': 'Unexpected Error'}
-            return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+            return HttpResponse(json.dumps(data), status=400, mimetype='text/html')
     else:
         data = {'status': 'failure', 'msg': 'Conversion to Polygon Failed', 'reason': 'Invalid Request (not POST)'}
-        return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        return HttpResponse(json.dumps(data), status=400, mimetype='text/html')
 
 @csrf_exempt
 def project(request, id=None):
