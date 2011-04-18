@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""A program that behaves like the UI."""
+"""A program that behaves like the UI.
+
+Run the Victor Harbour simulation.
+"""
 
 import os
 import shutil
@@ -26,17 +29,20 @@ Event = 58342
 DataFilesDir = './fake_ui_files.%s' % Scenario
 
 # the data files
-BoundingPolygon = 'bounding_polygon.csv'
-RawElevationFiles = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']
-InteriorRegions = [['area_of_interest.csv', 500],
-                   ['area_of_significance.csv', 2500],
-                   ['shallow_water.csv', 10000]]
-UrsOrder = 'urs_order.csv'
-LandwardBoundary = 'landward_boundary.csv'
+BoundingPolygon = 'bounding_polygonX.csv'
+RawElevationFiles = ['250m_finalX.csv', 'shallow_waterX.csv', 'aoiX.csv']
+InteriorRegions = [['area_of_interestX.csv', 500],
+                   ['area_of_significanceX.csv', 2500],
+                   ['shallow_waterX.csv', 10000]]
+UrsOrder = 'urs_orderX.csv'
+LandwardBoundary = 'landward_boundaryX.csv'
 
-STSFile = '%s.sts' % Scenario
+STSFileStem = '%sX' % Scenario
+STSFile = STSFileStem + '.sts'
 
-GaugeFile = 'gauges_final.csv'
+GaugeFile = 'gauges_finalX.csv'
+
+MeshFile = None
 
 
 
@@ -48,32 +54,33 @@ def main():
                                       prefix='fake_ui_', text=True)
     json_dict = {'user': User,
                  'project': Project,
-                 'scenario_name': Scenario,
+                 'scenario': Scenario,
                  'setup': Setup,
-                 'event': Event,
+                 'event_number': Event,
                  'working_directory': TsuDATBase,
                  'mux_directory': TsuDATMux,
-                 'tide': 0.0,
+                 'initial_tide': 0.0,
                  'start_time': 0,
                  'end_time': 27000,
                  'smoothing': 0.1,
-                 'bounding_polygon': BoundingPolygon,
-                 'elevation_data': RawElevationFiles,
+                 'bounding_polygon_file': BoundingPolygon,
+                 'elevation_data_list': RawElevationFiles,
                  'mesh_friction': 0.01,
                  'raster_resolution': 250,
                  'layers': ['stage', 'depth'],
                  'area': ['All'],
                  'get_results_max': True,
                  'get_timeseries': True,
-                 'gauges': GaugeFile,
-                 'interior_regions_data': InteriorRegions,
+                 'gauge_file': GaugeFile,
+                 'meshfile': MeshFile,
+                 'interior_regions_list': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
-                 'urs_order': UrsOrder,
-                 'landward_boundary': LandwardBoundary,
+                 'urs_order_file': UrsOrder,
+                 'landward_boundary_file': LandwardBoundary,
                  'ascii_grid_filenames': [],
-                 'zone': 54,
-                 'force_run': False, # if True, *forces* a simulation
-#                 'debug': False}	# if True, forces DEBUG logging
+                 'sts_filestem': STSFileStem,
+                 'zone_number': 54,
+                 'force_run': True, # if True, *forces* a simulation
                  'debug': True}	# if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:

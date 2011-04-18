@@ -64,7 +64,7 @@ RenameDict = {'mesh_friction': 'friction',
               'end_time': 'finaltime',
               'layers': 'var',
               'raster_resolution': 'cell_size',
-              'elevation_data': 'point_filenames',
+              'elevation_data_list': 'point_filenames',
              }
 
 # major directories under user/project/scenario/setup base directory
@@ -248,7 +248,7 @@ def setup_model():
         sanity_error = True
 
     # generate the event.lst file for the event
-    get_multimux(project.event, project.multimux_folder, project.mux_input)
+    get_multimux(project.event_number, project.multimux_folder, project.mux_input)
 
     # if multi_mux is True, check if multi-mux file exists
     if project.multi_mux:
@@ -259,7 +259,7 @@ def setup_model():
 
     if not os.path.exists(project.event_folder):
         log.error("Sorry, you must generate event %s with EventSelection."
-                  % project.event)
+                  % project.event_number)
         sanity_error = True
 
     #####
@@ -301,7 +301,7 @@ def setup_model():
 
     # Create list of interior polygons with scaling factor
     project.interior_regions = []
-    for (filename, maxarea) in project.interior_regions_data:
+    for (filename, maxarea) in project.interior_regions_list:
         polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
                                                   filename))
         project.interior_regions.append([polygon,
@@ -310,7 +310,7 @@ def setup_model():
     # Initial bounding polygon for data clipping
     project.bounding_polygon = anuga.read_polygon(os.path.join(
                                                       project.polygons_folder,
-                                                      project.bounding_polygon))
+                                                      project.bounding_polygon_file))
     project.bounding_maxarea = project.bounding_polygon_maxarea \
                                * project.scale_factor
 
@@ -450,6 +450,8 @@ def build_elevation():
 def get_sts_gauge_data(filename, verbose=False):
     """Get gauges (timeseries of index points)."""
 
+    log.debug('get_sts_gauge_data: filename=%s' % filename)
+
     fid = NetCDFFile(filename+'.sts', 'r')      # Open existing file for read
     permutation = fid.variables['permutation'][:]
     x = fid.variables['x'][:] + fid.xllcorner   # x-coordinates of vertices
@@ -558,7 +560,7 @@ def build_urs_boundary(event_file, output_dir):
 
         # Call legacy function to create STS file.
         anuga.urs2sts(mux_filenames, basename_out=output_dir,
-                      ordering_filename=project.urs_order,
+                      ordering_filename=project.urs_order_file,
                       weights=mux_weights, verbose=False)
     else:                           # a single mux stem file, assume 1.0 weight
         log.info('using single-mux file %s' % mux_file)
@@ -569,7 +571,7 @@ def build_urs_boundary(event_file, output_dir):
         weight_factor = 1.0
         mux_weights = weight_factor*num.ones(len(mux_filenames), num.Float)
 
-        order_filename = project.urs_order
+        order_filename = project.urs_order_file
 
         # Create ordered sts file
         anuga.urs2sts(mux_filenames, basename_out=output_dir,
@@ -577,8 +579,9 @@ def build_urs_boundary(event_file, output_dir):
                       weights=mux_weights, verbose=False)
 
     # report on progress so far
-    sts_file = os.path.join(project.event_folder, project.scenario_name)
-    log.info('URS boundary file=%s' % sts_file)
+    #sts_file = os.path.join(project.event_folder, project.scenario)
+    sts_file = os.path.join(project.event_folder, project.sts_filestem)
+    log.info('STS filestem=%s' % sts_file)
 
     (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
     log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
@@ -611,7 +614,7 @@ def adorn_project(json_data):
     # add extra derived attributes
     # paths to various directories
     project.anuga_folder = os.path.join(project.working_directory, project.user,
-                                        project.project, project.scenario_name,
+                                        project.project, project.scenario,
                                         project.setup)
     project.topographies_folder = os.path.join(project.anuga_folder,
                                                'topographies')
@@ -631,7 +634,7 @@ def adorn_project(json_data):
     project.mux_data_folder = os.path.join(project.mux_directory, 'mux')
     project.multimux_folder = os.path.join(project.mux_directory, 'multimux')
 
-    project.mux_input_filename = 'event_%d.lst' % project.event
+    project.mux_input_filename = 'event_%d.lst' % project.event_number
 
     #####
     # Location of input and output data
@@ -645,22 +648,22 @@ def adorn_project(json_data):
     project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')
 
     # The pathname for the urs order points, used within build_urs_boundary.py
-    project.urs_order = os.path.join(project.boundaries_folder, 'urs_order.csv')
+    project.urs_order_file = os.path.join(project.boundaries_folder, project.urs_order_file)
 
     # The absolute pathname for the landward points of the bounding polygon,
     # Used within run_model.py)
-    project.landward_boundary = os.path.join(project.boundaries_folder,
-                                             'landward_boundary.csv')
+    project.landward_boundary_file = os.path.join(project.boundaries_folder,
+                                             project.landward_boundary_file)
 
     # The absolute pathname for the .sts file, generated in build_boundary.py
     project.event_sts = project.boundaries_folder
 
     # The absolute pathname for the gauges file
-    project.gauges = os.path.join(project.gauges_folder, 'gauges_final.csv')
+    project.gauge_file = os.path.join(project.gauges_folder, project.gauge_file)
 
     # full path to where MUX files (or meta-files) live
     project.mux_input = os.path.join(project.event_folder,
-                                     'event_%d.lst' % project.event)
+                                     'event_%d.lst' % project.event_number)
 
     # not sure what this is for
     project.land_initial_conditions = []
@@ -806,7 +809,7 @@ def run_tsudat(json_data):
     # move just what we want to a temporary directory
     zipname = ('%s-%s-%s-%s.zip'
                % (project.user, project.project,
-                  project.scenario_name, project.setup))
+                  project.scenario, project.setup))
     zippath = os.path.join('/tmp', zipname)
     log.info('Making zip %s' % zippath)
     make_dir_zip(project.working_directory, zippath)
@@ -833,7 +836,7 @@ def run_tsudat(json_data):
     os.remove(zippath)
 
     # start the EC2 instance we are using
-    user_data = ' '.join([project.user, project.project, project.scenario_name,
+    user_data = ' '.join([project.user, project.project, project.scenario,
                           project.setup, project.working_directory,
                           'debug' if project.debug else 'production'])
     log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))

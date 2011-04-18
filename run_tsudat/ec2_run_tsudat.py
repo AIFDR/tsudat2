@@ -120,7 +120,7 @@ def run_model():
 
     # Reading the landward defined points, this incorporates the original
     # clipping polygon minus the 100m contour
-    landward_boundary = anuga.read_polygon(project.landward_boundary)
+    landward_boundary = anuga.read_polygon(project.landward_boundary_file)
 
     # Combine sts polyline with landward points
     bounding_polygon_sts = event_sts + landward_boundary
@@ -128,9 +128,9 @@ def run_model():
     # Number of boundary segments
     num_ocean_segments = len(event_sts) - 1
     # Number of landward_boundary points
-    num_land_points = anuga.file_length(project.landward_boundary)
+    num_land_points = anuga.file_length(project.landward_boundary_file)
 
-    # Boundary tags refer to project.landward_boundary
+    # Boundary tags refer to project.landward_boundary_file
     # 4 points equals 5 segments start at N
     boundary_tags={'back': range(num_ocean_segments+1,
                                  num_ocean_segments+num_land_points),
@@ -153,20 +153,20 @@ def run_model():
                                 use_cache=False,
                                 verbose=False)
 
-    domain.geo_reference.zone = project.zone
+    domain.geo_reference.zone = project.zone_number
     log.info('\n%s' % domain.statistics())
 
-    domain.set_name(project.scenario_name)
+    domain.set_name(project.scenario)
     domain.set_datadir(project.output_folder)
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
     # Set the initial stage in the offcoast region only
     if project.land_initial_conditions:
         IC = anuga.Polygon_function(project.land_initial_conditions,
-                                    default=project.tide,
+                                    default=project.initial_tide,
                                     geo_reference=domain.geo_reference)
     else:
-        IC = project.tide
+        IC = project.initial_tide
 
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction)
@@ -179,9 +179,9 @@ def run_model():
 
     Br = anuga.Reflective_boundary(domain)
     Bt = anuga.Transmissive_stage_zero_momentum_boundary(domain)
-    Bd = anuga.Dirichlet_boundary([project.tide, 0, 0])
+    Bd = anuga.Dirichlet_boundary([project.initial_tide, 0, 0])
     Bf = anuga.Field_boundary(project.event_sts+'.sts',
-                        domain, mean_stage=project.tide, time_thinning=1,
+                        domain, mean_stage=project.initial_tide, time_thinning=1,
                         default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
                         boundary_polygon=bounding_polygon_sts,
                         use_cache=True, verbose=False)
@@ -238,10 +238,10 @@ def get_youngest_input():
     """Get date/time of youngest input file."""
 
     input_dirs = [project.polygons_folder, project.raw_elevation_folder]
-    input_files = [project.urs_order,
+    input_files = [project.urs_order_file,
                    os.path.join(project.boundaries_folder,
-                                '%s.sts' % project.scenario_name),
-                   project.landward_boundary]
+                                '%s.sts' % project.sts_filestem),
+                   project.landward_boundary_file]
 
     youngest = 0.0	# time at epoch start
 
@@ -318,7 +318,7 @@ def export_results_max():
                     log.critical('Unrecognized area name: %s' % which_area)
                     break
 
-            name = os.path.join(project.output_folder, project.scenario_name)
+            name = os.path.join(project.output_folder, project.scenario)
 
             outname = name + '_' + which_area + '_' + which_var
             quantityname = var_equations[which_var]
@@ -351,10 +351,10 @@ def get_timeseries():
     """
 
     # generate the result files
-    name = os.path.join(project.output_folder, project.scenario_name+'.sww')
+    name = os.path.join(project.output_folder, project.scenario+'.sww')
     log.debug('get_timeseries: input SWW file=%s' % name)
-    log.debug('get_timeseries: gauge file=%s' % project.gauges)
-    anuga.sww2csv_gauges(name, project.gauges, quantities=project.var,
+    log.debug('get_timeseries: gauge file=%s' % project.gauge_file)
+    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.var,
                          verbose=False)
 
     # since ANUGA code doesn't return a list of generated files,
@@ -478,7 +478,7 @@ def run_tsudat(json_data):
 
     # run the tsudat simulation
     youngest_input = get_youngest_input()
-    sww_file = os.path.join(project.output_folder, project.scenario_name+'.sww')
+    sww_file = os.path.join(project.output_folder, project.scenario+'.sww')
     try:
         sww_ctime = os.path.getctime(sww_file)
     except OSError:
