@@ -508,6 +508,7 @@ def data_set(request, id=None):
             except ObjectDoesNotExist:
                 ds = DataSet()
                 ds.geonode_layer_uuid = layer.uuid
+                ds.typename = layer.typename
                 ds.data_type = 'U'
                 ds.resolution = 0
                 geom_wkt = layer.geographic_bounding_box
@@ -520,7 +521,7 @@ def data_set(request, id=None):
                     ds.geom = geom
                 else:
                     ds.geom = GEOSGeometry(geom_wkt)
-                    ds.save()
+                ds.save()
         data_sets = DataSet.objects.all()
         return HttpResponse(serializers.serialize("json", data_sets))
 

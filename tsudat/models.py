@@ -398,6 +398,7 @@ class InternalPolygon(models.Model):
 
 class DataSet(models.Model):
     geonode_layer_uuid = models.CharField(max_length=36)
+    typename = models.CharField(max_length=128, unique=True)
     data_type = models.CharField(max_length=1, choices=DATASET_TYPE_CHOICES)
     resolution = models.PositiveIntegerField() 
     geom = models.PolygonField()
