@@ -34,6 +34,7 @@ queue = sqs.create_queue(SQSQueueName)
 
 last_read = time.time()
 
+msgs = []
 while True:
     #m = queue.read(Timeout*2)
     m = queue.read()
@@ -51,9 +52,15 @@ while True:
                 gen_file = msg_obj['generated_datafile']
             except KeyError:
                 gen_file = ''
-            print('%s: %s at %s%s'
-                  % (instance, status, timestamp,
-                     ', gen_file=%s' % gen_file if gen_file else ''))
+            try:
+                message = msg_obj['message'].replace('\n', '\n\t')
+            except KeyError:
+                message = ''
+            msg = ('%s: %s at %s%s%s'
+                   % (instance, status, timestamp,
+                      ', gen_file=%s' % gen_file if gen_file else '',
+                      '\n\t%s' % message if message else ''))
+            msgs.append((msg_obj['time'], msg))
             last_read = time.time()
     else:
        idle_time = time.time() - last_read
@@ -61,5 +68,7 @@ while True:
            break
        time.sleep(0.5)
 
-print('No more messages.')
+msgs.sort()
+for (_, msg) in msgs:
+    print(msg)
 
