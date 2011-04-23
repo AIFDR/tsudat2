@@ -178,6 +178,7 @@ class Scenario(models.Model):
     model_setup = models.CharField(max_length=1, choices=MODEL_SETUP_CHOICES)
     raster_resolution = models.PositiveIntegerField()
     output_layers = models.ManyToManyField(ScenarioOutputLayer)
+    output_max = models.BooleanField()
 
     def __unicode__(self):
         return self.name
@@ -287,7 +288,13 @@ class Scenario(models.Model):
                     return None, "Invalid Raster Resolution"
             else:
                  return None, "Raster Resolution Required"
-            
+            if("output_max" in data):
+                try:
+                    self.output_max = data["output_max"].lower() == "true"
+                except:
+                    return None, "Invalid output max"
+            else:
+                return None, "Output Max is required"
             self.save()
             if("output_layers" in data):
                 try:
