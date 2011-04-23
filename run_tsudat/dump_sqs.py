@@ -36,7 +36,8 @@ last_read = time.time()
 
 msgs = []
 while True:
-    #m = queue.read(Timeout*2)
+    # the below seems to hang if given a visibility timeout value??
+    #m = queue.read(Timeout)
     m = queue.read()
     if m:
         msg = m.get_body()
@@ -56,11 +57,11 @@ while True:
                 message = msg_obj['message'].replace('\n', '\n\t')
             except KeyError:
                 message = ''
-            msg = ('%s: %s at %s%s%s'
+            msg = ('%s: %-8s at %s%s%s'
                    % (instance, status, timestamp,
-                      ', gen_file=%s' % gen_file if gen_file else '',
+                      '\n\tgen_file=%s' % gen_file if gen_file else '',
                       '\n\t%s' % message if message else ''))
-            msgs.append((msg_obj['time'], msg))
+            msgs.append((instance, msg_obj['time'], msg))
             last_read = time.time()
     else:
        idle_time = time.time() - last_read
@@ -69,6 +70,10 @@ while True:
        time.sleep(0.5)
 
 msgs.sort()
-for (_, msg) in msgs:
+last_instance = None
+for (instance, _, msg) in msgs:
+    if last_instance != instance:
+        last_instance = instance
+        print('-' * 50)
     print(msg)
 
