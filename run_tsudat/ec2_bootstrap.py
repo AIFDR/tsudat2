@@ -3,12 +3,17 @@
 """
 The TsuDAT2 bootstrap.
 
-The minimum code required to run ..../scripts/run_tsudat.py.
+The minimum code required to run a TsuDAT simulation.
+
+Expects the user/project/scenario/setup values in user data.
+Gets the S3 package, unzips it and runs run_tsudat.py in the
+scripts directory.
 """
 
 
 import os
 import sys
+import gc
 import shutil
 import zipfile
 import glob
@@ -30,7 +35,7 @@ InputS3DataDir = 'input-data'
 OutputS3DataDir = 'output-data'
 S3AbortDir = 'abort'
 
-# the SQS queue name used here
+# the SQS queue name to report status
 SQSQueueName = 'tsudat_aifdr_org'
 
 # form of the data ZIP filename
@@ -42,11 +47,14 @@ GenSaveDir = 'tmp'
 # the file to log to
 LogFile = 'tsudat.log'
 
+# Amazon information URL
+AmazonInfoURL = 'http://169.254.169.254'
+
 # URL to get user-data from
-UserDataURL = 'http://169.254.169.254/2007-01-19/user-data'
+UserDataURL = '%s/2007-01-19/user-data' % AmazonInfoURL
 
 # URL to get instance ID
-InstanceURL = 'http://169.254.169.254/latest/meta-data/instance-id'
+InstanceURL = '%s/latest/meta-data/instance-id' % AmazonInfoURL
 
 # path to input data zip file
 InputZipFile = './input_data.zip'
@@ -58,6 +66,18 @@ ScriptsDirectory = 'scripts'
 
 # name of the JSON file in the S3 input data
 JSONFile = 'data.json'
+
+# number of minutes to keep idle machine alive -  the idea is to keep instance
+# alive for debugging.  for nice message order, IdleTime should not be an
+# integer multiple of ReminderTime.
+IdleTime = 30 - 1	# 0.5 hour (almost)
+ReminderTime = 5
+
+# SQS message status strings
+StatusStart = 'START'
+StatusStop = 'STOP'
+StatusAbort = 'ABORT'
+StatusIdle = 'IDLE'
 
 
 def make_dir_zip(dirname, zipname):
@@ -83,24 +103,38 @@ def abort(msg):
         key = bucket.new_key(key_str)
         key.set_contents_from_filename(LogFile)
         key.set_acl('public-read')
-        send_sqs_message(status='ABORT', generated_datafile=key_str)
+        send_sqs_message(status=StatusAbort, generated_datafile=key_str,
+                         message=msg)
     except:
         # if we get here, we can't save the log file
-        send_sqs_message(status='ABORT')
+        send_sqs_message(status=StatusAbort, message=msg)
 
     # then stop the AMI
     shutdown()
 
+def wait_a_while():
+    """Wait for a specified number of seconds (global).
+
+    Send reminder SQS every few (global) minutes.
+    """
+
+    elapsed_time = 0
+    while elapsed_time < IdleTime:
+        send_sqs_message(status=StatusIdle)
+        time.sleep(ReminderTime*60)
+        elapsed_time += ReminderTime
+
 def shutdown():
     """Shutdown this AMI."""
 
-    log.debug('Debug is %s, instance is %sterminating'
+    log.debug('Debug is %s, instance is %sterminating immediately'
               % (str(Debug), 'not ' if Debug else ''))
 
     if Debug:
-        sys.exit(0)
-    else:
-        os.system('sudo halt')
+        wait_a_while()
+        send_sqs_message(status=StatusStop)
+
+    os.system('sudo halt')
 
 def s3_connect():
     """Connect to S3 storage.
@@ -116,6 +150,7 @@ def s3_connect():
     access_key = 'DEADBEEF'
     secret_key = 'DEADBEEF'
     del access_key, secret_key
+    gc.collect()
 
     return s3
 
@@ -135,8 +170,9 @@ def send_sqs_message(**kwargs):
     kwargs['setup'] = Setup
     kwargs['instance'] = Instance
 
-    # add time string (UTC, ISO 8601 format)
-    kwargs['timestamp'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    # add time as float and string (UTC, ISO 8601 format)
+    kwargs['time'] = time.time()	# simplifies sorted display
+    kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
 
     # get JSON string
     msg = json.dumps(kwargs)
@@ -149,8 +185,8 @@ def send_sqs_message(**kwargs):
     queue = sqs.create_queue(SQSQueueName)
     m = boto.sqs.message.Message()
     m.set_body(msg)
-    log.debug('Writing SQS message')
     status = queue.write(m)
+    log.info('Wrote SQS message: %s' % kwargs['status'])
     
 
 def bootstrap():
@@ -173,7 +209,7 @@ def bootstrap():
     log.info('   Debug=%s' % Debug)
     log.info('   Instance=%s' % Instance)
 
-    send_sqs_message(status='STARTING')
+    send_sqs_message(status=StatusStart)
 
     # get name of ZIP working file
     zip_name = DataFileFormat % (User, Project, Scenario, Setup)
@@ -254,6 +290,7 @@ def bootstrap():
     # want same pathname for each file as in input ZIP archive
     save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
     log.debug('save_zip_base=%s' % save_zip_base)
+    shutil.rmtree(save_zip_base, ignore_errors=True)	# just in case
     os.makedirs(save_zip_base)
     for key in gen_files:
         for f in gen_files[key]:
@@ -280,7 +317,10 @@ def bootstrap():
         log.critical('S3 error: %s' % str(e))
         sys.exit(10)
 
-    send_sqs_message(status='STOPPING', generated_datafile=s3_name)
+    # convert gen_files to JSON and add to stopping message
+    gen_files_json = json.dumps(gen_files)
+    send_sqs_message(status=StatusStop, generated_datafile=s3_name,
+                     payload=gen_files_json)
 
     # stop this AMI
     log.info('run_tsudat() finished, shutting down')
@@ -299,16 +339,16 @@ if __name__ == '__main__':
         msg += ''.join(traceback.format_exception(type, value, tb))
         msg += '='*80 + '\n'
         log.critical(msg)
-        abort('')
+        abort(msg)
 
     # plug our handler into the python system
     sys.excepthook = excepthook
         
-    # wget instance ID
+    # get instance ID
     with os.popen('wget -O - -q %s' % InstanceURL) as fd:
         Instance = fd.readline()
 
-    # wget user-data into a string & split into params
+    # get user-data into a string & split into params
     with os.popen('wget -O - -q %s' % UserDataURL) as fd:
         args = fd.readline()    # ignore all but first line
 
@@ -322,8 +362,11 @@ if __name__ == '__main__':
         (User, Project, Scenario, Setup, BaseDir, Debug) = expr.split(args)
     else:
         # no logging yet, just write to bootstrap log
-        print("Expected 5 or 6 args in setup string. Got '%s'.\n" % args)
-        sys.exit(10)
+        msg = "Expected 5 or 6 args in setup string. Got '%s'.\n" % args
+        print(msg)
+        send_sqs_message(status=StatusAbort, message=msg)
+        Debug = True
+        shutdown()
 
     if str(Debug).lower() == 'debug':
         Debug = True
@@ -335,3 +378,4 @@ if __name__ == '__main__':
     log = log.Log(LogFile, level=level)
 
     bootstrap()
+

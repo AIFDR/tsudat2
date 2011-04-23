@@ -32,7 +32,7 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-48a65a21'  # Ubuntu_10.04_TsuDAT_2.0.23
+DefaultAmi = 'ami-9a36caf3'  # Ubuntu_10.04_TsuDAT_2.0.25
 
 # bucket name in S3
 Bucket = 'tsudat.aifdr.org'
@@ -46,7 +46,7 @@ Ec2RunTsuDAT = 'ec2_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
 # names of additional required files
-ReqdFiles = ['export_depthonland_max.py', 'export_newstage_max.py']
+RequiredFiles = ['export_depthonland_max.py', 'export_newstage_max.py']
 
 # name of the JSON data file
 JsonDataFilename = 'data.json'
@@ -82,6 +82,13 @@ project = Project()
 project.multi_mux = True
 
 
+def abort(msg):
+    """Abort the process."""
+
+    print(msg)
+    log.critical(msg)
+    sys.exit(10)
+
 def make_dir_zip(dirname, zipname):
     """Make a ZIP file from a directory.
 
@@ -91,8 +98,7 @@ def make_dir_zip(dirname, zipname):
 
     os.system('zip -q -r %s %s' % (zipname, dirname))
 
-def make_tsudat_dir(base, user, proj, scen, setup, event,
-                    nuke=False, make_files=False):
+def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     """Create a TsuDAT2 work directory.
 
     base        path to base of new directory structure
@@ -102,7 +108,6 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
     setup       type of run ('trial', etc)
     event       event number
     nuke        optional - destroy any existing structure first
-    make_files  create 'placeholder' files (for debug/documentation)
 
     Creates a TSUDAT directory structure under the 'base' path.
     If 'nuke' is True, delete any structure under base/user/proj/scen/setup.
@@ -151,31 +156,8 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
     # save scripts path globally to help run_tsudat()
     ScriptsDir = os.path.join(run_dir, 'scripts')
 
-    # now create example files if required
-    if make_files:
-        touch(os.path.join(raw_elevation, 'raw_elevation1.asc'))
-        touch(os.path.join(raw_elevation, 'raw_elevation2.asc'))
-
-        path = os.path.join(run_dir, 'topographies')
-        touch(os.path.join(path, 'combined_elevation.pts'))
-        touch(os.path.join(path, 'combined_elevation.txt'))
-
-        touch(os.path.join(boundaries, 'event_%d.lst' % event))
-        touch(os.path.join(boundaries, 'landward_boundary.csv'))
-        touch(os.path.join(boundaries, 'urs_order.csv'))
-
-        path = os.path.join(run_dir, 'outputs')
-        touch(os.path.join(path, 'generated_files'))
-
-        path = os.path.join(run_dir, 'gauges')
-        touch(os.path.join(path, 'gauges_final.csv'))
-
-        touch(os.path.join(meshes, 'meshes.msh'))
-
-        touch(os.path.join(polygons, 'polygon_files'))
-
     # a fudge - because the zip process doesn't save empty directories
-    # we must write a small file into empty directories
+    # we must write a small file into empty directories we zip
     placeholder = os.path.join(meshes, '.placeholder')
     with open(placeholder, 'w') as fd:
         pass
@@ -403,10 +385,17 @@ def build_elevation():
     Combine all raw elevation data and clip to bounding polygon.
     """
 
-    # FUDGE FOR TESTING
-    # if no elevation to be combined, we already have a combined elevation file
+    # if no elevation to combine, we *must* have a combined elevation file
     if not project.ascii_grid_filenames and not project.point_filenames:
+        if not project.combined_elevation_file:
+            msg = 'No raw elevation data and no combined elevation data!?'
+            abort(msg)
         return
+
+    # user wants us to create combined elevation, make output filename
+    project.combined_elevation_file = os.path.join(
+                                              project.topographies_folder,
+                                              'combined_elevation.pts')
 
     # Create Geospatial data from ASCII files
     geospatial_data = {}
@@ -441,11 +430,15 @@ def build_elevation():
     for key in geospatial_data:
         G += geospatial_data[key]
 
-    G.export_points_file(project.combined_elevation + '.pts')
+    G.export_points_file(project.combined_elevation_file)
 
     # Use for comparision in ARC
     # DO WE NEED THIS?
-    G.export_points_file(project.combined_elevation + '.txt')
+    try:
+        (stem, _) = project.combined_elevation_file.rsplit('.', 1)
+    except ValueError:
+        stem = project.combined_elevation_file
+    G.export_points_file(stem + '.txt')
 
 def get_sts_gauge_data(filename, verbose=False):
     """Get gauges (timeseries of index points)."""
@@ -586,6 +579,22 @@ def build_urs_boundary(event_file, output_dir):
     (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
     log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
 
+def define_default(name, default):
+    """Check if a project attribute is defined, default it if not.
+
+    name   name of attribute to check (string)
+    default  default value if attribute isn't defined
+    """
+
+    try:
+        eval('project.%s' % name)
+    except AttributeError:
+        exec('project.%s = %s' % (name, str(default)))
+    else:
+        exec('value = project.%s' % name)
+        if not value:
+            exec('project.%s = %s' % (name, str(default)))
+
 def adorn_project(json_data):
     """Adorn the project object with data from the json file.
 
@@ -610,6 +619,12 @@ def adorn_project(json_data):
 
         # set new attribute in project object
         project.__setattr__(new_key, value)
+
+    # set default values for attributes that aren't defined or not provided
+    define_default('mesh_file', '%s.msh' % project.scenario)
+
+    define_default('debug', False)
+    define_default('force_run', True)
 
     # add extra derived attributes
     # paths to various directories
@@ -638,17 +653,23 @@ def adorn_project(json_data):
 
     #####
     # Location of input and output data
+    # Generate full paths to data files
     #####
 
-    # The stem path of the all elevation, generated in build_elevation()
-    project.combined_elevation = os.path.join(project.topographies_folder,
-                                              'combined_elevation')
+    # The complete path to the elevation, generated in build_elevation()
+    if project.combined_elevation_file:
+        project.combined_elevation_file = os.path.join(
+                                              project.topographies_folder,
+                                              project.combined_elevation_file)
 
     # The absolute pathname of the mesh, generated in run_model.py
-    project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')
+    if project.mesh_file:
+        project.mesh_file = os.path.join(project.meshes_folder,
+                                         project.mesh_file)
 
     # The pathname for the urs order points, used within build_urs_boundary.py
-    project.urs_order_file = os.path.join(project.boundaries_folder, project.urs_order_file)
+    project.urs_order_file = os.path.join(project.boundaries_folder,
+                                          project.urs_order_file)
 
     # The absolute pathname for the landward points of the bounding polygon,
     # Used within run_model.py)
@@ -667,18 +688,6 @@ def adorn_project(json_data):
 
     # not sure what this is for
     project.land_initial_conditions = []
-
-    # if project.debug isn't defined, set it to False
-    try:
-        project.debug
-    except AttributeError:
-        project.debug = False
-
-    # if .force_run isn't defined, set it to True
-    try:
-        project.force_run
-    except AttributeError:
-        project.force_run = True
 
 def excepthook(type, value, tb):
     """Exception hook routine."""
@@ -784,10 +793,13 @@ def run_tsudat(json_data):
     log.info('#'*90)
     log.info('# Preparing simulation')
     log.info('#'*90)
+
     log.info('Calling: setup_model()')
     setup_model()
+
     log.info('Calling: build_elevation()')
     build_elevation()
+
     log.info('Calling: build_urs_boundary()')
     build_urs_boundary(project.mux_input_filename, project.event_sts)
 
@@ -796,17 +808,16 @@ def run_tsudat(json_data):
     log.debug("Copying EC2 run file '%s' to scripts directory '%s'."
               % (Ec2RunTsuDAT, ec2_name))
     shutil.copy(Ec2RunTsuDAT, ec2_name)
-    for extra in ReqdFiles:
+    for extra in RequiredFiles:
         shutil.copy(extra, ScriptsDir)
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
-    dump_project_py()
     json_file = os.path.join(ScriptsDir, JsonDataFilename)
     log.info('Dumping JSON to file %s' % json_file)
     dump_json_to_file(project, json_file)
+    dump_project_py()
 
     # bundle up the working directory, put it into S3
-    # move just what we want to a temporary directory
     zipname = ('%s-%s-%s-%s.zip'
                % (project.user, project.project,
                   project.scenario, project.setup))

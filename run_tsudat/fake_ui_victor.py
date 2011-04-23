@@ -33,10 +33,16 @@ InteriorRegions = [['area_of_interest.csv', 500],
 UrsOrder = 'urs_order.csv'
 LandwardBoundary = 'landward_boundary.csv'
 
-STSFile = '%s.sts' % Scenario
+STSFileStem = '%s' % Scenario
+STSFile = STSFileStem + '.sts'
 
 GaugeFile = 'gauges_final.csv'
 
+MeshFile = None
+
+# pre-generated combined elevation file
+CombinedElevationFileStem = 'combined_elevation'
+CombinedElevationFile = '%s.pts' % CombinedElevationFileStem
 
 
 def main():
@@ -47,31 +53,34 @@ def main():
                                       prefix='fake_ui_', text=True)
     json_dict = {'user': User,
                  'project': Project,
-                 'scenario_name': Scenario,
+                 'scenario': Scenario,
                  'setup': Setup,
-                 'event': Event,
+                 'event_number': Event,
                  'working_directory': TsuDATBase,
                  'mux_directory': TsuDATMux,
-                 'tide': 0.0,
+                 'initial_tide': 0.0,
                  'start_time': 0,
                  'end_time': 27000,
                  'smoothing': 0.1,
-                 'bounding_polygon': BoundingPolygon,
-                 'elevation_data': RawElevationFiles,
+                 'bounding_polygon_file': BoundingPolygon,
+                 'elevation_data_list': RawElevationFiles,
+                 'combined_elevation_filestem': CombinedElevationFileStem,
                  'mesh_friction': 0.01,
                  'raster_resolution': 250,
                  'layers': ['stage', 'depth'],
                  'area': ['All'],
                  'get_results_max': True,
                  'get_timeseries': True,
-                 'gauges': GaugeFile,
-                 'interior_regions_data': InteriorRegions,
+                 'gauge_file': GaugeFile,
+                 'mesh_file': MeshFile,
+                 'interior_regions_list': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
-                 'urs_order': UrsOrder,
-                 'landward_boundary': LandwardBoundary,
+                 'urs_order_file': UrsOrder,
+                 'landward_boundary_file': LandwardBoundary,
                  'ascii_grid_filenames': [],
-                 'zone': 54,
-                 'force_run': False, # if True, *forces* a simulation
+                 'sts_filestem': STSFileStem,
+                 'zone_number': 54,
+                 'force_run': True, # if True, *forces* a simulation
                  'debug': True}	# if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:

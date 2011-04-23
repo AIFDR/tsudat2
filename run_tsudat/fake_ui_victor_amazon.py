@@ -22,28 +22,29 @@ User = 'user'
 Project = 'project'
 Scenario = 'VictorHarbour'
 Setup = 'trial'
-#Setup = 'final'
 Event = 58342
 
 # the directory containing all data files required
 DataFilesDir = './fake_ui_files.%s' % Scenario
 
 # the data files
-BoundingPolygon = 'bounding_polygonX.csv'
-RawElevationFiles = ['250m_finalX.csv', 'shallow_waterX.csv', 'aoiX.csv']
-InteriorRegions = [['area_of_interestX.csv', 500],
-                   ['area_of_significanceX.csv', 2500],
-                   ['shallow_waterX.csv', 10000]]
-UrsOrder = 'urs_orderX.csv'
-LandwardBoundary = 'landward_boundaryX.csv'
+BoundingPolygon = 'bounding_polygon.csv'
+RawElevationFiles = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']
+InteriorRegions = [['area_of_interest.csv', 500],
+                   ['area_of_significance.csv', 2500],
+                   ['shallow_water.csv', 10000]]
+UrsOrder = 'urs_order.csv'
+LandwardBoundary = 'landward_boundary.csv'
 
-STSFileStem = '%sX' % Scenario
+STSFileStem = '%s' % Scenario
 STSFile = STSFileStem + '.sts'
 
-GaugeFile = 'gauges_finalX.csv'
+GaugeFile = 'gauges_final.csv'
 
-MeshFile = None
+MeshFile = '%s.msh' % Scenario
 
+# pre-generated combined elevation file
+CombinedElevationFile = None
 
 
 def main():
@@ -65,6 +66,7 @@ def main():
                  'smoothing': 0.1,
                  'bounding_polygon_file': BoundingPolygon,
                  'elevation_data_list': RawElevationFiles,
+                 'combined_elevation_file': CombinedElevationFile,
                  'mesh_friction': 0.01,
                  'raster_resolution': 250,
                  'layers': ['stage', 'depth'],
@@ -72,7 +74,7 @@ def main():
                  'get_results_max': True,
                  'get_timeseries': True,
                  'gauge_file': GaugeFile,
-                 'meshfile': MeshFile,
+                 'mesh_file': MeshFile,
                  'interior_regions_list': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
                  'urs_order_file': UrsOrder,

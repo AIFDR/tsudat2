@@ -143,13 +143,13 @@ def run_model():
     log.debug('boundary_tags=%s' % str(boundary_tags))
     log.debug('project.bounding_maxarea=%s' % str(project.bounding_maxarea))
     log.debug('project.interior_regions=%s' % str(project.interior_regions))
-    log.debug('project.meshes=%s' % str(project.meshes))
+    log.debug('project.mesh_file=%s' % str(project.mesh_file))
 
     domain = anuga.create_domain_from_regions(bounding_polygon_sts,
                                 boundary_tags=boundary_tags,
                                 maximum_triangle_area=project.bounding_maxarea,
                                 interior_regions=project.interior_regions,
-                                mesh_filename=project.meshes,
+                                mesh_filename=project.mesh_file,
                                 use_cache=False,
                                 verbose=False)
 
@@ -171,7 +171,7 @@ def run_model():
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction)
     domain.set_quantity('elevation',
-                        filename=project.combined_elevation+'.pts',
+                        filename=project.combined_elevation_file,
                         use_cache=True, verbose=False, alpha=project.alpha)
 
     # Setup boundary conditions

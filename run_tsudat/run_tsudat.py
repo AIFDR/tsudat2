@@ -34,7 +34,7 @@ log.log_logging_level = log.INFO
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
 
-# match any number of spaces beteen fields
+# match any number of spaces between fields
 SpacesPattern = re.compile(' +')
 
 # dictionary to handle attribute renaming from JSON->project
@@ -44,7 +44,7 @@ RenameDict = {'mesh_friction': 'friction',
               'end_time': 'finaltime',
               'layers': 'var',
               'raster_resolution': 'cell_size',
-              'elevation_data': 'point_filenames',
+              'elevation_data_list': 'point_filenames',
              }
 
 # major directories under user/project/scenario/setup base directory
@@ -108,7 +108,8 @@ def make_tsudat_dir(base, user, proj, scen, setup, event,
 
     # now create major sub-dirs under $setup
     for sd in MajorSubDirs:
-        makedirs_noerror(os.path.join(run_dir, sd))
+        new_dir = os.path.join(run_dir, sd)
+        makedirs_noerror(new_dir)
 
     # get extra return paths
     boundaries = os.path.join(run_dir, 'boundaries')
@@ -208,7 +209,7 @@ def setup_model():
         sanity_error = True
 
     # generate the event.lst file for the event
-    get_multimux(project.event, project.multimux_folder, project.mux_input)
+    get_multimux(project.event_number, project.multimux_folder, project.mux_input)
 
     # if multi_mux is True, check if multi-mux file exists
     if project.multi_mux:
@@ -268,7 +269,7 @@ def setup_model():
 
     # Create list of interior polygons with scaling factor
     project.interior_regions = []
-    for (filename, maxarea) in project.interior_regions_data:
+    for (filename, maxarea) in project.interior_regions_list:
         polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
                                                   filename))
         project.interior_regions.append([polygon,
@@ -277,7 +278,7 @@ def setup_model():
     # Initial bounding polygon for data clipping
     project.bounding_polygon = anuga.read_polygon(os.path.join(
                                                       project.polygons_folder,
-                                                      project.bounding_polygon))
+                                                      project.bounding_polygon_file))
     project.bounding_maxarea = project.bounding_polygon_maxarea \
                                * project.scale_factor
 
@@ -409,12 +410,11 @@ def build_elevation():
     for key in geospatial_data:
         G += geospatial_data[key]
 
-    G.export_points_file(project.combined_elevation + '.pts')
+    G.export_points_file(project.combined_elevation_filestem + '.pts')
 
     # Use for comparision in ARC
     # DO WE NEED THIS?
-    G.export_points_file(project.combined_elevation + '.txt')
-
+    G.export_points_file(project.combined_elevation_filestem + '.txt')
 
 def get_sts_gauge_data(filename, verbose=False):
     """Get gauges (timeseries of index points)."""
@@ -528,7 +528,7 @@ def build_urs_boundary(event_file, output_dir):
 
         # Call legacy function to create STS file.
         anuga.urs2sts(mux_filenames, basename_out=output_dir,
-                      ordering_filename=project.urs_order,
+                      ordering_filename=project.urs_order_file,
                       weights=mux_weights, verbose=False)
     else:                           # a single mux stem file, assume 1.0 weight
         log.info('using single-mux file %s' % mux_file)
@@ -539,7 +539,7 @@ def build_urs_boundary(event_file, output_dir):
         weight_factor = 1.0
         mux_weights = weight_factor*num.ones(len(mux_filenames), num.Float)
 
-        order_filename = project.urs_order
+        order_filename = project.urs_order_file
 
         # Create ordered sts file
         anuga.urs2sts(mux_filenames, basename_out=output_dir,
@@ -547,8 +547,7 @@ def build_urs_boundary(event_file, output_dir):
                       weights=mux_weights, verbose=False)
 
     # report on progress so far
-    sts_file = os.path.join(project.event_folder, project.scenario_name)
-    log.info('URS boundary file=%s' % sts_file)
+    sts_file = os.path.join(project.event_folder, project.sts_filestem)
 
     (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
     log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
@@ -566,7 +565,7 @@ def run_model():
 
     # Reading the landward defined points, this incorporates the original
     # clipping polygon minus the 100m contour
-    landward_boundary = anuga.read_polygon(project.landward_boundary)
+    landward_boundary = anuga.read_polygon(project.landward_boundary_file)
 
     # Combine sts polyline with landward points
     bounding_polygon_sts = event_sts + landward_boundary
@@ -574,9 +573,9 @@ def run_model():
     # Number of boundary segments
     num_ocean_segments = len(event_sts) - 1
     # Number of landward_boundary points
-    num_land_points = anuga.file_length(project.landward_boundary)
+    num_land_points = anuga.file_length(project.landward_boundary_file)
 
-    # Boundary tags refer to project.landward_boundary
+    # Boundary tags refer to project.landward_boundary_file
     # 4 points equals 5 segments start at N
     boundary_tags={'back': range(num_ocean_segments+1,
                                  num_ocean_segments+num_land_points),
@@ -599,20 +598,20 @@ def run_model():
                                 use_cache=False,
                                 verbose=False)
 
-    domain.geo_reference.zone = project.zone
+    domain.geo_reference.zone = project.zone_number
     log.info('\n%s' % domain.statistics())
 
-    domain.set_name(project.scenario_name)
+    domain.set_name(project.scenario)
     domain.set_datadir(project.output_folder)
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
     # Set the initial stage in the offcoast region only
     if project.land_initial_conditions:
         IC = anuga.Polygon_function(project.land_initial_conditions,
-                                    default=project.tide,
+                                    default=project.initial_tide,
                                     geo_reference=domain.geo_reference)
     else:
-        IC = project.tide
+        IC = project.initial_tide
 
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction)
@@ -625,9 +624,9 @@ def run_model():
 
     Br = anuga.Reflective_boundary(domain)
     Bt = anuga.Transmissive_stage_zero_momentum_boundary(domain)
-    Bd = anuga.Dirichlet_boundary([project.tide, 0, 0])
+    Bd = anuga.Dirichlet_boundary([project.initial_tide, 0, 0])
     Bf = anuga.Field_boundary(project.event_sts+'.sts',
-                        domain, mean_stage=project.tide, time_thinning=1,
+                        domain, mean_stage=project.initial_tide, time_thinning=1,
                         default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
                         boundary_polygon=bounding_polygon_sts,
                         use_cache=True, verbose=False)
@@ -653,11 +652,18 @@ def adorn_project(json_data):
     json_data  path to the UI JSON data file
 
     Also adds extra project attributes derived from JSON data.
+    Selected values that are None are changed to ''.
     """
 
     # parse the JSON
     with open(json_data, 'r') as fp:
         ui_dict = json.load(fp)
+
+    print('ui_dict=%s' % str(ui_dict))
+
+    # convert some None values to ' '
+    if project.mesh_file is None:
+        project.mesh_file = ' '
 
     # adorn project object with entries from ui_dict
     for (key, value) in ui_dict.iteritems():
@@ -675,7 +681,7 @@ def adorn_project(json_data):
     # add extra derived attributes
     # paths to various directories
     project.anuga_folder = os.path.join(project.working_directory, project.user,
-                                        project.project, project.scenario_name,
+                                        project.project, project.scenario,
                                         project.setup)
     project.topographies_folder = os.path.join(project.anuga_folder,
                                                'topographies')
@@ -695,36 +701,36 @@ def adorn_project(json_data):
     project.mux_data_folder = os.path.join(project.mux_directory, 'mux')
     project.multimux_folder = os.path.join(project.mux_directory, 'multimux')
 
-    project.mux_input_filename = 'event_%d.lst' % project.event
+    project.mux_input_filename = 'event_%d.lst' % project.event_number
 
     #####
     # Location of input and output data
     #####
 
     # The stem path of the all elevation, generated in build_elevation()
-    project.combined_elevation = os.path.join(project.topographies_folder,
-                                              'combined_elevation')
+    project.combined_elevation_filestem = os.path.join(project.topographies_folder,
+                                              project.combined_elevation_filestem)
 
     # The absolute pathname of the mesh, generated in run_model.py
-    project.meshes = os.path.join(project.meshes_folder, 'meshes.msh')
+    project.meshes = os.path.join(project.meshes_folder, project.mesh_file)
 
     # The pathname for the urs order points, used within build_urs_boundary.py
-    project.urs_order = os.path.join(project.boundaries_folder, 'urs_order.csv')
+    project.urs_order_file = os.path.join(project.boundaries_folder, project.urs_order_file)
 
     # The absolute pathname for the landward points of the bounding polygon,
     # Used within run_model.py)
-    project.landward_boundary = os.path.join(project.boundaries_folder,
-                                             'landward_boundary.csv')
+    project.landward_boundary_file = os.path.join(project.boundaries_folder,
+                                             project.landward_boundary_file)
 
     # The absolute pathname for the .sts file, generated in build_boundary.py
     project.event_sts = project.boundaries_folder
 
     # The absolute pathname for the gauges file
-    project.gauges = os.path.join(project.gauges_folder, 'gauges_final.csv')
+    project.gauge_file = os.path.join(project.gauges_folder, project.gauge_file)
 
     # full path to where MUX files (or meta-files) live
     project.mux_input = os.path.join(project.event_folder,
-                                     'event_%d.lst' % project.event)
+                                     'event_%d.lst' % project.event_number)
 
     # not sure what this is for
     project.land_initial_conditions = []
@@ -746,10 +752,10 @@ def get_youngest_input():
     """Get date/time of youngest input file."""
 
     input_dirs = [project.polygons_folder, project.raw_elevation_folder]
-    input_files = [project.urs_order,
+    input_files = [project.urs_order_file,
                    os.path.join(project.boundaries_folder,
-                                '%s.sts' % project.scenario_name),
-                   project.landward_boundary]
+                                '%s.sts' % project.scenario),
+                   project.landward_boundary_file]
 
     youngest = 0.0	# time at epoch start
 
@@ -824,7 +830,7 @@ def export_results_max():
                     log.critical('Unrecognized area name: %s' % which_area)
                     break
 
-            name = os.path.join(project.output_folder, project.scenario_name)
+            name = os.path.join(project.output_folder, project.scenario)
 
             outname = name + '_' + which_area + '_' + which_var
             quantityname = var_equations[which_var]
@@ -857,10 +863,10 @@ def get_timeseries():
     """
 
     # generate the result files
-    name = os.path.join(project.output_folder, project.scenario_name+'.sww')
+    name = os.path.join(project.output_folder, project.scenario+'.sww')
     log.debug('get_timeseries: input SWW file=%s' % name)
-    log.debug('get_timeseries: gauge file=%s' % project.gauges)
-    anuga.sww2csv_gauges(name, project.gauges, quantities=project.var,
+    log.debug('get_timeseries: gauge file=%s' % project.gauge_file)
+    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.var,
                          verbose=False)
 
     # since ANUGA code doesn't return a list of generated files,
@@ -943,6 +949,18 @@ def make_stage_plot(filename, out_dir=None):
     return picname
 
 
+def dump_project_py():
+    """Debug routine - dump project attributes to the log."""
+
+    # list all project.* attributes
+    for key in dir(project):
+        if not key.startswith('__'):
+            try:
+                log.info('project.%s=%s' % (key, eval('project.%s' % key)))
+            except AttributeError:
+                pass
+
+
 def run_tsudat(json_data):
     """Run ANUGA using data from a JSON data file.
 
@@ -972,17 +990,6 @@ def run_tsudat(json_data):
     """
 
 
-    def dump_project_py():
-        """Debug routine - dump project attributes to the log."""
-
-        # list all project.* attributes
-        for key in dir(project):
-            if not key.startswith('__'):
-                try:
-                    log.info('project.%s=%s' % (key, eval('project.%s' % key)))
-                except AttributeError:
-                    pass
-
     # start the result dictionary
     gen_files = {}
 
@@ -1002,7 +1009,7 @@ def run_tsudat(json_data):
         dump_project_py()
 
     youngest_input = get_youngest_input()
-    sww_file = os.path.join(project.output_folder, project.scenario_name+'.sww')
+    sww_file = os.path.join(project.output_folder, project.scenario+'.sww')
     try:
         sww_ctime = os.path.getctime(sww_file)
     except OSError:

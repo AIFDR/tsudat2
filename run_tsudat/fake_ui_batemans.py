@@ -67,7 +67,7 @@ def main():
                  'get_results_max': True,
                  'get_timeseries': True,
                  'gauges': GaugesFinal,
-                 'meshfile': MeshFile,
+                 'mesh_file': MeshFile,
                  'interior_regions_data': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
                  'urs_order': UrsOrder,

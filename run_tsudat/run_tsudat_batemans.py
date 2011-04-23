@@ -413,11 +413,11 @@ def build_elevation():
     for key in geospatial_data:
         G += geospatial_data[key]
 
-    G.export_points_file(project.combined_elevation + '.pts')
+    G.export_points_file(project.combined_elevation_filestem + '.pts')
 
     # Use for comparision in ARC
     # DO WE NEED THIS?
-    G.export_points_file(project.combined_elevation + '.txt')
+    G.export_points_file(project.combined_elevation_filestem + '.txt')
 
 
 def get_sts_gauge_data(filename, verbose=False):
@@ -621,7 +621,7 @@ def run_model():
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
     domain.set_quantity('friction', project.friction)
     domain.set_quantity('elevation',
-                        filename=project.combined_elevation+'.pts',
+                        filename=project.combined_elevation_filestem+'.pts',
                         use_cache=True, verbose=False, alpha=project.alpha)
 
     # Setup boundary conditions
@@ -705,11 +705,12 @@ def adorn_project(json_data):
     #####
 
     # The stem path of the all elevation, generated in build_elevation()
-    project.combined_elevation = os.path.join(project.topographies_folder,
-                                              'combined_elevation')
+    project.combined_elevation_filestem = os.path.join(
+                                              project.topographies_folder,
+                                              project.combined_elevation_filestem)
 
     # The absolute pathname of the mesh file, generated in run_model.py
-    project.meshes = os.path.join(project.meshes_folder, project.meshfile)
+    project.meshes = os.path.join(project.meshes_folder, project.mesh_file)
 
     # The pathname for the urs order points file
     project.urs_order = os.path.join(project.boundaries_folder,
