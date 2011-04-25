@@ -290,7 +290,7 @@ class Scenario(models.Model):
                  return None, "Raster Resolution Required"
             if("output_max" in data):
                 try:
-                    self.output_max = data["output_max"].lower() == "true"
+                    self.output_max = data["output_max"]
                 except:
                     return None, "Invalid output max"
             else:
@@ -400,7 +400,6 @@ class InternalPolygon(models.Model):
             self.save()
             return self, None
         except:
-            traceback.print_exc(file=sys.stdout)
             return None, "Unexpected Error"
 
 class DataSet(models.Model):
