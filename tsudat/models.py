@@ -299,7 +299,7 @@ class Scenario(models.Model):
             if("use_aoi" in data):
                 try:
                     # TODO: Verify that there is an AOI defined for this project
-                    self.output_max = data["use_aoi"]
+                    self.use_aoi = data["use_aoi"]
                 except:
                     return None, "Invalid AOI Choice"
             else:
