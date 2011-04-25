@@ -45,7 +45,6 @@ def return_period(request):
         except ValueError:
             return HttpResponse('Invalid Wave Height or Wave Height Delta', status=400)
         except:
-            traceback.print_exc(file=sys.stdout)
             return HttpResponse('Unexpected Error', status=500)
 
 def return_periods(request):
