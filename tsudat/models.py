@@ -179,6 +179,7 @@ class Scenario(models.Model):
     raster_resolution = models.PositiveIntegerField()
     output_layers = models.ManyToManyField(ScenarioOutputLayer)
     output_max = models.BooleanField()
+    use_aoi = models.BooleanField()
 
     def __unicode__(self):
         return self.name
@@ -295,6 +296,14 @@ class Scenario(models.Model):
                     return None, "Invalid output max"
             else:
                 return None, "Output Max is required"
+            if("use_aoi" in data):
+                try:
+                    # TODO: Verify that there is an AOI defined for this project
+                    self.output_max = data["use_aoi"]
+                except:
+                    return None, "Invalid AOI Choice"
+            else:
+                return None, "AOI Choice is required"
             self.save()
             if("output_layers" in data):
                 try:
