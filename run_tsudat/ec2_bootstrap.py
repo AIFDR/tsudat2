@@ -90,7 +90,10 @@ def make_dir_zip(dirname, zipname):
     os.system('zip -q -r %s %s' % (zipname, dirname))
 
 def abort(msg):
-    """Abort a run with an error message."""
+    """Abort a run with an error message.
+
+    We assume logging has been set up.
+    """
 
     log.critical('ABORT: %s' % msg)
 
@@ -338,7 +341,7 @@ if __name__ == '__main__':
         msg += 'Uncaught exception:\n'
         msg += ''.join(traceback.format_exception(type, value, tb))
         msg += '='*80 + '\n'
-        log.critical(msg)
+        print(msg)		# we can't assume logging is set up
         abort(msg)
 
     # plug our handler into the python system
