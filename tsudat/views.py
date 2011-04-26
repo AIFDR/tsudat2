@@ -616,6 +616,7 @@ def layer(request, uuid=None):
 		coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
 		return HttpResponse(serializers.serialize("json", coverage_layers))
 
+@csrf_exempt
 def run_scenario(request, scenario_id):
     try:
         #logger.debug("Calling run_tsudat_simulation asynchronously")
