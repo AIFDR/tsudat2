@@ -587,7 +587,15 @@ def project_data_set(request, id=None):
             data = {'status': 'failure', 'msg': 'Project Dataset Delete Failed', 'reason': 'Invalid Project Dataset'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     else:
-        project_data_sets = ProjectDataSet.objects.all()
+        if "project_id" in request.GET:
+            try:
+                project = Project.objects.get(pk=int(request.GET.get("project_id"))
+                project_data_sets = ProjectDataSets.objects.filter(project=project)
+            except:
+                data = {'status': 'failure', 'msg': 'ProjectDataSet GET Failed', 'reason': 'Invalid Project'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        else:
+            project_data_sets = ProjectDataSet.objects.all()
         return HttpResponse(serializers.serialize("json", project_data_sets))
 
 def layer(request, uuid=None):
