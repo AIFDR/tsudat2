@@ -589,8 +589,8 @@ def project_data_set(request, id=None):
     else:
         if "project_id" in request.GET:
             try:
-                project = Project.objects.get(pk=int(request.GET.get("project_id"))
-                project_data_sets = ProjectDataSets.objects.filter(project=project)
+                project = Project.objects.get(pk=int(request.GET.get("project_id")))
+                project_data_sets = ProjectDataSet.objects.filter(project=project)
             except:
                 data = {'status': 'failure', 'msg': 'ProjectDataSet GET Failed', 'reason': 'Invalid Project'}
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
