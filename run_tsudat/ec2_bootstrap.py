@@ -78,6 +78,7 @@ StatusStart = 'START'
 StatusStop = 'STOP'
 StatusAbort = 'ABORT'
 StatusIdle = 'IDLE'
+StatusLog = 'LOG'
 
 
 def make_dir_zip(dirname, zipname):
@@ -174,7 +175,6 @@ def send_sqs_message(**kwargs):
     kwargs['instance'] = Instance
 
     # add time as float and string (UTC, ISO 8601 format)
-    kwargs['time'] = time.time()	# simplifies sorted display
     kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
 
     # get JSON string
@@ -191,6 +191,18 @@ def send_sqs_message(**kwargs):
     status = queue.write(m)
     log.info('Wrote SQS message: %s' % kwargs['status'])
     
+
+def run_tsudat_log(msg=None):
+    """Callback routine for ANUGA periodic logging.
+
+    msg  the message to send to SQS with status of 'LOG'
+    """
+
+    if msg is None:
+        msg = 'Progress message'
+
+    send_sqs_message(message=msg, status=StatusLog)
+
 
 def bootstrap():
     """Bootstrap the TsuDAT run into existence.
@@ -277,7 +289,7 @@ def bootstrap():
     # get path to the JSON file in scripts dir, pass to run_tsudat()
     json_path = os.path.join(new_pythonpath, JSONFile)
     log.info('Running run_tsudat.run_tsudat()')
-    gen_files = run_tsudat.run_tsudat(json_path)
+    gen_files = run_tsudat.run_tsudat(json_path, logger=run_tsudat_log)
 
     # add local log files to the 'log' entry
     gen_files['log'] = glob.glob('*.log')

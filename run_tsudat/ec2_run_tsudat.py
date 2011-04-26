@@ -32,6 +32,10 @@ log.console_logging_level = log.CRITICAL+1    # turn console logging off
 log.log_logging_level = log.DEBUG
 
 
+# logger callback function
+Logger = None
+
+
 # where the generated files are gathered
 OutputGenDir = '/tmp/tsudat_gen'
 
@@ -195,6 +199,8 @@ def run_model():
     for t in domain.evolve(yieldstep=project.yieldstep,
                            finaltime=project.finaltime,
                            skip_initial_step=False):
+        if Logger:
+            Logger(domain.timestepping_statistics())
         log.info('\n%s' % domain.timestepping_statistics())
         log.info('\n%s' % domain.boundary_statistics(tags='ocean'))
 
@@ -427,7 +433,7 @@ def make_stage_plot(filename, out_dir=None):
     return picname
 
 
-def run_tsudat(json_data):
+def run_tsudat(json_data, logger=None):
     """Run ANUGA using data from a JSON data file.
 
     json_data  the path to the JSON data file
@@ -467,6 +473,10 @@ def run_tsudat(json_data):
                 except AttributeError:
                     pass
 
+    # set global logger
+    global Logger
+    Logger = logger
+
     # start the result dictionary
     gen_files = {}
 
@@ -488,13 +498,21 @@ def run_tsudat(json_data):
         log.info('#'*90)
         log.info('# Running simulation')
         log.info('#'*90)
+        if Logger:
+            Logger('Running simulation')
         run_model()
         log.info('End of simulation')
+        if Logger:
+            Logger('End of simulation')
     else:
         log.info('#'*90)
         log.info('# Not running simulation')
         log.info('# If you want to force a simulation run, select FORCE RUN')
         log.info('#'*90)
+        if Logger:
+            Logger('Not running simulation\n'
+                   'If you want to force a simulation run, select FORCE RUN')
+
 
     # add *all* SWW files in the output directory to result dictionary
     # (whether we ran a simulation or not)
@@ -503,38 +521,46 @@ def run_tsudat(json_data):
 
     # now do optional post-run extractions
     if project.get_results_max:
-       log.info('~'*90)
-       log.info('~ Running export_results_max()')
-       log.info('~'*90)
-       file_list = export_results_max()
-       gen_files['results_max'] = file_list  # add files to output dict
-       log.info('export_results_max() has finished')
+        log.info('~'*90)
+        log.info('~ Running export_results_max()')
+        log.info('~'*90)
+        file_list = export_results_max()
+        if Logger:
+            Logger('Running export_results_max()')
+        gen_files['results_max'] = file_list  # add files to output dict
+        log.info('export_results_max() has finished')
+        if Logger:
+            Logger('export_results_max() has finished')
     else:
-       log.info('~'*90)
-       log.info('~ Not running export_results_max() - not requested')
-       log.info('~'*90)
+        log.info('~'*90)
+        log.info('~ Not running export_results_max() - not requested')
+        log.info('~'*90)
+        if Logger:
+            Logger('Not running export_results_max() - not requested')
 
     if project.get_timeseries:
-       log.info('~'*90)
-       log.info('~ Running get_timeseries()')
-       log.info('~'*90)
-       file_list = get_timeseries()
-       gen_files['timeseries'] = file_list  # add files to output dict
-       # generate plot files
-       plot_list = []
-       for filename in file_list:
-           plot_file = make_stage_plot(filename)
-           plot_list.append(plot_file)
-       gen_files['timeseries_plot'] = plot_list  # add files to output dict
+        log.info('~'*90)
+        log.info('~ Running get_timeseries()')
+        log.info('~'*90)
+        if Logger:
+            Logger('Running get_timeseries()')
+        file_list = get_timeseries()
+        gen_files['timeseries'] = file_list  # add files to output dict
+        # generate plot files
+        plot_list = []
+        for filename in file_list:
+            plot_file = make_stage_plot(filename)
+            plot_list.append(plot_file)
+        gen_files['timeseries_plot'] = plot_list  # add files to output dict
 
-       log.info('get_timeseries() has finished')
+        log.info('get_timeseries() has finished')
+        if Logger:
+            Logger('get_timeseries() has finished')
     else:
-       log.info('~'*90)
-       log.info('~ Not running get_timeseries() - not requested')
-       log.info('~'*90)
-
-    log.info('#'*90)
-    log.info('# Simulation finished')
-    log.info('#'*90)
+        log.info('~'*90)
+        log.info('~ Not running get_timeseries() - not requested')
+        log.info('~'*90)
+        if Logger:
+            Logger('Not running get_timeseries() - not requested')
 
     return gen_files

@@ -15,7 +15,8 @@ import run_tsudat_amazon as run_tsudat
 
 # the base of the TsuDAT user directory structures
 TsuDATBase = '/tmp/tsudat'
-TsuDATMux = '/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
+#TsuDATMux = '/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
+TsuDATMux = '/media/1TB_USB3/Tsu-DAT_Data/earthquake_data'
 
 # all the user/project/scenario data
 User = 'user'

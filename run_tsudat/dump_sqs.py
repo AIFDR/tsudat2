@@ -18,7 +18,6 @@ import boto
 
 
 SQSQueueName = 'tsudat_aifdr_org'
-Timeout = 5
 
 
 Delete = False
@@ -32,11 +31,10 @@ sqs = boto.connect_sqs(os.environ['EC2_ACCESS_KEY'],
                        os.environ['EC2_SECRET_ACCESS_KEY'])
 queue = sqs.create_queue(SQSQueueName)
 
-last_read = time.time()
 
 msgs = []
 while True:
-    # the below seems to hang if given a visibility timeout value??
+    # queue.read() seems to hang if given a visibility timeout value??
     #m = queue.read(Timeout)
     m = queue.read()
     if m:
@@ -61,13 +59,9 @@ while True:
                    % (instance, status, timestamp,
                       '\n\tgen_file=%s' % gen_file if gen_file else '',
                       '\n\t%s' % message if message else ''))
-            msgs.append((instance, msg_obj['time'], msg))
-            last_read = time.time()
+            msgs.append((instance, msg_obj['timestamp'], msg))
     else:
-       idle_time = time.time() - last_read
-       if idle_time > Timeout:
-           break
-       time.sleep(0.5)
+        break
 
 msgs.sort()
 last_instance = None

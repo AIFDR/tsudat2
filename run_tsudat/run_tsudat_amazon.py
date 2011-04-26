@@ -32,7 +32,11 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-9a36caf3'  # Ubuntu_10.04_TsuDAT_2.0.25
+DefaultAmi = 'ami-4c46ba25'  # Ubuntu_10.04_TsuDAT_2.0.27
+
+# keypair used to start instance
+#DefaultKeypair = 'gsg-keypair'
+DefaultKeypair = 'tsudat2'
 
 # bucket name in S3
 Bucket = 'tsudat.aifdr.org'
@@ -698,9 +702,14 @@ def excepthook(type, value, tb):
     msg += '='*80 + '\n'
     log.critical(msg)
 
-def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
+def start_ami(ami, key_name=DefaultKeypair, instance_type='m1.large',
               user_data=None):
-    """
+    """Start the configured AMI, wait until it's running.
+
+    ami            the ami ID ('ami-????????')
+    key_name       the keypair name
+    instance_type  type of instance to run
+    user_data      the user data string to pass to instance
     """
 
     access_key = os.environ['EC2_ACCESS_KEY']
@@ -709,11 +718,15 @@ def start_ami(ami, key_name='gsg-keypair', instance_type='m1.large',
     access_key = 'DEADBEEF'
     secret_key = 'DEADBEEF'
     del access_key, secret_key
+
     if user_data is None:
         user_data = ''
+
     reservation = ec2.run_instances(image_id=ami, key_name=key_name,
                                     instance_type=instance_type,
                                     user_data=user_data)
+    # got some sort of race - "instance not found"? - try waiting a bit
+    time.sleep(1)
 
     # Wait a minute or two while it boots
     instance = reservation.instances[0]
