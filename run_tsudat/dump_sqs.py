@@ -55,10 +55,15 @@ while True:
                 message = msg_obj['message'].replace('\n', '\n\t')
             except KeyError:
                 message = ''
-            msg = ('%s: %-8s at %s%s%s'
+            try:
+                payload = str(msg_obj['payload'])
+            except KeyError:
+                payload = ''
+            msg = ('%s: %-8s at %s%s%s%s'
                    % (instance, status, timestamp,
-                      '\n\tgen_file=%s' % gen_file if gen_file else '',
-                      '\n\t%s' % message if message else ''))
+                      '\n\tgen_file: %s' % gen_file if gen_file else '',
+                      '\n\t message: %s' % message if message else '',
+                      '\n\t payload: %s' % payload if payload else ''))
             msgs.append((instance, msg_obj['timestamp'], msg))
     else:
         break
