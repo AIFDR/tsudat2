@@ -82,9 +82,10 @@ def main():
                  'landward_boundary_file': LandwardBoundary,
                  'ascii_grid_filenames': [],
                  'sts_filestem': STSFileStem,
-                 'zone_number': 54,
-                 'force_run': True, # if True, *forces* a simulation
-                 'debug': True}	# if True, forces DEBUG logging
+                 #                 'zone_number': 54,
+                 'getsww': True,        # if True, forces delivery of SWW files
+                 'force_run': True,     # if True, *forces* a simulation
+                 'debug': True}	        # if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))

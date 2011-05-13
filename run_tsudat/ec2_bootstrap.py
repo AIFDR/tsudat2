@@ -79,6 +79,7 @@ StatusStop = 'STOP'
 StatusAbort = 'ABORT'
 StatusIdle = 'IDLE'
 StatusLog = 'LOG'
+StatusError = 'ERROR'
 
 
 def make_dir_zip(dirname, zipname):
@@ -116,6 +117,21 @@ def abort(msg):
     # then stop the AMI
     shutdown()
 
+def error(msg):
+    """Send an ERROR SQS message.
+
+    We assume logging has NOT been set up.
+    Stop the process right here.  Can't use shutdown().
+    """
+
+    log.critical('ERROR: %s' % msg)
+
+    send_sqs_message_lite(status=StatusERROR, message=msg)
+
+    # then stop the AMI
+    os.system('sudo halt')
+
+
 def wait_a_while():
     """Wait for a specified number of seconds (global).
 
@@ -128,6 +144,7 @@ def wait_a_while():
         time.sleep(ReminderTime*60)
         elapsed_time += ReminderTime
 
+
 def shutdown():
     """Shutdown this AMI."""
 
@@ -139,6 +156,7 @@ def shutdown():
         send_sqs_message(status=StatusStop)
 
     os.system('sudo halt')
+
 
 def s3_connect():
     """Connect to S3 storage.
@@ -157,6 +175,7 @@ def s3_connect():
     gc.collect()
 
     return s3
+
 
 def send_sqs_message(**kwargs):
     """Send an SQS message.
@@ -190,6 +209,30 @@ def send_sqs_message(**kwargs):
     m.set_body(msg)
     status = queue.write(m)
     log.info('Wrote SQS message: %s' % kwargs['status'])
+    
+
+def send_sqs_message_lite(**kwargs):
+    """Send an SQS message.  Can't assume any environment.
+
+    kwargs   a dict of keyword arguments
+
+    Send a JSON representation of the kwargs dict ONLY.
+    Can't assume logging is set up
+    """
+
+    # add time as float and string (UTC, ISO 8601 format)
+    kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
+
+    # get JSON string
+    msg = json.dumps(kwargs)
+
+    # send the JSON
+    sqs = boto.connect_sqs(os.environ['EC2_ACCESS_KEY'],
+                           os.environ['EC2_SECRET_ACCESS_KEY'])
+    queue = sqs.create_queue(SQSQueueName)
+    m = boto.sqs.message.Message()
+    m.set_body(msg)
+    status = queue.write(m)
     
 
 def run_tsudat_log(msg=None):
@@ -294,6 +337,17 @@ def bootstrap():
     # add local log files to the 'log' entry
     gen_files['log'] = glob.glob('*.log')
 
+    # before we possibly delete the gen_files['sww'], get output path
+    save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
+    log.debug('save_zip_base=%s' % save_zip_base)
+
+    # if user data shows 'getsww' as False, remove 'sww' key from dictionary
+    if not UserData.get('GETSWW', True):
+        msg = 'Userdata says not to save SWW files, deleting...'
+        log.info(msg)
+        send_sqs_message(status=StatusLog, msg=msg)
+        del gen_files['sww']
+
     # optionally dump returned file data
     if Debug:
         import pprint
@@ -303,8 +357,6 @@ def bootstrap():
 
     # save generated data to a staging directory
     # want same pathname for each file as in input ZIP archive
-    save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
-    log.debug('save_zip_base=%s' % save_zip_base)
     shutil.rmtree(save_zip_base, ignore_errors=True)	# just in case
     os.makedirs(save_zip_base)
     for key in gen_files:
@@ -341,10 +393,11 @@ def bootstrap():
     log.info('run_tsudat() finished, shutting down')
     shutdown()
 
+
 if __name__ == '__main__':
     import re
 
-    global User, Project, Scenario, Setup, BaseDir, Debug, Instance
+    global UserData, User, Project, Scenario, Setup, BaseDir, Debug, Instance
 
     def excepthook(type, value, tb):
         """Exception hook routine."""
@@ -363,27 +416,54 @@ if __name__ == '__main__':
     with os.popen('wget -O - -q %s' % InstanceURL) as fd:
         Instance = fd.readline()
 
-    # get user-data into a string & split into params
+    # get user-data into a string & convert JSON to python dictionary
     with os.popen('wget -O - -q %s' % UserDataURL) as fd:
-        args = fd.readline()    # ignore all but first line
+        json_userdata = fd.readlines()
 
-    Debug = None
-    expr = re.compile(' *')
-    fields = expr.split(args)
-    if len(fields) == 5:
-        (User, Project, Scenario, Setup, BaseDir) = expr.split(args)
-        Debug = 'production'
-    elif len(fields) == 6:
-        (User, Project, Scenario, Setup, BaseDir, Debug) = expr.split(args)
-    else:
-        # no logging yet, just write to bootstrap log
-        msg = "Expected 5 or 6 args in setup string. Got '%s'.\n" % args
-        print(msg)
-        send_sqs_message(status=StatusAbort, message=msg)
-        Debug = True
-        shutdown()
+    json_userdata = '\n'.join(json_userdata)
+    UserData = json.loads(json_userdata)
 
-    if str(Debug).lower() == 'debug':
+    # uppercase all dictionary keys
+    for (key, value) in UserData.items():
+        del UserData[key]
+        UserData[key.upper()] = value
+
+    # check userdata payload
+    error = False
+    error_msg = []
+
+    if not UserData.get('USER', ''):
+        error = True
+        error_msg.append("USER field doesn't exist or is empty")
+    if not UserData.get('PROJECT', ''):
+        error = True
+        error_msg.append("PROJECT field doesn't exist or is empty")
+    if not UserData.get('SCENARIO', ''):
+        error = True
+        error_msg.append("SCENARIO field doesn't exist or is empty")
+    if not UserData.get('SETUP', ''):
+        error = True
+        error_msg.append("SETUP field doesn't exist or is empty")
+    if not UserData.get('BASEDIR', ''):
+        error = True
+        error_msg.append("BASEDIR field doesn't exist or is empty")
+
+    if error:
+        msg = '\n'.join(error_msg)
+        error(msg)
+
+    # set userdata defaults, etc
+    if not UserData.get('DEBUG', ''):
+        UserData['DEBUG'] = 'production'
+
+    # set globals: common use variables, debug and logging, etc
+    User = UserData['USER']
+    Project = UserData['PROJECT']
+    Scenario = UserData['SCENARIO']
+    Setup = UserData['SETUP']
+    BaseDir = UserData['BASEDIR']
+
+    if UserData['DEBUG'].lower() == 'debug':
         Debug = True
         level = log.DEBUG
     else:
@@ -392,5 +472,8 @@ if __name__ == '__main__':
 
     log = log.Log(LogFile, level=level)
 
+    log.debug('UserData=%s' % str(UserData))
+
+    # do it!
     bootstrap()
 

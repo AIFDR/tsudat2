@@ -49,73 +49,6 @@ project = Project()
 project.multi_mux = True
 
 
-def get_sts_gauge_data(filename, verbose=False):
-    """Get gauges (timeseries of index points)."""
-
-    fid = NetCDFFile(filename+'.sts', 'r')      # Open existing file for read
-    permutation = fid.variables['permutation'][:]
-    x = fid.variables['x'][:] + fid.xllcorner   # x-coordinates of vertices
-    y = fid.variables['y'][:] + fid.yllcorner   # y-coordinates of vertices
-    points = num.transpose(num.asarray([x.tolist(), y.tolist()]))
-    time = fid.variables['time'][:] + fid.starttime
-    elevation = fid.variables['elevation'][:]
-
-    basename = 'sts_gauge'
-    quantity_names = ['stage', 'xmomentum', 'ymomentum']
-    quantities = {}
-    for i, name in enumerate(quantity_names):
-        quantities[name] = fid.variables[name][:]
-
-    #####
-    # Get maximum wave height throughout timeseries at each index point
-    #####
-
-    maxname = 'max_sts_stage.csv'
-    fid_max = open(os.path.join(project.event_folder, maxname), 'w')
-    fid_max.write('index, x, y, max_stage \n')
-    for j in range(len(x)):
-        index = permutation[j]
-        stage = quantities['stage'][:,j]
-        xmomentum = quantities['xmomentum'][:,j]
-        ymomentum = quantities['ymomentum'][:,j]
-
-        fid_max.write('%d, %.6f, %.6f, %.6f\n'
-                      % (index, x[j], y[j], max(stage)))
-
-    #####
-    # Get minimum wave height throughout timeseries at each index point
-    #####
-
-    minname = 'min_sts_stage.csv'
-    fid_min = open(os.path.join(project.event_folder, minname), 'w')
-    fid_min.write('index, x, y, max_stage \n')
-    for j in range(len(x)):
-        index = permutation[j]
-        stage = quantities['stage'][:,j]
-        xmomentum = quantities['xmomentum'][:,j]
-        ymomentum = quantities['ymomentum'][:,j]
-
-        fid_min.write('%d, %.6f, %.6f, %.6f\n' %(index, x[j], y[j], min(stage)))
-
-        out_file = os.path.join(project.event_folder,
-                                basename+'_'+str(index)+'.csv')
-        fid_sts = open(out_file, 'w')
-        fid_sts.write('time, stage, xmomentum, ymomentum \n')
-
-        #####
-        # End of the get gauges
-        #####
-
-        for k in range(len(time)-1):
-            fid_sts.write('%.6f, %.6f, %.6f, %.6f\n'
-                          % (time[k], stage[k], xmomentum[k], ymomentum[k]))
-
-        fid_sts.close()
-    fid.close()
-
-    return (quantities, elevation, time)
-
-
 def run_model():
     """Run a tsunami simulation for a scenario."""
 
@@ -477,9 +410,6 @@ def run_tsudat(json_data, logger=None):
     global Logger
     Logger = logger
 
-    # start the result dictionary
-    gen_files = {}
-
     # get JSON data and adorn project object with its data
     adorn_project(json_data)
 
@@ -517,7 +447,7 @@ def run_tsudat(json_data, logger=None):
     # add *all* SWW files in the output directory to result dictionary
     # (whether we ran a simulation or not)
     glob_mask = os.path.join(project.output_folder, '*.sww')
-    gen_files['sww'] = glob.glob(glob_mask)
+    project.payload['sww'] = glob.glob(glob_mask)
 
     # now do optional post-run extractions
     if project.get_results_max:
@@ -527,7 +457,7 @@ def run_tsudat(json_data, logger=None):
         file_list = export_results_max()
         if Logger:
             Logger('Running export_results_max()')
-        gen_files['results_max'] = file_list  # add files to output dict
+        project.payload['results_max'] = file_list  # add files to output dict
         log.info('export_results_max() has finished')
         if Logger:
             Logger('export_results_max() has finished')
@@ -545,13 +475,13 @@ def run_tsudat(json_data, logger=None):
         if Logger:
             Logger('Running get_timeseries()')
         file_list = get_timeseries()
-        gen_files['timeseries'] = file_list  # add files to output dict
+        project.payload['timeseries'] = file_list  # add files to output dict
         # generate plot files
         plot_list = []
         for filename in file_list:
             plot_file = make_stage_plot(filename)
             plot_list.append(plot_file)
-        gen_files['timeseries_plot'] = plot_list  # add files to output dict
+        project.payload['timeseries_plot'] = plot_list  # add files to output dict
 
         log.info('get_timeseries() has finished')
         if Logger:
@@ -563,4 +493,4 @@ def run_tsudat(json_data, logger=None):
         if Logger:
             Logger('Not running get_timeseries() - not requested')
 
-    return gen_files
+    return project.payload

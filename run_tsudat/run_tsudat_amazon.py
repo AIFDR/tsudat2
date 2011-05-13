@@ -32,7 +32,7 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-4c46ba25'  # Ubuntu_10.04_TsuDAT_2.0.27
+DefaultAmi = 'ami-54a55b3d'  # Ubuntu_10.04_TsuDAT_2.0.28
 
 # keypair used to start instance
 #DefaultKeypair = 'gsg-keypair'
@@ -44,12 +44,31 @@ Bucket = 'tsudat.aifdr.org'
 # names of sub-dirs under Bucket
 InputS3Dir = 'input-data'
 
+# default values for some project attributes
+DefaultZoneNumber = 42
+
+# define defaults for various pieces of JSON data
+# used by default_project_values()
+# format: iterable of (<name>, <default value>)
+DefaultJSONValues = (('zone_number', DefaultZoneNumber),
+                     ('sqs_queue_name', 'tsudat_aifdr_org'),
+                    )
+
+# dictionary to handle attribute renaming from JSON->project
+# format: {'UI_name': 'ANUGA_name', ...}
+RenameDict = {'mesh_friction': 'friction',
+              'smoothing': 'alpha',
+              'end_time': 'finaltime',
+              'layers': 'var',
+              'raster_resolution': 'cell_size',
+              'elevation_data_list': 'point_filenames',
+             }
 
 # name of run_tsudat() file, here and on EC2 (name change)
 Ec2RunTsuDAT = 'ec2_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
-# names of additional required files
+# names of additional required files in S3 bucket file
 RequiredFiles = ['export_depthonland_max.py', 'export_newstage_max.py']
 
 # name of the JSON data file
@@ -60,16 +79,6 @@ FaultNameFilename = 'fault_list.txt'
 
 # match any number of spaces between fields
 SpacesPattern = re.compile(' +')
-
-# dictionary to handle attribute renaming from JSON->project
-# 'UI_name': 'ANUGA_name',
-RenameDict = {'mesh_friction': 'friction',
-              'smoothing': 'alpha',
-              'end_time': 'finaltime',
-              'layers': 'var',
-              'raster_resolution': 'cell_size',
-              'elevation_data_list': 'point_filenames',
-             }
 
 # major directories under user/project/scenario/setup base directory
 MajorSubDirs = ['topographies', 'polygons', 'boundaries', 'outputs',
@@ -445,9 +454,16 @@ def build_elevation():
     G.export_points_file(stem + '.txt')
 
 def get_sts_gauge_data(filename, verbose=False):
-    """Get gauges (timeseries of index points)."""
+    """Get gauges (timeseries of index points).
+    
+    Returns a tuple containing:
+        (quantities, elevation, time, gen_files)
+    """
 
     log.debug('get_sts_gauge_data: filename=%s' % filename)
+
+    # prepare list to return generated filenames in
+    gen_files = []
 
     fid = NetCDFFile(filename+'.sts', 'r')      # Open existing file for read
     permutation = fid.variables['permutation'][:]
@@ -467,8 +483,9 @@ def get_sts_gauge_data(filename, verbose=False):
     # Get maximum wave height throughout timeseries at each index point
     #####
 
-    maxname = 'max_sts_stage.csv'
-    fid_max = open(os.path.join(project.event_folder, maxname), 'w')
+    maxname = os.path.join(project.output_folder, 'max_sts_stage.csv')
+    gen_files.append(maxname)
+    fid_max = open(maxname, 'w')
     fid_max.write('index, x, y, max_stage \n')
     for j in range(len(x)):
         index = permutation[j]
@@ -483,8 +500,9 @@ def get_sts_gauge_data(filename, verbose=False):
     # Get minimum wave height throughout timeseries at each index point
     #####
 
-    minname = 'min_sts_stage.csv'
-    fid_min = open(os.path.join(project.event_folder, minname), 'w')
+    minname = os.path.join(project.output_folder, 'min_sts_stage.csv')
+    gen_files.append(minname)
+    fid_min = open(minname, 'w')
     fid_min.write('index, x, y, max_stage \n')
     for j in range(len(x)):
         index = permutation[j]
@@ -494,8 +512,9 @@ def get_sts_gauge_data(filename, verbose=False):
 
         fid_min.write('%d, %.6f, %.6f, %.6f\n' %(index, x[j], y[j], min(stage)))
 
-        out_file = os.path.join(project.event_folder,
+        out_file = os.path.join(project.output_folder,
                                 basename+'_'+str(index)+'.csv')
+        gen_files.append(out_file)
         fid_sts = open(out_file, 'w')
         fid_sts.write('time, stage, xmomentum, ymomentum \n')
 
@@ -510,13 +529,15 @@ def get_sts_gauge_data(filename, verbose=False):
         fid_sts.close()
     fid.close()
 
-    return (quantities, elevation, time)
+    return (quantities, elevation, time, gen_files)
 
 def build_urs_boundary(event_file, output_dir):
     """Build a boundary STS file from a set of MUX files.
 
     event_file  name of mux meta-file or single mux stem
     output_dir  directory to write STS data to
+
+    Returns a list of generated 'sts_gauge' files.
     """
 
     # if we are using an EventSelection multi-mux file
@@ -580,8 +601,11 @@ def build_urs_boundary(event_file, output_dir):
     sts_file = os.path.join(project.event_folder, project.sts_filestem)
     log.info('STS filestem=%s' % sts_file)
 
-    (quantities, elevation, time) = get_sts_gauge_data(sts_file, verbose=False)
+    (quantities, elevation,
+     time, gen_files) = get_sts_gauge_data(sts_file, verbose=False)
     log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
+
+    return gen_files
 
 def define_default(name, default):
     """Check if a project attribute is defined, default it if not.
@@ -783,10 +807,19 @@ def s3_connect():
 
     return s3
 
+def default_project_values():
+    """Default certain values if they don't appear in the project object."""
+
+    for (name, value) in DefaultJSONValues:
+        if getattr(project, name, None) is None:
+            setattr(project, name, value)
+
 def run_tsudat(json_data):
     """Run ANUGA on the Amazon EC2.
 
     json_data  the path to the JSON data file
+
+    Returns the boto instance object for the running image.
     """
 
     # plug our exception handler into the python system
@@ -794,6 +827,9 @@ def run_tsudat(json_data):
 
     # get JSON data and adorn project object with its data
     adorn_project(json_data)
+
+    # default certain values if not supplied in JSON data
+    default_project_values()
 
     # set logfile to be in run output folder
     if project.debug:
@@ -814,7 +850,9 @@ def run_tsudat(json_data):
     build_elevation()
 
     log.info('Calling: build_urs_boundary()')
-    build_urs_boundary(project.mux_input_filename, project.event_sts)
+    project.payload = {}
+    gauges = build_urs_boundary(project.mux_input_filename, project.event_sts)
+    project.payload['hpgauges'] = gauges
 
     # copy all required python modules to scripts directory
     ec2_name = os.path.join(ScriptsDir, Ec2RunTsuDATOnEC2)
@@ -834,8 +872,9 @@ def run_tsudat(json_data):
     zipname = ('%s-%s-%s-%s.zip'
                % (project.user, project.project,
                   project.scenario, project.setup))
-    zippath = os.path.join('/tmp', zipname)
-    log.info('Making zip %s' % zippath)
+    zip_tmp_dir = tempfile.mkdtemp(prefix='tsudat2_zip_')
+    zippath = os.path.join(zip_tmp_dir, zipname)
+    log.info('Making zip %s from %s' % (zippath, project.working_directory))
     make_dir_zip(project.working_directory, zippath)
 
     s3_name = os.path.join(InputS3Dir, zipname)
@@ -857,15 +896,28 @@ def run_tsudat(json_data):
     log.debug('Deleting work directory: %s' % dir_path)
     shutil.rmtree(dir_path)
     log.debug('Deleting zipped S3 data: %s' % zippath)
-    os.remove(zippath)
+    shutil.rmtree(zippath, ignore_errors=True)
+
+    # WHEN WE NO LONGER NEED THE 'GETSWW' OPTION, DELETE ALL LINES: #DELETE ME
+    # for now, assume ['getsww': False] if project.getsww undefined #DELETE ME
+    try:                                                            #DELETE ME
+        getsww = project.getsww                                     #DELETE ME
+    except AttributeError:                                          #DELETE ME
+        getsww = False                                              #DELETE ME
 
     # start the EC2 instance we are using
-    user_data = ' '.join([project.user, project.project, project.scenario,
-                          project.setup, project.working_directory,
-                          'debug' if project.debug else 'production'])
+    user_data = {'user': project.user,
+                 'project': project.project,
+                 'scenario': project.scenario,
+                 'setup': project.setup,
+                 'basedir': project.working_directory,
+                 'getsww': getsww,                                  #DELETE ME
+                 'debug': 'debug' if project.debug else 'production'}
+
+    user_data = json.dumps(user_data, ensure_ascii=True, separators=(',', ':'))
     log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))
     try:
-        instance = start_ami(DefaultAmi, user_data=''.join(user_data))
+        instance = start_ami(DefaultAmi, user_data=user_data)
     except boto.exception.EC2ResponseError, e:
         log.critical('EC2 error: %s' % str(e))
         print('EC2 error: %s' % str(e))
@@ -875,3 +927,7 @@ def run_tsudat(json_data):
     print('* Started instance: %s' % instance.dns_name)
     print('*'*80)
     log.info('Started instance: %s' % instance.dns_name)
+
+    log.debug('instance: %s' % str(dir(instance)))
+
+    return instance
