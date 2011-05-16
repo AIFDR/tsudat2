@@ -38,20 +38,21 @@ DefaultAmi = 'ami-54a55b3d'  # Ubuntu_10.04_TsuDAT_2.0.28
 #DefaultKeypair = 'gsg-keypair'
 DefaultKeypair = 'tsudat2'
 
-# bucket name in S3
-Bucket = 'tsudat.aifdr.org'
+# various S3 default things
+DefaultSQSQueuename = 'tsudat_aifdr_org'
+DefaultS3Bucket = 'tsudat.aifdr.org'
+DefaultInputS3DataDir = 'input-data'
+DefaultOutputS3DataDir = 'output-data'
+DefaultAbortS3DataDir = 'abort'
 
-# names of sub-dirs under Bucket
-InputS3Dir = 'input-data'
-
-# default values for some project attributes
-DefaultZoneNumber = 42
-
-# define defaults for various pieces of JSON data
+# define defaults for various pieces S3 things
 # used by default_project_values()
 # format: iterable of (<name>, <default value>)
-DefaultJSONValues = (('zone_number', DefaultZoneNumber),
-                     ('sqs_queue_name', 'tsudat_aifdr_org'),
+DefaultJSONValues = (('sqs_queue_name', DefaultSQSQueuename),
+                     ('S3Bucket', DefaultS3Bucket),
+                     ('InputS3DataDir', DefaultInputS3DataDir),
+                     ('OutputS3DataDir', DefaultOutputS3DataDir),
+                     ('AbortS3DataDir', DefaultAbortS3DataDir),
                     )
 
 # dictionary to handle attribute renaming from JSON->project
@@ -69,7 +70,8 @@ Ec2RunTsuDAT = 'ec2_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
 # names of additional required files in S3 bucket file
-RequiredFiles = ['export_depthonland_max.py', 'export_newstage_max.py']
+RequiredFiles = ['export_depthonland_max.py',
+                 'export_newstage_max.py']
 
 # name of the JSON data file
 JsonDataFilename = 'data.json'
@@ -859,7 +861,9 @@ def run_tsudat(json_data):
     log.debug("Copying EC2 run file '%s' to scripts directory '%s'."
               % (Ec2RunTsuDAT, ec2_name))
     shutil.copy(Ec2RunTsuDAT, ec2_name)
+
     for extra in RequiredFiles:
+        log.info('Copying %s to S3 scripts directory' % extra)
         shutil.copy(extra, ScriptsDir)
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
@@ -877,12 +881,12 @@ def run_tsudat(json_data):
     log.info('Making zip %s from %s' % (zippath, project.working_directory))
     make_dir_zip(project.working_directory, zippath)
 
-    s3_name = os.path.join(InputS3Dir, zipname)
+    s3_name = os.path.join(project.InputS3DataDir, zipname)
     try:
         s3 = s3_connect()
-        bucket = s3.create_bucket(Bucket)
+        bucket = s3.create_bucket(project.S3Bucket)
         key = bucket.new_key(s3_name)
-        log.info('Creating S3 file: %s/%s' % (Bucket, s3_name))
+        log.info('Creating S3 file: %s/%s' % (project.S3Bucket, s3_name))
         key.set_contents_from_filename(zippath)
         log.info('Done!')
         key.set_acl('public-read')
@@ -906,13 +910,18 @@ def run_tsudat(json_data):
         getsww = False                                              #DELETE ME
 
     # start the EC2 instance we are using
-    user_data = {'user': project.user,
-                 'project': project.project,
-                 'scenario': project.scenario,
-                 'setup': project.setup,
-                 'basedir': project.working_directory,
+    user_data = {'User': project.user,
+                 'Project': project.project,
+                 'Scenario': project.scenario,
+                 'Setup': project.setup,
+                 'BaseDir': project.working_directory,
+                 'Bucket': project.S3Bucket,
+                 'InputS3DataDir': project.InputS3DataDir,
+                 'OutputS3DataDir': project.OutputS3DataDir,
+                 'AbortS3DataDir': project.AbortS3DataDir,
+                 'ScriptPath': ScriptsDir,
                  'getsww': getsww,                                  #DELETE ME
-                 'debug': 'debug' if project.debug else 'production'}
+                 'Debug': 'debug' if project.debug else 'production'}
 
     user_data = json.dumps(user_data, ensure_ascii=True, separators=(',', ':'))
     log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))
