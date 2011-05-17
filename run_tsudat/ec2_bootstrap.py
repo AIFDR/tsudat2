@@ -177,6 +177,25 @@ def s3_connect():
     return s3
 
 
+def sqs_connect():
+    """Connect to SQS.
+
+    Returns an SQS connection object.
+
+    Tries to remove sensitive data from memory as soon as possible.
+    """
+
+    access_key = os.environ['EC2_ACCESS_KEY']
+    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
+    sqs = boto.connect_sqs(access_key, secret_key)
+    access_key = 'DEADBEEF'
+    secret_key = 'DEADBEEF'
+    del access_key, secret_key
+    gc.collect()
+
+    return sqs
+
+
 def send_sqs_message(**kwargs):
     """Send an SQS message.
 
@@ -194,6 +213,7 @@ def send_sqs_message(**kwargs):
     kwargs['instance'] = Instance
 
     # add time as float and string (UTC, ISO 8601 format)
+    kwargs['time'] = time.time()
     kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
 
     # get JSON string
@@ -201,8 +221,7 @@ def send_sqs_message(**kwargs):
     log.debug('SQS message JSON: %s' % msg)
 
     # send the JSON
-    sqs = boto.connect_sqs(os.environ['EC2_ACCESS_KEY'],
-                           os.environ['EC2_SECRET_ACCESS_KEY'])
+    sqs = sqs_connect()
     log.debug('Creating SQS queue %s' % SQSQueueName)
     queue = sqs.create_queue(SQSQueueName)
     m = boto.sqs.message.Message()
