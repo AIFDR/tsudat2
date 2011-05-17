@@ -97,6 +97,25 @@ def run_model():
     domain.set_datadir(project.output_folder)
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
+    # set friction in interior regions, if any defined
+    friction_list = []
+    for (irtype, filename, friction) in project.interior_regions_list:
+        if irtype.lower() == 'friction':
+            friction_list.append([filename, friction])
+    if friction_list:
+        log.debug('friction_list=%s' % str(friction_list))
+        poly_friction = []
+        for (fname, friction) in friction_list:
+            full_fname = os.path.join(project.polygons_folder, fname)
+            log.debug('Reading friction polygon: %s' % full_fname)
+            poly = anuga.read_polygon(full_fname)
+            poly_friction.append((poly, friction))
+            log.debug('poly=%s' % str(poly))
+        domain.set_quantity('friction',
+                            anuga.Polygon_function(poly_friction,
+                                                   default=project.friction,
+                                                   geo_reference=domain.geo_reference))
+
     # Set the initial stage in the offcoast region only
     if project.land_initial_conditions:
         IC = anuga.Polygon_function(project.land_initial_conditions,

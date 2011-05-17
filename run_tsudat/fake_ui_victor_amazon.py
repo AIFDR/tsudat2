@@ -31,9 +31,9 @@ DataFilesDir = './fake_ui_files.%s' % Scenario
 # the data files
 BoundingPolygon = 'bounding_polygon.csv'
 RawElevationFiles = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']
-InteriorRegions = [['area_of_interest.csv', 500],
-                   ['area_of_significance.csv', 2500],
-                   ['shallow_water.csv', 10000]]
+InteriorRegions = [['aoi', 'area_of_interest.csv', None],
+                   ['FrictioN', 'area_of_interest.csv', 0.01],
+                   ['resolution', 'shallow_water.csv', 10000]]
 UrsOrder = 'urs_order.csv'
 LandwardBoundary = 'landward_boundary.csv'
 
@@ -83,7 +83,7 @@ def main():
                  'ascii_grid_filenames': [],
                  'sts_filestem': STSFileStem,
                  'zone_number': 54,
-                 'getsww': True,        # if True, forces delivery of SWW files
+                 'getsww': False,        # if True, forces delivery of SWW files
                  'force_run': True,     # if True, *forces* a simulation
                  'debug': True}	        # if True, forces DEBUG logging
 
@@ -102,7 +102,7 @@ def main():
                      raw_elevations)
 
     shutil.copy2(os.path.join(DataFilesDir, 'polygons', BoundingPolygon), polygons)
-    for (f, _) in InteriorRegions:
+    for (_, f, _) in InteriorRegions:
         shutil.copy2(os.path.join(DataFilesDir, 'polygons', f), polygons)
 
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)

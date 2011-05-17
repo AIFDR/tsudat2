@@ -293,16 +293,17 @@ def setup_model():
         raise Exception(msg)
 
     #####
-    # Reading polygons and creating interior regions
+    # Reading polygons and creating mesh interior regions
     #####
 
     # Create list of interior polygons with scaling factor
     project.interior_regions = []
-    for (filename, maxarea) in project.interior_regions_list:
-        polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
-                                                  filename))
-        project.interior_regions.append([polygon,
-                                         maxarea*project.scale_factor])
+    for (irtype, filename, maxarea) in project.interior_regions_list:
+        if irtype.lower() == 'mesh':
+            polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
+                                                      filename))
+            project.interior_regions.append([polygon,
+                                             maxarea*project.scale_factor])
 
     # Initial bounding polygon for data clipping
     project.bounding_polygon = anuga.read_polygon(os.path.join(
