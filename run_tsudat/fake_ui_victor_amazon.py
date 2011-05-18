@@ -10,8 +10,6 @@ import shutil
 import json
 import tempfile
 
-import run_tsudat_amazon as run_tsudat
-
 
 # the base of the TsuDAT user directory structures
 TsuDATBase = '/tmp/tsudat'
@@ -32,12 +30,13 @@ DataFilesDir = './fake_ui_files.%s' % Scenario
 BoundingPolygon = 'bounding_polygon.csv'
 RawElevationFiles = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']
 InteriorRegions = [['aoi', 'area_of_interest.csv', None],
-                   ['FrictioN', 'area_of_interest.csv', 0.01],
+#                   ['FrictioN', 'area_of_interest.csv', 0.01],
                    ['resolution', 'shallow_water.csv', 10000]]
+InteriorHazardPoints = 'interior_hp.csv'
 UrsOrder = 'urs_order.csv'
 LandwardBoundary = 'landward_boundary.csv'
 
-STSFileStem = '%s' % Scenario
+STSFileStem = Scenario
 STSFile = STSFileStem + '.sts'
 
 GaugeFile = 'gauges_final.csv'
@@ -69,17 +68,16 @@ def main():
                  'elevation_data_list': RawElevationFiles,
                  'combined_elevation_file': CombinedElevationFile,
                  'mesh_friction': 0.01,
-                 'raster_resolution': 250,
-                 'layers': ['stage', 'depth'],
-                 'area': ['All'],
+                 'raster_resolution': 20,
+                 'layers_list': ['stage', 'depth'],
+                 'export_area': 'All',
                  'get_results_max': True,
                  'get_timeseries': True,
                  'gauge_file': GaugeFile,
-                 'mesh_file': MeshFile,
                  'interior_regions_list': InteriorRegions,
                  'bounding_polygon_maxarea': 100000,
-                 'urs_order_file': UrsOrder,
                  'landward_boundary_file': LandwardBoundary,
+                 'interior_hazard_points_file': InteriorHazardPoints,
                  'ascii_grid_filenames': [],
                  'sts_filestem': STSFileStem,
                  'zone_number': 54,
@@ -106,7 +104,8 @@ def main():
         shutil.copy2(os.path.join(DataFilesDir, 'polygons', f), polygons)
 
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', LandwardBoundary), boundaries)
-    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
+    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', InteriorHazardPoints), boundaries)
+#    shutil.copy2(os.path.join(DataFilesDir, 'boundaries', UrsOrder), boundaries)
     shutil.copy2(os.path.join(DataFilesDir, 'boundaries', STSFile), boundaries)
 
     shutil.copy2(os.path.join(DataFilesDir, 'gauges', GaugeFile), gauges)
@@ -119,4 +118,19 @@ def main():
     
 
 if __name__ == '__main__':
+    import sys
+
+    if len(sys.argv) != 2:
+        print('usage: %s <where>' % sys.argv[0])
+        sys.exit(10)
+
+    where = sys.argv[1]
+    where = where.lower()
+
+    try:
+        exec('import run_tsudat_%s as run_tsudat' % where)
+    except ImportError:
+        print('Unknown run location: %s' % sys.argv[1])
+        sys.exit(10)
+
     main()

@@ -17,6 +17,9 @@ TARGET=fake_ui_files.VictorHarbour
 # source base on alamba
 SOURCE=/model_area/inundation/data/south_australia/victor_harbor_tsunami_scenario_2010/anuga
 
+# source of patched/new files
+PATCHDIR=fake_ui_files.VH
+
 # don't run if target dir exists
 if [ -d $TARGET ]; then
     echo "Sorry, directory $TARGET exists.  Delete it first."
@@ -42,3 +45,5 @@ scp $USERNAME@alamba:$SOURCE/topographies/250m_final.csv $TARGET/raw_elevations
 scp $USERNAME@alamba:$SOURCE/topographies/aoi.csv $TARGET/raw_elevations
 scp $USERNAME@alamba:$SOURCE/topographies/shallow_water.csv $TARGET/raw_elevations
 
+# patch original data with changed files here
+cp $PATCHDIR/interior_hp.csv $TARGET/boundaries

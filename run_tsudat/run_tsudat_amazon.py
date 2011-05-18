@@ -44,6 +44,7 @@ DefaultS3Bucket = 'tsudat.aifdr.org'
 DefaultInputS3DataDir = 'input-data'
 DefaultOutputS3DataDir = 'output-data'
 DefaultAbortS3DataDir = 'abort'
+DefaultURSOrderFile = 'urs_order.csv'
 
 # define defaults for various pieces S3 things
 # used by default_project_values()
@@ -53,6 +54,7 @@ DefaultJSONValues = (('sqs_queue_name', DefaultSQSQueuename),
                      ('InputS3DataDir', DefaultInputS3DataDir),
                      ('OutputS3DataDir', DefaultOutputS3DataDir),
                      ('AbortS3DataDir', DefaultAbortS3DataDir),
+                     ('urs_order_file', DefaultURSOrderFile),
                     )
 
 # dictionary to handle attribute renaming from JSON->project
@@ -180,8 +182,64 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     # return paths to various places under 'base'
     return (run_dir, raw_elevation, boundaries, meshes, polygons, gauges)
 
+def create_urs_order():
+    """Create the urs order file.
+
+    Uses landward boundary data (LB) and interior hazard points data (iHP).
+        1. Read LB data
+        2. Read iHP data
+        3. Get last LB point
+        4. Get distance from last LB to first and last iHP
+        5. if last LB closer to last iHP, invert iHP order
+        6. write iHP to urs order file
+    """
+
+    # get landward boundary data: lb_data = [(e,n), ...]
+    lb_file = os.path.join(project.boundaries_folder, project.landward_boundary_file)
+    with open(lb_file, 'r') as fp:
+        lines = fp.readlines()
+    lb_data = []
+    for line in lines:
+        (e, n) = line.split(',')
+        e = float(e.strip())
+        n = float(n.strip())
+        lb_data.append((e, n))
+
+    # get interior HP data: hp_data = [(e,n), ...]
+    hp_file = os.path.join(project.boundaries_folder, project.interior_hazard_points_file)
+    with open(hp_file, 'r') as fp:
+        lines = fp.readlines()
+    hp_data = []
+    for line in lines:
+        (hp_id, lon, lat, e, n) = line.split(',')
+        hp_id = int(hp_id.strip())
+        lon = float(lon.strip())
+        lat = float(lat.strip())
+        e = float(e.strip())
+        n = float(n.strip())
+        hp_data.append((e, n, hp_id, lon, lat))
+
+    # get last LB and first and last iHP, get distances (squared)
+    (last_lb_x, last_lb_y) = lb_data[-1]
+    (first_hp_x, first_hp_y, _, _, _) = hp_data[0]
+    (last_hp_x, last_hp_y, _, _, _) = hp_data[-1]
+    d2_first = (first_hp_x-last_lb_x)**2 + (first_hp_y-last_lb_y)**2
+    d2_last = (last_hp_x-last_lb_x)**2 + (last_hp_y-last_lb_y)**2
+
+    # if distance to last < distance to first invert hp_data list
+    if d2_last < d2_first:
+        hp_data.reverse()
+
+    # now create urs_order file
+    urs_file = os.path.join(project.boundaries_folder, project.urs_order_file)
+    with open(urs_file, 'wb') as fp:
+        fp.write('index,longitude,latitude\n')
+        for (_, _, hp_id, lon, lat) in hp_data:
+            fp.write('%d,%f,%f\n' % (hp_id, lon, lat))
+    project.urs_order_file = urs_file
+
 def setup_model():
-    """Perform sanity checks.
+    """Perform sanity checks and generate data.
 
     The checks here can be simpler than for full-blown ANUGA as the directory
     structure is automatically generated.
@@ -291,6 +349,12 @@ def setup_model():
     if sanity_error:
         msg = 'You must fix the above errors before continuing.'
         raise Exception(msg)
+
+    #####
+    # Create the urs order file
+    #####
+
+    create_urs_order()
 
     #####
     # Reading polygons and creating mesh interior regions
@@ -600,7 +664,6 @@ def build_urs_boundary(event_file, output_dir):
                       weights=mux_weights, verbose=False)
 
     # report on progress so far
-    #sts_file = os.path.join(project.event_folder, project.scenario)
     sts_file = os.path.join(project.event_folder, project.sts_filestem)
     log.info('STS filestem=%s' % sts_file)
 
@@ -620,11 +683,11 @@ def define_default(name, default):
     try:
         eval('project.%s' % name)
     except AttributeError:
-        exec('project.%s = %s' % (name, str(default)))
+        setattr(project, name, default)
     else:
         exec('value = project.%s' % name)
         if not value:
-            exec('project.%s = %s' % (name, str(default)))
+            setattr(project, name, default)
 
 def adorn_project(json_data):
     """Adorn the project object with data from the json file.
@@ -697,10 +760,6 @@ def adorn_project(json_data):
     if project.mesh_file:
         project.mesh_file = os.path.join(project.meshes_folder,
                                          project.mesh_file)
-
-    # The pathname for the urs order points, used within build_urs_boundary.py
-    project.urs_order_file = os.path.join(project.boundaries_folder,
-                                          project.urs_order_file)
 
     # The absolute pathname for the landward points of the bounding polygon,
     # Used within run_model.py)
@@ -817,6 +876,39 @@ def default_project_values():
         if getattr(project, name, None) is None:
             setattr(project, name, value)
 
+def get_minmaxAOI():
+    """Figure out minmaxAOI values from AOI file.
+    
+    Populates the following 'project' attributes:
+        xminAOI, xmaxAOI, yminAOI, ymaxAOI
+    """
+
+    for (irtype, filename, _) in project.interior_regions_list:
+        if irtype.lower() == 'aoi':
+            path = os.path.join(project.polygons_folder, filename)
+            (xminAOI, xmaxAOI) = (9999999999.0, -1.0)
+            (yminAOI, ymaxAOI) = (9999999999.0, -1.0)
+            with open(path, 'r') as fp:
+                lines = fp.readlines()
+            for line in lines:
+                (x, y) = line.split(',')
+                x = float(x.strip())
+                y = float(y.strip())
+                xminAOI = min(xminAOI, x)
+                xmaxAOI = max(xmaxAOI, x)
+                yminAOI = min(yminAOI, y)
+                ymaxAOI = max(ymaxAOI, y)
+            project.xminAOI = xminAOI
+            project.xmaxAOI = xmaxAOI
+            project.yminAOI = yminAOI
+            project.ymaxAOI = ymaxAOI
+            return
+
+    msg = ("Didn't find 'aoi' type in project.interior_regions_list: %s"
+           % str(project.interior_regions_list))
+    abort(msg)
+
+
 def run_tsudat(json_data):
     """Run ANUGA on the Amazon EC2.
 
@@ -853,9 +945,14 @@ def run_tsudat(json_data):
     build_elevation()
 
     log.info('Calling: build_urs_boundary()')
+    # create .payload dictionary, 'hpgauges' files are copied up to EC2
+    # and then returned in the resultant ZIP S3 file
     project.payload = {}
     gauges = build_urs_boundary(project.mux_input_filename, project.event_sts)
     project.payload['hpgauges'] = gauges
+
+    log.info('Calling: get_minmaxAOI()')
+    get_minmaxAOI()
 
     # copy all required python modules to scripts directory
     ec2_name = os.path.join(ScriptsDir, Ec2RunTsuDATOnEC2)
@@ -899,7 +996,7 @@ def run_tsudat(json_data):
     # clean up the local filesystem
     dir_path = os.path.join(project.working_directory, project.user)
     log.debug('Deleting work directory: %s' % dir_path)
-    shutil.rmtree(dir_path)
+#    shutil.rmtree(dir_path)
     log.debug('Deleting zipped S3 data: %s' % zippath)
     shutil.rmtree(zippath, ignore_errors=True)
 

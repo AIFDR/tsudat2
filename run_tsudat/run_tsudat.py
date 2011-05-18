@@ -42,7 +42,6 @@ SpacesPattern = re.compile(' +')
 RenameDict = {'mesh_friction': 'friction',
               'smoothing': 'alpha',
               'end_time': 'finaltime',
-              'layers': 'var',
               'raster_resolution': 'cell_size',
               'elevation_data_list': 'point_filenames',
              }
@@ -805,7 +804,7 @@ def export_results_max():
     # Start script, running through variables, area, sww file
     ######
 
-    for which_var in project.var:
+    for which_var in project.layers_list:
         log.info("Exporting value: %s" % which_var)
 
         if which_var not in var_equations:
@@ -866,7 +865,7 @@ def get_timeseries():
     name = os.path.join(project.output_folder, project.scenario+'.sww')
     log.debug('get_timeseries: input SWW file=%s' % name)
     log.debug('get_timeseries: gauge file=%s' % project.gauge_file)
-    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.var,
+    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.layers_list,
                          verbose=False)
 
     # since ANUGA code doesn't return a list of generated files,

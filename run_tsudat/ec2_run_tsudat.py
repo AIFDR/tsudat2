@@ -251,53 +251,51 @@ def export_results_max():
     # Start script, running through variables, area, sww file
     ######
 
-    for which_var in project.var:
+    for which_var in project.layers_list:
+        which_var = which_var.lower()
         log.info("Exporting value: %s" % which_var)
 
         if which_var not in var_equations:
             log.critical('Unrecognized variable name: %s' % which_var)
             break
 
-        for which_area in project.area:
-            log.info("Using area: %s" % which_area)
+        project.export_area = project.export_area.lower()
+        if project.export_area == 'all':
+            easting_min = None
+            easting_max = None
+            northing_min = None
+            northing_max = None
+        elif project.export_area == 'aoi':
+                easting_min = project.xminAOI
+                easting_max = project.xmaxAOI
+                northing_min = project.yminAOI
+                northing_max = project.ymaxAOI
+        else:
+            log.critical('Unrecognized area name: %s' % project.export_area)
+            break
 
-            if which_area == 'All':
-                easting_min = None
-                easting_max = None
-                northing_min = None
-                northing_max = None
-            else:
-                try:
-                    easting_min = eval('project.xmin%s' % which_area)
-                    easting_max = eval('project.xmax%s' % which_area)
-                    northing_min = eval('project.ymin%s' % which_area)
-                    northing_max = eval('project.ymax%s' % which_area)
-                except AttributeError:
-                    log.critical('Unrecognized area name: %s' % which_area)
-                    break
+        name = os.path.join(project.output_folder, project.scenario)
 
-            name = os.path.join(project.output_folder, project.scenario)
+        outname = name + '_' + project.export_area + '_' + which_var
+        quantityname = var_equations[which_var]
 
-            outname = name + '_' + which_area + '_' + which_var
-            quantityname = var_equations[which_var]
+        log.info('Generating output file: %s' % (outname+'.asc'))
 
-            log.info('Generating output file: %s' % (outname+'.asc'))
+        # assume 'quantityname' is a string, handle in the old way,
+        #  else call the handler function (same params as anuga.sww2dem)
+        if isinstance(quantityname, basestring):
+            export_func = anuga.sww2dem
+        elif callable(quantityname):
+            export_func = quantityname
 
-            # assume 'quantityname' is a string, handle in the old way,
-            #  else call the handler function (same params as anuga.sww2dem)
-            if isinstance(quantityname, basestring):
-                export_func = anuga.sww2dem
-            elif callable(quantityname):
-                export_func = quantityname
+        export_func(name+'.sww', outname+'.asc', quantity=quantityname,
+                    reduction=max, cellsize=project.cell_size,
+                    easting_min=easting_min, easting_max=easting_max,
+                    northing_min=northing_min, northing_max=northing_max,
+                    verbose=False)
 
-            export_func(name+'.sww', outname+'.asc', quantity=quantityname,
-                        reduction=max, cellsize=project.cell_size,
-                        easting_min=easting_min, easting_max=easting_max,
-                        northing_min=northing_min, northing_max=northing_max,
-                        verbose=False)
-
-            # add generated filename to result list
-            gen_files.append(outname+'.asc')
+        # add generated filename to result list
+        gen_files.append(outname+'.asc')
 
     return gen_files
 
@@ -312,7 +310,7 @@ def get_timeseries():
     name = os.path.join(project.output_folder, project.scenario+'.sww')
     log.debug('get_timeseries: input SWW file=%s' % name)
     log.debug('get_timeseries: gauge file=%s' % project.gauge_file)
-    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.var,
+    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.layers_list,
                          verbose=False)
 
     # since ANUGA code doesn't return a list of generated files,
@@ -391,25 +389,20 @@ def run_tsudat(json_data, logger=None):
     json_data  the path to the JSON data file
 
     Returns a dictionary of {'<type of file>': <list of files>, ...}.
-    The dictionary keys and values are:
-        'log': list of a single path to the log file
-        'results_max': list of ASC files containing maximum values
-        'sww':         list of ll SWW files produced
-        'timeseries':  list of all gauge files produced
+    The dictionary keys and values addd here are:
+        'log':              list of a single path to the log file
+        'results_max':      list of ASC files containing maximum values
+        'sww':              list of all SWW files produced
+        'timeseries':       list of all gauge files produced
+        'timeseries_plot':  list of all plots for gauge files produced
 
     For example:
     {'log': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/tsudat.log'],
-     'results_max': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour_All_stage.asc',
-                     '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour_All_depth.asc'],
+     'results_max': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour_all_stage.asc',
+                     '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour_all_depth.asc'],
      'sww': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/VictorHarbour.sww'],
      'timeseries': ['/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner4.csv',
                     '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner1.csv',
-                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner5.csv',
-                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner2.csv',
-                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_deep7.csv',
-                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_shallow6.csv',
-                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_deep8.csv',
-                    '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_deep9.csv',
                     '/tmp/tsudat/user/project/VictorHarbour/trial/outputs/gauge_inner3.csv']}
     """
 

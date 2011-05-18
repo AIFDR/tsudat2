@@ -797,7 +797,7 @@ def export_results_max():
     # Start script, running through variables, area, sww file
     ######
 
-    for which_var in project.var:
+    for which_var in project.layers_list:
         log.info("Exporting value: %s" % which_var)
 
         if which_var not in var_equations:
@@ -849,7 +849,7 @@ def get_timeseries():
     name = os.path.join(project.output_folder, project.scenario_name+'.sww')
     log.debug('get_timeseries: input SWW file=%s' % name)
     log.debug('get_timeseries: gauge file=%s' % project.gauges)
-    anuga.sww2csv_gauges(name, project.gauges, quantities=project.var,
+    anuga.sww2csv_gauges(name, project.gauges, quantities=project.layers_list,
                          verbose=False)
 
 
