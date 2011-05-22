@@ -92,7 +92,11 @@ def micro_bootstrap(bucket, s3_file_path, script_path):
 
     # unzip the input data ZIP file into a temporary directory
     tmp_path = tempfile.mkdtemp(prefix='tsudat_')
+<<<<<<< HEAD
+    print('Unzipping %s to %s' % (S3ZipFile, tmp_path))
+=======
     print('Unzipping %s to %s' % (S3ZipFile, tmp_path)
+>>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
     z = zipfile.ZipFile(S3ZipFile)
     z.extractall(path=tmp_path)
     os.remove(S3ZipFile)

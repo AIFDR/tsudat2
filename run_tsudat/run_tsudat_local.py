@@ -1,5 +1,5 @@
 """
-Run an ANUGA simulation on the Amazon EC2.
+Run an ANUGA simulation locally.
 """
 
 import sys
@@ -10,9 +10,6 @@ import glob
 import time
 import json
 import traceback
-import zipfile
-import tempfile
-import boto
 from Scientific.IO.NetCDF import NetCDFFile
 import numpy as num
 import matplotlib
@@ -31,52 +28,14 @@ log.console_logging_level = log.CRITICAL+1    # turn console logging off
 log.log_logging_level = log.INFO
 
 
-# the AMI we are going to run
-DefaultAmi = 'ami-54a55b3d'  # Ubuntu_10.04_TsuDAT_2.0.28
+# key string for various interior region types
+InteriorRegionsResolution = 'resolution'
+InteriorRegionsFriction = 'friction'
+InteriorRegionsAOI = 'aoi'
 
-# keypair used to start instance
-#DefaultKeypair = 'gsg-keypair'
-DefaultKeypair = 'tsudat2'
-
-# various S3 default things
-DefaultSQSQueuename = 'tsudat_aifdr_org'
-DefaultS3Bucket = 'tsudat.aifdr.org'
-DefaultInputS3DataDir = 'input-data'
-DefaultOutputS3DataDir = 'output-data'
-DefaultAbortS3DataDir = 'abort'
-DefaultURSOrderFile = 'urs_order.csv'
-
-# define defaults for various pieces S3 things
-# used by default_project_values()
-# format: iterable of (<name>, <default value>)
-DefaultJSONValues = (('sqs_queue_name', DefaultSQSQueuename),
-                     ('S3Bucket', DefaultS3Bucket),
-                     ('InputS3DataDir', DefaultInputS3DataDir),
-                     ('OutputS3DataDir', DefaultOutputS3DataDir),
-                     ('AbortS3DataDir', DefaultAbortS3DataDir),
-                     ('urs_order_file', DefaultURSOrderFile),
-                    )
-
-# dictionary to handle attribute renaming from JSON->project
-# format: {'UI_name': 'ANUGA_name', ...}
-RenameDict = {'mesh_friction': 'friction',
-              'smoothing': 'alpha',
-              'end_time': 'finaltime',
-              'layers': 'var',
-              'raster_resolution': 'cell_size',
-              'elevation_data_list': 'point_filenames',
-             }
-
-# name of run_tsudat() file, here and on EC2 (name change)
-Ec2RunTsuDAT = 'ec2_run_tsudat.py'
-Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
-
-# names of additional required files in S3 bucket file
-RequiredFiles = ['export_depthonland_max.py',
-                 'export_newstage_max.py']
-
-# name of the JSON data file
-JsonDataFilename = 'data.json'
+# key string for export area types
+ExportAreaAOI = 'aoi'
+ExportAreaALL = 'all'
 
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
@@ -84,9 +43,26 @@ FaultNameFilename = 'fault_list.txt'
 # match any number of spaces between fields
 SpacesPattern = re.compile(' +')
 
+# dictionary to handle attribute renaming from JSON->project
+# format: {'UI_name': 'ANUGA_name', ...}
+RenameDict = {'mesh_friction': 'friction',
+              'smoothing': 'alpha',
+              'end_time': 'finaltime',
+              'raster_resolution': 'cell_size',
+              'elevation_data_list': 'point_filenames',
+             }
+
 # major directories under user/project/scenario/setup base directory
 MajorSubDirs = ['topographies', 'polygons', 'boundaries', 'outputs',
-                'gauges', 'meshes', 'scripts']
+                'gauges', 'meshes']
+
+DefaultURSOrderFile = 'urs_order.csv'
+
+# define defaults for various things that aren't/shouldn't be defined
+# used by default_project_values()
+# format: iterable of (<name>, <default value>)
+DefaultJSONValues = (('urs_order_file', DefaultURSOrderFile),
+                    )
 
 
 # define a 'project' object
@@ -105,16 +81,6 @@ def abort(msg):
     print(msg)
     log.critical(msg)
     sys.exit(10)
-
-def make_dir_zip(dirname, zipname):
-    """Make a ZIP file from a directory.
-
-    dirname  path to directory to zip up
-    zipname  path to ZIP file to create
-    """
-
-    log.debug('zip -q -r %s %s' % (zipname, dirname))
-    os.system('zip -q -r %s %s' % (zipname, dirname))
 
 def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     """Create a TsuDAT2 work directory.
@@ -170,15 +136,6 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     meshes = os.path.join(run_dir, 'meshes')
     polygons = os.path.join(run_dir, 'polygons')
     gauges = os.path.join(run_dir, 'gauges')
-
-    # save scripts path globally to help run_tsudat()
-    ScriptsDir = os.path.join(run_dir, 'scripts')
-
-    # a fudge - because the zip process doesn't save empty directories
-    # we must write a small file into empty directories we zip
-    placeholder = os.path.join(meshes, '.placeholder')
-    with open(placeholder, 'w') as fd:
-        pass
 
     # return paths to various places under 'base'
     return (run_dir, raw_elevation, boundaries, meshes, polygons, gauges)
@@ -355,6 +312,7 @@ def setup_model():
     # Create the urs order file
     #####
 
+    log.debug('Calling create_urs_order()')
     create_urs_order()
 
     #####
@@ -364,7 +322,7 @@ def setup_model():
     # Create list of interior polygons with scaling factor
     project.interior_regions = []
     for (irtype, filename, maxarea) in project.interior_regions_list:
-        if irtype.lower() == 'mesh':
+        if irtype.lower() == InteriorRegionsResolution:
             polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
                                                       filename))
             project.interior_regions.append([polygon,
@@ -467,7 +425,7 @@ def build_elevation():
     """
 
     # if no elevation to combine, we *must* have a combined elevation file
-    if not project.point_filenames:
+    if not project.point_filenames:    
         if not project.combined_elevation_file:
             abort('No raw elevation data and no combined elevation data!?')
         return
@@ -593,61 +551,45 @@ def build_urs_boundary(event_file, output_dir):
     Returns a list of generated 'sts_gauge' files.
     """
 
-    # if we are using an EventSelection multi-mux file
-    if project.multi_mux:
-        # get the mux+weight data from the meta-file (in <boundaries>)
-        mux_event_file = os.path.join(project.event_folder, event_file)
-        try:
-            fd = open(mux_event_file, 'r')
-            mux_data = fd.readlines()
-            fd.close()
-        except IOError, e:
-            msg = 'File %s cannot be read: %s' % (mux_event_file, str(e))
-            raise Exception(msg)
-        except:
-            raise
+    # assume we are using an EventSelection multi-mux file
+    # get the mux+weight data from the meta-file (in <boundaries>)
+    mux_event_file = os.path.join(project.event_folder, event_file)
+    try:
+        fd = open(mux_event_file, 'r')
+        mux_data = fd.readlines()
+        fd.close()
+    except IOError, e:
+        msg = 'File %s cannot be read: %s' % (mux_event_file, str(e))
+        raise Exception(msg)
+    except:
+        raise
 
-        # first line of file is # filenames+weight in rest of file
-        num_lines = int(mux_data[0].strip())
-        mux_data = mux_data[1:]
+    # first line of file is # filenames+weight in rest of file
+    num_lines = int(mux_data[0].strip())
+    mux_data = mux_data[1:]
 
-        # quick sanity check on input mux meta-file
-        if num_lines != len(mux_data):
-            msg = ('Bad file %s: %d data lines, but line 1 count is %d'
-                   % (event_file, len(mux_data), num_lines))
-            raise Exception(msg)
+    # quick sanity check on input mux meta-file
+    if num_lines != len(mux_data):
+        msg = ('Bad file %s: %d data lines, but line 1 count is %d'
+               % (event_file, len(mux_data), num_lines))
+        raise Exception(msg)
 
-        # Create filename and weights lists.
-        # Must chop GRD filename just after '*.grd'.
-        mux_filenames = []
-        for line in mux_data:
-            muxname = line.strip().split()[0]
-            split_index = muxname.index('.grd')
-            muxname = muxname[:split_index+len('.grd')]
-            muxname = os.path.join(project.mux_data_folder, muxname)
-            mux_filenames.append(muxname)
+    # Create filename and weights lists.
+    # Must chop GRD filename just after '*.grd'.
+    mux_filenames = []
+    for line in mux_data:
+        muxname = line.strip().split()[0]
+        split_index = muxname.index('.grd')
+        muxname = muxname[:split_index+len('.grd')]
+        muxname = os.path.join(project.mux_data_folder, muxname)
+        mux_filenames.append(muxname)
 
-        mux_weights = [float(line.strip().split()[1]) for line in mux_data]
+    mux_weights = [float(line.strip().split()[1]) for line in mux_data]
 
-        # Call legacy function to create STS file.
-        anuga.urs2sts(mux_filenames, basename_out=output_dir,
-                      ordering_filename=project.urs_order_file,
-                      weights=mux_weights, verbose=False)
-    else:                           # a single mux stem file, assume 1.0 weight
-        log.info('using single-mux file %s' % mux_file)
-
-        mux_file = os.path.join(project.event_folder, event_file)
-        mux_filenames = [mux_file]
-
-        weight_factor = 1.0
-        mux_weights = weight_factor*num.ones(len(mux_filenames), num.Float)
-
-        order_filename = project.urs_order_file
-
-        # Create ordered sts file
-        anuga.urs2sts(mux_filenames, basename_out=output_dir,
-                      ordering_filename=order_filename,
-                      weights=mux_weights, verbose=False)
+    # Call legacy function to create STS file.
+    anuga.urs2sts(mux_filenames, basename_out=output_dir,
+                  ordering_filename=project.urs_order_file,
+                  weights=mux_weights, verbose=False)
 
     # report on progress so far
     sts_file = os.path.join(project.event_folder, project.sts_filestem)
@@ -774,42 +716,6 @@ def excepthook(type, value, tb):
     msg += '='*80 + '\n'
     log.critical(msg)
 
-def start_ami(ami, key_name=DefaultKeypair, instance_type='m1.large',
-              user_data=None):
-    """Start the configured AMI, wait until it's running.
-
-    ami            the ami ID ('ami-????????')
-    key_name       the keypair name
-    instance_type  type of instance to run
-    user_data      the user data string to pass to instance
-    """
-
-    access_key = os.environ['EC2_ACCESS_KEY']
-    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-    ec2 = boto.connect_ec2(access_key, secret_key)
-    access_key = 'DEADBEEF'
-    secret_key = 'DEADBEEF'
-    del access_key, secret_key
-
-    if user_data is None:
-        user_data = ''
-
-    reservation = ec2.run_instances(image_id=ami, key_name=key_name,
-                                    instance_type=instance_type,
-                                    user_data=user_data)
-    # got some sort of race - "instance not found"? - try waiting a bit
-    time.sleep(1)
-
-    # Wait a minute or two while it boots
-    instance = reservation.instances[0]
-    while True:
-        instance.update()
-        if instance.state == 'running':
-            break
-        time.sleep(1)
-
-    return instance
-
 def dump_project_py():
     """Debug routine - dump project attributes to the log."""
 
@@ -820,40 +726,6 @@ def dump_project_py():
                 log.info('project.%s=%s' % (key, eval('project.%s' % key)))
             except AttributeError:
                 pass
-
-def dump_json_to_file(project, json_file):
-    """Dump project object back to a JSON file.
-
-    project  the project object to dump
-    json_file  the file to dump JSON to
-
-    Dump all 'non-special' attributes of the object.
-    """
-
-    ui_dict = {}
-    for attr_name in dir(project):
-        if not attr_name.startswith('_'):
-            ui_dict[attr_name] = project.__getattribute__(attr_name)
-     
-    with open(json_file, 'w') as fd:
-        json.dump(ui_dict, fd, indent=2, separators=(',', ':'))
-
-def s3_connect():
-    """Get an S3 connection object.
-
-    Returns an S3 connection object.
-
-    Tries hard not to expose keys in memory.
-    """
-
-    access_key = os.environ['EC2_ACCESS_KEY']
-    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-    s3 = boto.connect_s3(access_key, secret_key)
-    access_key = 'DEADBEEF'
-    secret_key = 'DEADBEEF'
-    del access_key, secret_key
-
-    return s3
 
 def default_project_values():
     """Default certain values if they don't appear in the project object."""
@@ -870,7 +742,7 @@ def get_minmaxAOI():
     """
 
     for (irtype, filename, _) in project.interior_regions_list:
-        if irtype.lower() == 'aoi':
+        if irtype.lower() == InteriorRegionsAOI:
             path = os.path.join(project.polygons_folder, filename)
             (xminAOI, xmaxAOI) = (9999999999.0, -1.0)
             (yminAOI, ymaxAOI) = (9999999999.0, -1.0)
@@ -890,17 +762,306 @@ def get_minmaxAOI():
             project.ymaxAOI = ymaxAOI
             return
 
-    msg = ("Didn't find 'aoi' type in project.interior_regions_list: %s"
-           % str(project.interior_regions_list))
+    msg = ("Didn't find '%s' type in project.interior_regions_list: %s"
+           % (InteriorRegionsAOI, str(project.interior_regions_list)))
     abort(msg)
 
+def get_youngest_input():
+    """Get date/time of youngest input file."""
+
+    input_dirs = [project.polygons_folder, project.raw_elevation_folder]
+    input_files = [project.urs_order_file,
+                   os.path.join(project.boundaries_folder,
+                                '%s.sts' % project.sts_filestem),
+                   project.landward_boundary_file]
+
+    youngest = 0.0      # time at epoch start
+
+    # check all files in given directories
+    for d in input_dirs:
+        with os.popen('ls -l %s' % d) as fd:
+            lines = fd.readlines()
+
+        for fname in glob.glob(os.path.join(d, '*')):
+            mtime = os.path.getmtime(fname)
+            youngest = max(mtime, youngest)
+
+    # check individual files
+    for fname in input_files:
+        mtime = os.path.getmtime(fname)
+        youngest = max(mtime, youngest)
+
+    return youngest
+
+def run_model():
+    """Run a tsunami simulation for a scenario."""
+
+    # Read in boundary from ordered sts file
+    event_sts = anuga.create_sts_boundary(project.event_sts)
+
+    # Reading the landward defined points, this incorporates the original
+    # clipping polygon minus the 100m contour
+    landward_boundary = anuga.read_polygon(project.landward_boundary_file)
+
+    # Combine sts polyline with landward points
+    bounding_polygon_sts = event_sts + landward_boundary
+
+    # Number of boundary segments
+    num_ocean_segments = len(event_sts) - 1
+    # Number of landward_boundary points
+    num_land_points = anuga.file_length(project.landward_boundary_file)
+
+    # Boundary tags refer to project.landward_boundary_file
+    # 4 points equals 5 segments start at N
+    boundary_tags={'back': range(num_ocean_segments+1,
+                                 num_ocean_segments+num_land_points),
+                   'side': [num_ocean_segments,
+                            num_ocean_segments+num_land_points],
+                   'ocean': range(num_ocean_segments)}
+
+    # Build mesh and domain
+    log.debug('bounding_polygon_sts=%s' % str(bounding_polygon_sts))
+    log.debug('boundary_tags=%s' % str(boundary_tags))
+    log.debug('project.bounding_maxarea=%s' % str(project.bounding_maxarea))
+    log.debug('project.interior_regions=%s' % str(project.interior_regions))
+    log.debug('project.mesh_file=%s' % str(project.mesh_file))
+
+    domain = anuga.create_domain_from_regions(bounding_polygon_sts,
+                                boundary_tags=boundary_tags,
+                                maximum_triangle_area=project.bounding_maxarea,
+                                interior_regions=project.interior_regions,
+                                mesh_filename=project.mesh_file,
+                                use_cache=False,
+                                verbose=False)
+
+    domain.geo_reference.zone = project.zone_number
+    log.info('\n%s' % domain.statistics())
+
+    domain.set_name(project.scenario)
+    domain.set_datadir(project.output_folder)
+    domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
+
+    # set friction in interior regions, if any defined
+    friction_list = []
+    for (irtype, filename, friction) in project.interior_regions_list:
+        if irtype.lower() == InteriorRegionsFriction:
+            friction_list.append([filename, friction])
+    if friction_list:
+        log.debug('friction_list=%s' % str(friction_list))
+        poly_friction = []
+        for (fname, friction) in friction_list:
+            full_fname = os.path.join(project.polygons_folder, fname)
+            log.debug('Reading friction polygon: %s' % full_fname)
+            poly = anuga.read_polygon(full_fname)
+            poly_friction.append((poly, friction))
+            log.debug('poly=%s' % str(poly))
+        domain.set_quantity('friction',
+                            anuga.Polygon_function(poly_friction,
+                                                   default=project.friction,
+                                                   geo_reference=domain.geo_reference))
+
+    # Set the initial stage in the offcoast region only
+    if project.land_initial_conditions:
+        IC = anuga.Polygon_function(project.land_initial_conditions,
+                                    default=project.initial_tide,
+                                    geo_reference=domain.geo_reference)
+    else:
+        IC = project.initial_tide
+
+    domain.set_quantity('stage', IC, use_cache=True, verbose=False)
+    domain.set_quantity('friction', project.friction)
+    domain.set_quantity('elevation',
+                        filename=project.combined_elevation_file,
+                        use_cache=True, verbose=False, alpha=project.alpha)
+
+    # Setup boundary conditions
+    log.debug('Set boundary - available tags: %s' % domain.get_boundary_tags())
+
+    Br = anuga.Reflective_boundary(domain)
+    Bt = anuga.Transmissive_stage_zero_momentum_boundary(domain)
+    Bd = anuga.Dirichlet_boundary([project.initial_tide, 0, 0])
+    Bf = anuga.Field_boundary(project.event_sts+'.sts',
+                        domain, mean_stage=project.initial_tide, time_thinning=1,
+                        default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
+                        boundary_polygon=bounding_polygon_sts,
+                        use_cache=True, verbose=False)
+
+    domain.set_boundary({'back': Br,
+                         'side': Bt,
+                         'ocean': Bf})
+
+    # Evolve system through time
+    t0 = time.time()
+    for t in domain.evolve(yieldstep=project.yieldstep,
+                           finaltime=project.finaltime,
+                           skip_initial_step=False):
+        log.info('\n%s' % domain.timestepping_statistics())
+        log.info('\n%s' % domain.boundary_statistics(tags='ocean'))
+
+    log.info('Simulation took %.2f seconds' % (time.time()-t0))
+
+def export_results_max():
+    """Export maximum results.
+
+    Returns a list of generated files.
+    """
+
+    # initialise the list of generated files
+    gen_files = []
+
+    ######
+    # Define allowed variable names and associated equations to generate values.
+    ######
+    # Note that mannings n (friction value) is taken as 0.01, as in the model
+    # run density of water is 1000
+    var_equations = {'stage': enm.export_newstage_max,
+                     'oldstage': 'stage',
+                     'momentum': '(xmomentum**2 + ymomentum**2)**0.5',
+                     'olddepth': 'oldstage-elevation',
+                     'depth': edm.export_depthonland_max,
+                     'speed': '(xmomentum**2 + ymomentum**2)**0.5/(stage-elevation+1.e-6)',
+                     'energy': '(((xmomentum/(stage-elevation+1.e-6))**2'
+                               '  + (ymomentum/(stage-elevation+1.e-6))**2)'
+                               '*0.5*1000*(stage-elevation+1.e-6))+(9.81*stage*1000)',
+                     'bed_shear_stress': ('(((1/(stage-elevation+1.e-6)**(7./3.))*1000*9.81*0.01**2*(xmomentum/(stage-elevation+1.e-6))*((xmomentum/(stage-elevation+1.e-6))**2+(ymomentum/(stage-elevation+1.e-6))**2)**0.5)**2'
+                                          '+ ((1/(stage-elevation+1.e-6)**(7./3.))*1000*9.81*0.01**2*(ymomentum/(stage-elevation+1.e-6))*((xmomentum/(stage-elevation+1.e-6))**2+(ymomentum/(stage-elevation+1.e-6))**2)**0.5)**2)**0.5'),
+                     'elevation': 'elevation'}
+
+    ######
+    # Start script, running through variables, area, sww file
+    ######
+
+    for which_var in project.layers_list:
+        which_var = which_var.lower()
+        log.info("Exporting value: %s" % which_var)
+
+        if which_var not in var_equations:
+            log.critical('Unrecognized variable name: %s' % which_var)
+            break
+
+        project.export_area = project.export_area.lower()
+        if project.export_area == ExportAreaALL:
+            easting_min = None
+            easting_max = None
+            northing_min = None
+            northing_max = None
+        elif project.export_area == ExportAreaAOI:
+                easting_min = project.xminAOI
+                easting_max = project.xmaxAOI
+                northing_min = project.yminAOI
+                northing_max = project.ymaxAOI
+        else:
+            log.critical('Unrecognized area name: %s' % project.export_area)
+            break
+
+        name = os.path.join(project.output_folder, project.scenario)
+
+        outname = name + '_' + project.export_area + '_' + which_var
+        quantityname = var_equations[which_var]
+
+        log.info('Generating output file: %s' % (outname+'.asc'))
+
+        # assume 'quantityname' is a string, handle in the old way,
+        #  else call the handler function (same params as anuga.sww2dem)
+        if isinstance(quantityname, basestring):
+            export_func = anuga.sww2dem
+        elif callable(quantityname):
+            export_func = quantityname
+
+        export_func(name+'.sww', outname+'.asc', quantity=quantityname,
+                    reduction=max, cellsize=project.cell_size,
+                    easting_min=easting_min, easting_max=easting_max,
+                    northing_min=northing_min, northing_max=northing_max,
+                    verbose=False)
+
+        # add generated filename to result list
+        gen_files.append(outname+'.asc')
+
+    return gen_files
+
+def get_timeseries():
+    """Get time series data"
+
+    Returns a list of generated files.
+    """
+
+    # generate the result files
+    name = os.path.join(project.output_folder, project.scenario+'.sww')
+    log.debug('get_timeseries: input SWW file=%s' % name)
+    log.debug('get_timeseries: gauge file=%s' % project.gauge_file)
+    anuga.sww2csv_gauges(name, project.gauge_file, quantities=project.layers_list,
+                         verbose=False)
+
+    # since ANUGA code doesn't return a list of generated files,
+    # look in output directory for 'gauge_*.csv' files.
+    glob_mask = os.path.join(project.output_folder, 'gauge_*.csv')
+    return glob.glob(glob_mask)
+
+def make_stage_plot(filename, out_dir=None):
+    """Make a stage graph from a timeseries file.
+
+    filename  path to the timeseries file
+    out_dir   directory to put plot file in
+              (if not supplied, use same directory as input file)
+
+    Creates a PNG timeseries plot file from the timeseries file.
+
+    Assumes the input file is CSV format, 1 header line and columns:
+        time, hours, stage, depth
+    """
+
+    # read timeseries file, get data
+    with open(filename) as fp:
+        lines = fp.readlines()
+
+    # skip 1 header line
+    lines = lines[1:]
+
+    # convert CSV lines into X (hours) and Y (stage) data arrays
+    hours = []
+    stage = []
+    for line in lines:
+        (_, hval, sval, _) = line.strip().split(',')
+        hours.append(float(hval))
+        stage.append(float(sval))
+
+    # get gauge filename and create matching PNG name
+    data_filename = os.path.basename(filename)
+    data_dir = os.path.dirname(filename)
+    (stem, _) = data_filename.rsplit('.', 1)
+    picname = stem + '.png'
+
+    if out_dir is None:
+        out_dir = data_dir
+
+    picname = os.path.join(out_dir, picname)
+
+    # get gauge name from filename
+    (_, gaugename) = stem.rsplit('_', 1)
+
+    # plot the graph
+    fpath = '/usr/share/fonts/truetype/ttf-liberation/LiberationSans-Regular.ttf'
+    prop = fm.FontProperties(fname=fpath)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, axisbg='#f0f0f0')
+    ax.plot(hours, stage)
+    ax.grid(True)
+    xticks = ax.xaxis.get_major_ticks()
+    yticks = ax.yaxis.get_major_ticks()
+    for xytext in xticks + yticks:
+        xytext.label1.set_fontproperties(prop)
+    ax.set_xlabel('time (hours)', fontproperties=prop)
+    ax.set_ylabel('stage (m)', fontproperties=prop)
+    ax.set_title("Stage at gauge '%s'" % gaugename, fontproperties=prop)
+    ax.title.set_fontsize(14)
+
+    plt.savefig(picname)
 
 def run_tsudat(json_data):
     """Run ANUGA on the Amazon EC2.
 
     json_data  the path to the JSON data file
-
-    Returns the boto instance object for the running image.
     """
 
     # plug our exception handler into the python system
@@ -918,11 +1079,11 @@ def run_tsudat(json_data):
     log.log_filename = os.path.join(project.output_folder, 'ui.log')
     if project.debug:
         dump_project_py()
-
-    # do all required data generation before EC2 run
-    log.info('#'*90)
+        
+    # do all required data generation before local run
+    log.info('#'*80)
     log.info('# Preparing simulation')
-    log.info('#'*90)
+    log.info('#'*80)
 
     log.info('Calling: setup_model()')
     setup_model()
@@ -937,105 +1098,68 @@ def run_tsudat(json_data):
     gauges = build_urs_boundary(project.mux_input_filename, project.event_sts)
     project.payload['hpgauges'] = gauges
 
+    # determine limits of AOI
     log.info('Calling: get_minmaxAOI()')
     get_minmaxAOI()
 
-    # copy all required python modules to scripts directory
-    ec2_name = os.path.join(ScriptsDir, Ec2RunTsuDATOnEC2)
-    log.debug("Copying EC2 run file '%s' to scripts directory '%s'."
-              % (Ec2RunTsuDAT, ec2_name))
-    shutil.copy(Ec2RunTsuDAT, ec2_name)
-
-    for extra in RequiredFiles:
-        log.info('Copying %s to S3 scripts directory' % extra)
-        shutil.copy(extra, ScriptsDir)
-
-    # dump the current 'projects' object back into JSON, put in 'scripts'
-    json_file = os.path.join(ScriptsDir, JsonDataFilename)
-    log.info('Dumping JSON to file %s' % json_file)
-    dump_json_to_file(project, json_file)
-    dump_project_py()
-
-    # bundle up the working directory, put it into S3
-    zipname = ('%s-%s-%s-%s.zip'
-               % (project.user, project.project,
-                  project.scenario, project.setup))
-    zip_tmp_dir = tempfile.mkdtemp(prefix='tsudat2_zip_')
-    zippath = os.path.join(zip_tmp_dir, zipname)
-    log.info('Making zip %s from %s' % (zippath, project.working_directory))
-    make_dir_zip(project.working_directory, zippath)
-    os.system('ls -l %s' % zip_tmp_dir)
-
-    s3_name = os.path.join(project.InputS3DataDir, zipname)
+    # actually run the simulation
+    youngest_input = get_youngest_input()
+    sww_file = os.path.join(project.output_folder, project.scenario+'.sww')
     try:
-        s3 = s3_connect()
-        bucket = s3.create_bucket(project.S3Bucket)
-        key = bucket.new_key(s3_name)
-        log.info('Creating S3 file: %s/%s' % (project.S3Bucket, s3_name))
-        key.set_contents_from_filename(zippath)
-        log.info('Done!')
-        key.set_acl('public-read')
-    except boto.exception.S3ResponseError, e:
-        log.critical('S3 error: %s' % str(e))
-        print('S3 error: %s' % str(e))
-        sys.exit(10)
+        sww_ctime = os.path.getctime(sww_file)
+    except OSError:
+        sww_ctime = 0.0         # SWW file not there
+
+    if project.force_run or youngest_input > sww_ctime:
+        log.info('#'*80)
+        log.info('# Running simulation')
+        log.info('#'*80)
+        run_model()
+        log.info('End of simulation')
+    else:
+        log.info('#'*80)
+        log.info('# Not running simulation')
+        log.debug('# SWW file %s is younger than input data' % sww_file)
+        log.info('# If you want to force a simulation run, select FORCE RUN')
+        log.info('#'*80)
+
+    log.info('#'*80)
+    log.info('# Simulation finished')
+    log.info('#'*80)
+
+    # now do optional post-run extractions
+    if project.get_results_max:
+        log.info('~'*80)
+        log.info('~ Running export_results_max()')
+        log.info('~'*80)
+        file_list = export_results_max()
+        project.payload['results_max'] = file_list  # add files to output dict
+        log.info('export_results_max() has finished')
+    else:
+        log.info('~'*80)
+        log.info('~ Not running export_results_max() - not requested')
+        log.info('~'*80)
+
+    if project.get_timeseries:
+        log.info('~'*80)
+        log.info('~ Running get_timeseries()')
+        log.info('~'*80)
+        file_list = get_timeseries()
+        project.payload['timeseries'] = file_list  # add files to output dict
+        # generate plot files
+        plot_list = []
+        for filename in file_list:
+            plot_file = make_stage_plot(filename)
+            plot_list.append(plot_file)
+        project.payload['timeseries_plot'] = plot_list  # add files to output dict
+
+        log.info('get_timeseries() has finished')
+    else:
+        log.info('~'*80)
+        log.info('~ Not running get_timeseries() - not requested')
+        log.info('~'*80)
 
     # clean up the local filesystem
     dir_path = os.path.join(project.working_directory, project.user)
     log.debug('Deleting work directory: %s' % dir_path)
 #    shutil.rmtree(dir_path)
-    log.debug('Deleting zipped S3 data: %s' % zippath)
-    shutil.rmtree(zippath, ignore_errors=True)
-
-    # WHEN WE NO LONGER NEED THE 'GETSWW' OPTION, DELETE ALL LINES: #DELETE ME
-    # for now, assume ['getsww': False] if project.getsww undefined #DELETE ME
-    try:                                                            #DELETE ME
-        getsww = project.getsww                                     #DELETE ME
-    except AttributeError:                                          #DELETE ME
-        getsww = False                                              #DELETE ME
-
-<<<<<<< HEAD
-    # get JSON for userdata
-=======
-    # start the EC2 instance we are using
->>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
-    user_data = {'User': project.user,
-                 'Project': project.project,
-                 'Scenario': project.scenario,
-                 'Setup': project.setup,
-                 'BaseDir': project.working_directory,
-                 'Bucket': project.S3Bucket,
-                 'InputS3DataDir': project.InputS3DataDir,
-                 'OutputS3DataDir': project.OutputS3DataDir,
-                 'AbortS3DataDir': project.AbortS3DataDir,
-                 'ScriptPath': ScriptsDir,
-                 'getsww': getsww,                                  #DELETE ME
-                 'Debug': 'debug' if project.debug else 'production'}
-
-    user_data = json.dumps(user_data, ensure_ascii=True, separators=(',', ':'))
-
-    # save user data into <work_dir>/restart
-    restart_file = os.path.join(project.working_directory, '_restart_',
-                                '%s_%s_%s_%s.restart'
-                                % (project.user, project.project,
-                                   project.scenario, project.setup))
-    with open(restart_file, 'wb') as fp:
-        fp.write(user_data)
-
-    # actually start the instance
-    log.info('Starting AMI %s, user_data=%s' % (DefaultAmi, str(user_data)))
-    try:
-        instance = start_ami(DefaultAmi, user_data=user_data)
-    except boto.exception.EC2ResponseError, e:
-        log.critical('EC2 error: %s' % str(e))
-        print('EC2 error: %s' % str(e))
-        sys.exit(10)
-
-    print('*'*80)
-    print('* Started instance: %s' % instance.dns_name)
-    print('*'*80)
-    log.info('Started instance: %s' % instance.dns_name)
-
-    log.debug('instance: %s' % str(dir(instance)))
-
-    return instance

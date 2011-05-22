@@ -17,11 +17,14 @@ TARGET=fake_ui_files.BatemansBay
 # source base on alamba
 SOURCE=/model_area/inundation/data/new_south_wales/batemans_bay_tsunami_scenario_2009/anuga
 
+# source of patched/new files
+PATCHDIR=fake_ui_files.BB
+
 # don't run if target dir exists
-if [ -d $TARGET ]; then
-    echo "Sorry, directory $TARGET exists.  Delete it first."
-    exit
-fi
+#if [ -d $TARGET ]; then
+#    echo "Sorry, directory $TARGET exists.  Delete it first."
+#    exit
+#fi
 
 mkdir -p $TARGET
 mkdir -p $TARGET/boundaries
@@ -31,13 +34,15 @@ mkdir -p $TARGET/topographies
 mkdir -p $TARGET/raw_elevations
 
 # copy required files from alamba
-scp $USERNAME@alamba:$SOURCE/boundaries/landward_boundary.csv $TARGET/boundaries
-scp $USERNAME@alamba:$SOURCE/boundaries/urs_order.csv $TARGET/boundaries
-scp $USERNAME@alamba:$SOURCE/boundaries/58348/batemans_bay.sts $TARGET/boundaries/BatemansBay.sts
-scp $USERNAME@alamba:$SOURCE/gauges/gauges.csv $TARGET/gauges
-scp $USERNAME@alamba:$SOURCE/polygons/area_of_interest.csv $TARGET/polygons
-scp $USERNAME@alamba:$SOURCE/polygons/area_of_significance.csv $TARGET/polygons
-scp $USERNAME@alamba:$SOURCE/polygons/bounding_polygon.csv $TARGET/polygons
-scp $USERNAME@alamba:$SOURCE/polygons/shallow_water.csv $TARGET/polygons
-scp $USERNAME@alamba:$SOURCE/topographies/batemans_bay_combined_elevation.pts $TARGET/topographies/combined_elevation.pts
+rsync $USERNAME@alamba:$SOURCE/boundaries/landward_boundary.csv $TARGET/boundaries
+rsync $USERNAME@alamba:$SOURCE/boundaries/urs_order.csv $TARGET/boundaries
+rsync $USERNAME@alamba:$SOURCE/boundaries/58348/batemans_bay.sts $TARGET/boundaries/BatemansBay.sts
+rsync $USERNAME@alamba:$SOURCE/gauges/gauges.csv $TARGET/gauges
+rsync $USERNAME@alamba:$SOURCE/polygons/area_of_interest.csv $TARGET/polygons
+rsync $USERNAME@alamba:$SOURCE/polygons/area_of_significance.csv $TARGET/polygons
+rsync $USERNAME@alamba:$SOURCE/polygons/bounding_polygon.csv $TARGET/polygons
+rsync $USERNAME@alamba:$SOURCE/polygons/shallow_water.csv $TARGET/polygons
+rsync $USERNAME@alamba:$SOURCE/topographies/batemans_bay_combined_elevation.pts $TARGET/topographies/combined_elevation.pts
 
+# patch original data with changed files here
+cp $PATCHDIR/interior_hp.csv $TARGET/boundaries
