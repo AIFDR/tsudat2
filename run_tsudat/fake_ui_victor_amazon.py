@@ -30,23 +30,13 @@ DataFilesDir = './fake_ui_files.%s' % Scenario
 BoundingPolygon = 'bounding_polygon.csv'
 RawElevationFiles = ['250m_final.csv', 'shallow_water.csv', 'aoi.csv']
 InteriorRegions = [['aoi', 'area_of_interest.csv', None],
-<<<<<<< HEAD
                    ['resolution', 'area_of_interest.csv', 2500],
-=======
-#                   ['FrictioN', 'area_of_interest.csv', 0.01],
->>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
                    ['resolution', 'shallow_water.csv', 10000]]
 InteriorHazardPoints = 'interior_hp.csv'
 UrsOrder = 'urs_order.csv'
 LandwardBoundary = 'landward_boundary.csv'
 
-<<<<<<< HEAD
-InteriorHPs = 'interior_hp.csv'
-
-STSFileStem = '%s' % Scenario
-=======
 STSFileStem = Scenario
->>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
 STSFile = STSFileStem + '.sts'
 
 GaugeFile = 'gauges_final.csv'
@@ -78,10 +68,6 @@ def main():
                  'elevation_data_list': RawElevationFiles,
                  'combined_elevation_file': CombinedElevationFile,
                  'mesh_friction': 0.01,
-<<<<<<< HEAD
-                 #'raster_resolution': 250,
-=======
->>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
                  'raster_resolution': 20,
                  'layers_list': ['stage', 'depth'],
                  'export_area': 'All',
@@ -91,10 +77,6 @@ def main():
                  'interior_regions_list': InteriorRegions,
                  'interior_hazard_points_file': InteriorHPs,
                  'bounding_polygon_maxarea': 100000,
-<<<<<<< HEAD
-#                 'urs_order_file': UrsOrder,
-=======
->>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
                  'landward_boundary_file': LandwardBoundary,
                  'interior_hazard_points_file': InteriorHazardPoints,
                  'ascii_grid_filenames': [],

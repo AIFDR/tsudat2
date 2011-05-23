@@ -994,11 +994,7 @@ def run_tsudat(json_data):
     except AttributeError:                                          #DELETE ME
         getsww = False                                              #DELETE ME
 
-<<<<<<< HEAD
     # get JSON for userdata
-=======
-    # start the EC2 instance we are using
->>>>>>> c4d204ffdae03c0566f126c7874c61b49f7d93b5
     user_data = {'User': project.user,
                  'Project': project.project,
                  'Scenario': project.scenario,
