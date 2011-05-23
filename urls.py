@@ -6,9 +6,6 @@ from staticfiles.urls import staticfiles_urlpatterns
 from django.contrib import admin
 admin.autodiscover()
 
-PROXY_DOMAIN = "localhost:8080/geoserver"
-PROXY_FORMAT = u"http://%s/%s" % (PROXY_DOMAIN, u"%s")
-
 js_info_dict = {
     'packages': ('geonode.maps',),
 }
