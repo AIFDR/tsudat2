@@ -45,8 +45,6 @@ urlpatterns = patterns('',
     (r'^accounts/', include('registration.urls')),
     (r'^profiles/', include('profiles.urls')),
     (r'^admin/', include(admin.site.urls)),
-    (r'^proxy/', 'proxy.views.proxy'),
-    (r'^geoserver/','proxy.views.geoserver'),
     (r'^tsudat/', include('tsudat.urls')),
     #url(r'^$', 'tsudat.views.index', name='tsudat-index'),
     )

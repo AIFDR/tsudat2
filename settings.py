@@ -239,7 +239,6 @@ INSTALLED_APPS = (
     'geonode.proxy',
     'notification',
     'staticfiles',
-    'proxy',
     'tsudat',
     'djcelery',
     'djkombu',
