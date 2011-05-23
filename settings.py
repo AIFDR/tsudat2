@@ -39,8 +39,6 @@ SERIALIZATION_MODULES = {
     'json': 'wadofstuff.django.serializers.json'
 }
 
-TEST_RUNNER = 'test_runner.TsuDatTestSuiteRunner'
-
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
 GEOSERVER_CREDENTIALS = "admin", "geoserver" 
 
