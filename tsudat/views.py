@@ -439,7 +439,7 @@ def data_set(request, id=None):
             return HttpResponse('Unexpected Error', status=500)
     else:
         #Update from GeoNode Database
-        coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+        coverage_layers = Layer.objects.filter(storeType="coverageStore")
         for layer in coverage_layers:
             try:
                 ds = DataSet.objects.get(geonode_layer_uuid=layer.uuid)
@@ -512,10 +512,10 @@ def project_data_set(request, id=None):
 
 def layer(request, uuid=None):
 	if(uuid != None):
-		layer = Layer.objects.using('geonode').get(uuid=uuid)
+		layer = Layer.objects.get(uuid=uuid)
 		return HttpResponse(serializers.serialize("json", [layer]))
 	if("project_id" in request.GET):
-		coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+		coverage_layers = Layer.objects.filter(storeType="coverageStore")
 		project = Project.objects.get(id=int(request.GET.get('project_id')))
 		project_geom = project.geom
 		project_area_layers = []
@@ -533,7 +533,7 @@ def layer(request, uuid=None):
 				project_area_layers.append(layer)
 		return HttpResponse(serializers.serialize("json", project_area_layers))
 	else:
-		coverage_layers = Layer.objects.using('geonode').filter(storeType="coverageStore")
+		coverage_layers = Layer.objects.filter(storeType="coverageStore")
 		return HttpResponse(serializers.serialize("json", coverage_layers))
 
 def run_scenario(request, scenario_id):
