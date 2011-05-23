@@ -15,7 +15,6 @@ SERVE_MEDIA = True
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 GEONODE_ROOT = os.path.dirname(geonode.__file__)
 
-
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )
@@ -37,6 +36,10 @@ DATABASES = {
 }
 
 #DATABASE_ROUTERS = ['dbrouter.GeoNodeRouter']
+
+SERIALIZATION_MODULES = {
+    'json': 'wadofstuff.django.serializers.json'
+}
 
 TEST_RUNNER = 'test_runner.TsuDatTestSuiteRunner'
 

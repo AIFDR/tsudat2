@@ -1,8 +1,9 @@
-import sys
+import sys, traceback
 import geojson
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.gdal import SpatialReference
 from django.contrib.gis.db import models
+from django.core.exceptions import ObjectDoesNotExist
 
 RETURN_PERIOD_CHOICES = (
     (10, '10 years'),
@@ -133,13 +134,16 @@ class Project(models.Model):
 
     def from_json(self, data):
         try:
-            geom = GEOSGeometry(str(data.geometry))
-            if(hasattr(data.geometry.crs, 'properties')):
-                crs = data.geometry.crs.properties['name']
-                srs = SpatialReference(crs)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-            self.geom = geom
+            try:
+                geom = GEOSGeometry(str(data.geometry))
+                if(hasattr(data.geometry.crs, 'properties')):
+                    crs = data.geometry.crs.properties['name']
+                    srs = SpatialReference(crs)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                self.geom = geom
+            except:
+                return None, 'Error Creating Geometry'
             if('name' in data.__dict__['properties']):
                 self.name = data.__dict__['properties']['name']
             else:
@@ -174,6 +178,8 @@ class Scenario(models.Model):
     model_setup = models.CharField(max_length=1, choices=MODEL_SETUP_CHOICES)
     raster_resolution = models.PositiveIntegerField()
     output_layers = models.ManyToManyField(ScenarioOutputLayer)
+    output_max = models.BooleanField()
+    use_aoi = models.BooleanField()
 
     def __unicode__(self):
         return self.name
@@ -181,31 +187,144 @@ class Scenario(models.Model):
     def from_json(self, data):
         try:
             data = data['fields']
-            self.name = data['name']
-            self.project = Project.objects.get(pk=int(data['project']))
-            self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
-            self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
-            self.return_period = int(data['return_period'])
-            self.wave_height = float(data['wave_height'])
-            self.wave_height_delta = float(data['wave_height_delta'])
-            self.event = Event.objects.get(pk=int(data['event'])) 
-            self.start_time = int(data['start_time'])
-            self.end_time = int(data['end_time'])
-            self.initial_tidal_stage = float(data['initial_tidal_stage'])
-            self.smoothing_param = float(data['smoothing_param'])
-            self.default_friction_value = float(data['default_friction_value'])
-            self.model_setup = data['model_setup']
+            if("name" in data):
+                self.name = data['name']
+            else:
+                return None, "Name is Required"
+            if("project" in data):
+                try:
+                    self.project = Project.objects.get(pk=int(data['project']))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project is Required"
+            if("hazard_point" in data):
+                try:
+                    self.hazard_point =HazardPoint.objects.get(pk=int(data['hazard_point'])) 
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Hazard Point"
+            else:
+                return None, "Hazard Point is Required"
+            if("source_zone" in data):
+                try:
+                    self.source_zone = SourceZone.objects.get(pk=int(data['source_zone'])) 
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Source Zone"
+            else:
+                return None, "Source Zone is Required"
+            if("return_period" in data):
+                try:
+                    self.return_period = int(data['return_period'])
+                except ValueError:
+                    return None, "Invalid Return Period"
+            else:
+                return None, "Return Period is Required"
+            if("wave_height" in data):
+                try:
+                    self.wave_height = float(data['wave_height'])
+                except ValueError:
+                    return None, "Invalid Wave Height"
+            else:
+                return None, "Wave Height is Required"
+            if("wave_height_delta" in data):
+                try:
+                    self.wave_height_delta = float(data['wave_height_delta'])
+                except ValueError:
+                    return None, "Invalid Wave Height Delta"
+            else:
+                return None, "Wave Height Delta is Required"
+            if("event" in data):
+                try:
+                    self.event = Event.objects.get(pk=int(data['event'])) 
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Event"
+            else:
+                return None, "Event is Required"
+            if("start_time" in data):
+                try:
+                    self.start_time = int(data['start_time'])
+                except ValueError:
+                    return None, "Invalid Start Time"
+            else:
+                return None, "Start Time is Required"
+            if("end_time" in data):
+                try:
+                    self.end_time = int(data['end_time'])
+                except ValueError:
+                    return None, "Invalid End Time"
+            else:
+                return None, "End Time is Required"
+            if("initial_tidal_stage" in data):
+                try:
+                    self.initial_tidal_stage = float(data['initial_tidal_stage'])
+                except ValueError:
+                    return None, "Invalid Initial Tidal Stage"
+            else:
+                return None, "Initial Tidal Stage is required"
+            if("smoothing_param" in data):
+                try:
+                    self.smoothing_param = float(data['smoothing_param'])
+                except ValueError:
+                    return None, "Invalid Smoothing Param"
+            else:
+                return None, "Smoothing Param Required"
+            if("default_friction_value" in data):
+                try:
+                    self.default_friction_value = float(data['default_friction_value'])
+                except ValueError:
+                    return None, "Invalid Default Friction Value"
+            else:
+                return None, "Default Friction Value Required"
+            if("model_setup" in data):
+                if(data['model_setup'] in ['T','B','F']):
+                    self.model_setup = data['model_setup']
+                else:
+                    return None, "Invalid Model Setup"
+            else:
+                return None, "Model Setup Required"
+            if("raster_resolution" in data):
+                try:
+                    self.raster_resolution = int(data["raster_resolution"])
+                except ValueError:
+                    return None, "Invalid Raster Resolution"
+            else:
+                 return None, "Raster Resolution Required"
+            if("output_max" in data):
+                try:
+                    self.output_max = data["output_max"]
+                except:
+                    return None, "Invalid output max"
+            else:
+                return None, "Output Max is required"
+            if("use_aoi" in data):
+                try:
+                    # TODO: Verify that there is an AOI defined for this project
+                    self.use_aoi = data["use_aoi"]
+                except:
+                    return None, "Invalid AOI Choice"
+            else:
+                return None, "AOI Choice is required"
             self.save()
-            return self
+            if("output_layers" in data):
+                try:
+                    layers = []
+                    for layer in data["output_layers"]:
+                        sol = ScenarioOutputLayer.objects.get(name=layer)
+                        layers.append(sol)
+                    self.output_layers = layers
+                except ObjectDoesNotExist:
+                    self.delete()
+                    return None, "Invalid Scenario Output Layer"
+            self.save()
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            return None, 'Unknown'
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
-    name = models.CharField(max_length=20)
     geom = models.PointField()
-    
+    name = models.CharField(max_length=20)
+
     objects = models.GeoManager()
 
     def __unicode__(self):
@@ -213,57 +332,88 @@ class GaugePoint(models.Model):
     
     def from_json(self, data):
         try:
-            geom = GEOSGeometry(str(data.geometry))
-            if(hasattr(data.geometry.crs, 'properties')):
-                crs = data.geometry.crs.properties['name']
-                srs = SpatialReference(crs)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-            project_id = data.__dict__['properties']['project_id']
-            name = data.__dict__['properties']['name']
-            self.geom = geom
-            self.name = name
-            project = Project.objects.get(id=int(project_id))
-            self.project = project
+            try:
+                geom = GEOSGeometry(str(data.geometry))
+                if(hasattr(data.geometry.crs, 'properties')):
+                    crs = data.geometry.crs.properties['name']
+                    srs = SpatialReference(crs)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                self.geom = geom
+            except:
+                return None, "Invalid Geometry"
+            if('project_id' in data.__dict__['properties']):
+                try:
+                    self.project = Project.objects.get(id=int(data.__dict__['properties']['project_id']))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project is required"
+            if('name' in data.__dict__['properties']):
+                self.name = data.__dict__['properties']['name']
+            else:
+                return None, "Name is Required"
             self.save()
-            return self
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            return None, "Unexpected Error"
 
 class InternalPolygon(models.Model):
     project = models.ForeignKey(Project)
     geom = models.PolygonField()
     type = models.IntegerField(choices=IP_TYPE_CHOICES)
-    value = models.FloatField() # MR = Int MF = Float
+    value = models.FloatField(null=True, blank=True) # MR = Int MF = Float
     
     objects = models.GeoManager()
     
     def from_json(self, data):
         try:
-            geom = GEOSGeometry(str(data.geometry))
-            if(hasattr(data.geometry.crs, 'properties')):
-                crs = data.geometry.crs.properties['name']
-                srs = SpatialReference(crs)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-            # ToDo Topology Check (Simple Polygon, Doesnt Intersect Others)
-            type = data.__dict__['properties']['type']
-            project_id = data.__dict__['properties']['project_id']
-            value = data.__dict__['properties']['value']
-            self.geom = geom
-            self.type = int(type)
-            self.value = float(value)
-            project = Project.objects.get(id=int(project_id))
-            self.project = project
+            try:
+                geom = GEOSGeometry(str(data.geometry))
+                if(hasattr(data.geometry.crs, 'properties')):
+                    crs = data.geometry.crs.properties['name']
+                    srs = SpatialReference(crs)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                # ToDo Topology Check (Simple Polygon, Doesnt Intersect Others)
+                self.geom = geom
+            except:
+                return None, "Invalid Geometry"
+            if('type' in data.__dict__['properties']):
+                try:
+                    type = int(data.__dict__['properties']['type']) 
+                    if(type in [1,2,3,4]):
+                        self.type = type
+                    else:
+                        return None, "Invalid Type"
+                except ValueError:
+                    return None, "Invalid Type"
+            else:
+                return None, "Type is Required"
+            if("project_id" in data.__dict__['properties']):
+                try:
+                    project_id = data.__dict__['properties']['project_id']
+                    self.project = Project.objects.get(id=int(project_id))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project is Required"
+            if("value" in  data.__dict__['properties']):
+                try:
+                    self.value = float(data.__dict__['properties']['value'])
+                except ValueError:
+                    return None, "Invalid Value"
+            else:
+                if(self.type != 3): # Value is not required for AOI
+                    return None, "Value is Required"
             self.save()
-            return self
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            return None, "Unexpected Error"
 
 class DataSet(models.Model):
     geonode_layer_uuid = models.CharField(max_length=36)
+    typename = models.CharField(max_length=128, unique=True)
     data_type = models.CharField(max_length=1, choices=DATASET_TYPE_CHOICES)
     resolution = models.PositiveIntegerField() 
     geom = models.PolygonField()
@@ -280,11 +430,28 @@ class ProjectDataSet(models.Model):
     def from_json(self, data):
         try:
             data = data['fields']
-            self.project = Project.objects.get(pk=int(data['project']))
-            self.dataset = DataSet.objects.get(pk=int(data['dataset'])) 
-            self.ranking = int(data['ranking'])
+            if('project' in data):
+                try:
+                    self.project = Project.objects.get(pk=int(data['project']))
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Project"
+            else:
+                return None, "Project Required"
+            if('dataset' in data):
+                try:
+                    self.dataset = DataSet.objects.get(pk=int(data['dataset'])) 
+                except (ValueError, ObjectDoesNotExist):
+                    return None, "Invalid Dataset"
+            else:
+                return None, "Dataset is Required"
+            if('ranking' in data):
+                try:
+                    self.ranking = int(data['ranking'])
+                except ValueError:
+                    return None, "Invalid Ranking"
+            else:
+                return None, "Ranking is required"
             self.save()
-            return self
+            return self, None
         except:
-            # ToDo catch errors specifically and return message/code
-            return None 
+            return None, "Unexpected Error" 
