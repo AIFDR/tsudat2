@@ -35,8 +35,6 @@ DATABASES = {
     },
 }
 
-#DATABASE_ROUTERS = ['dbrouter.GeoNodeRouter']
-
 SERIALIZATION_MODULES = {
     'json': 'wadofstuff.django.serializers.json'
 }
