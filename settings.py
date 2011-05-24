@@ -6,7 +6,7 @@ import geonode
 _ = lambda x: x
 
 SITENAME = "TsuDAT"
-SITEURL = "http://192.43.239.232/"
+SITEURL = "http://tsudat.nci.org.au/"
 
 DEBUG = TEMPLATE_DEBUG = True 
 MINIFIED_RESOURCES = True
@@ -16,7 +16,7 @@ PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 GEONODE_ROOT = os.path.dirname(geonode.__file__)
 
 ADMINS = (
-    # ('Your Name', 'your_email@domain.com'),
+    ('Jeffrey Johnson', 'jjohnson@opengeo.org'),
 )
 
 MANAGERS = ADMINS
@@ -233,6 +233,7 @@ INSTALLED_APPS = (
     'geonode.maps',
     'geonode.core',
     'geonode.proxy',
+    'profiles',
     'notification',
     'staticfiles',
     'tsudat',
@@ -240,7 +241,6 @@ INSTALLED_APPS = (
     'djkombu',
     'django_extensions',
     'registration',
-    'profiles',
     'avatar',
 )
 
