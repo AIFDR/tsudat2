@@ -1,0 +1,112 @@
+{% extends "page_layout.html" %}
+{% load i18n %}
+
+{% block title %} {% trans "Welcome!" %} - {{ block.super }} {% endblock %}
+{% block indexclass %} class="here" {% endblock %}
+
+{% block head %} 
+{% include "geonode/ext_header.html" %}
+{{ block.super }}
+<script type="text/javascript">
+Ext.onReady(function(){
+{% autoescape off %}
+
+  var exploreMapButton = new Ext.Button({
+     renderTo: 'explore_map', 
+     text: '{% trans "Explore Maps" %}',
+     handler: function(){ window.location = "{% url geonode.maps.views.maps_search_page %}"; }
+  });
+
+  var createMapButton = new Ext.Button({
+     renderTo: 'create_map', 
+     text: '{% trans "Create Map" %}',
+     handler: function(){ window.location = "{% url geonode.maps.views.newmap %}"; }
+  });
+
+  var submitForm = function() {
+      Ext.query('#data_block form')[0].submit();
+  };
+
+  var searchButton = new Ext.Button({renderTo: 'submit_search', text: '{% trans "Search" %}',
+                                     handler: submitForm});
+
+  var searchInput = new Ext.form.TextField({applyTo: 'search_query', width: 350});
+
+{% endautoescape %}
+});
+</script>
+{% endblock %}
+
+{% block main %} 
+<div class="twocol">
+<!-- TODO: i18n on the text here -->
+  <div class="block">
+    <h2> {% trans "Welcome" %} </h2>
+<h3><a href='/tsudat2-client/'>Client</a></h3>
+<img src='https://d3nwyuy0nl342s.cloudfront.net/img/db93c7afa887922ce84ec40d87f7cb328c24b0f3/687474703a2f2f75706c6f61642e77696b696d656469612e6f72672f77696b6970656469612f636f6d6d6f6e732f7468756d622f392f39392f4a6170616e6573655f4869726167616e615f6b796f6b6173686f7461695f736d616c6c5f5453552e706e672f31353070782d4a6170616e6573655f4869726167616e615f6b796f6b6173686f7461695f736d616c6c5f5453552e706e67'>
+    <p>
+    {% blocktrans %}
+The Tsunami Data Access and Modelling Tool (TsuDAT) is a web-browser based tool for tsunami inundation and impact modelling. Its aim is to increase the capability of government and non-government organisations to conduct tsunami inundation and impact modelling and improve their capacity to manage their tsunami risk.
+    {% endblocktrans %} 
+</p>
+<p>
+    {% blocktrans %}
+TsuDAT is based on the GeoNode open source platform that facilitates the creation and collaborative sharing of geospatial data through a combination of the OpenLayers, GeoExt, and GeoServer platforms. This framework provides a graphical user interface (GUI) for visualisation of hazard data and an interactive model builder for the open source hydrodynamic modelling software ANUGA.
+The tool is underpinned by a precomputed database of tens of thousands tsunami events that were generated for an offshore probabilistic tsunami hazard assessment. Within the GUI users can interactively explore the offshore probabilistic tsunami hazard, disaggregate the hazard to identify likely source zones, and select events for scenario modelling. Once an event is selected, users can upload elevation data with suitable resolution and quality, manipulate and QC the data, and then run a tsunami inundation model. All input data and results are stored on a locally or publically hosted GeoServer that facilitates the transfer and use of multiple data formats.
+    {% endblocktrans %} 
+</p>
+<p>
+    {% blocktrans %}
+A related impact assessment application can then access the results and combine these with suitable exposure and vulnerability information to perform impact analysis. TsuDAT can be easily extended to other geographic regions where offshore probabilistic tsunami hazard assessments have been undertaken, and provides a consistent method to communicating, analysing, and comparing, tsunami impact and ultimately risk.
+    {% endblocktrans %} 
+  </p>
+  </div>
+  <div class="block">
+    <h2> {% trans "Maps" %} </h2>
+    <p>
+    {% blocktrans %} 
+  GeoNode lets you compose and share maps.  <strong>Create</strong>
+      a map with our cartography tool, or <strong>explore</strong> maps
+      shared by others.
+    {% endblocktrans %} 
+  </p>
+    <div class="selfclear">
+      <div id="explore_map" class="content-button"></div>
+      <div id="create_map" class="content-button"></div>
+    </div>
+  </div>
+  <div id="data_block" class="block">
+    <h2> {% trans "Data" %} </h2>
+    <p>
+    {% blocktrans %} 
+  GeoNode lets you upload, manage, and browse data.  
+      <strong>Search</strong> for data that is valuable to you, or 
+      <strong>upload</strong> your own data.
+    {% endblocktrans %} 
+    </p>
+
+    <!-- Data search text box and button -->
+
+    <form action="{% url search %}" method="POST">
+      {% csrf_token %}
+        <table>
+          <tr>
+            <td>
+              <input type="text" id="search_query" name="q" />
+            </td>
+            <td>
+              <div id="submit_search"></div>
+            </td>
+          </tr>
+        </table>
+        <a href="{% url search %}">{% trans "Advanced Search" %}</a>
+    </form>
+  
+    <!-- Links to specialized views of data -->
+    <!-- Upload data button (link?) -->
+    <a class="layer-upload-link" href="{% url geonode.maps.views.upload_layer%}">{% trans "Upload data"  %}</a>
+  </div>
+</div>
+{% endblock %}
+{% block sidebar %}
+{% endblock %}
