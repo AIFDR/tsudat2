@@ -1,0 +1,3 @@
+[submodule "tsudat2-client"]
+	path = tsudat2-client
+	url = git://github.com/AIFDR/tsudat2-client.git
