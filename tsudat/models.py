@@ -130,7 +130,7 @@ class Project(models.Model):
     objects = models.GeoManager()
 
     def __unicode__(self):
-        return self.name
+        return "Project ID: " + str(self.pk)
 
     def from_json(self, data):
         try:
@@ -455,3 +455,14 @@ class ProjectDataSet(models.Model):
             return self, None
         except:
             return None, "Unexpected Error" 
+
+class Land(models.Model):
+    scalerank = models.IntegerField()
+    featurecla = models.CharField(max_length=32)
+    note = models.CharField(max_length=32)
+    the_geom = models.MultiPolygonField(srid=4326)
+    objects = models.GeoManager()
+
+    class Meta:
+        db_table = 'land_10m'
+        managed = False
