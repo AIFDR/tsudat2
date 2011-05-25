@@ -262,7 +262,7 @@ except ImportError:
     pass
 
 import logging, sys
-for _module in ["geonode.maps.views", "geonode.maps.gs_helpers"]:
+for _module in ["geonode.maps.views", "geonode.maps.gs_helpers", "tsudat2.tsudat.tasks"]:
    _logger = logging.getLogger(_module)
    _logger.addHandler(logging.StreamHandler(sys.stderr))
    _logger.setLevel(logging.DEBUG)
