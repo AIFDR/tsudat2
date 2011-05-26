@@ -30,7 +30,7 @@ DefaultKeypair = 'tsudatkey'
 
 # various S3 default things
 DefaultSQSQueuename = 'tsudat_aifdr_org'
-DefaultS3Bucket = 'tsudat.aifdr.org'
+DefaultS3Bucket = 'TsuDAT_data'
 DefaultInputS3DataDir = 'input-data'
 DefaultOutputS3DataDir = 'output-data'
 DefaultAbortS3DataDir = 'abort'

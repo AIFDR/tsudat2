@@ -28,7 +28,7 @@ import tsudat_log as log
 
 
 # the bucket to use
-S3Bucket = 'tsudat.aifdr.org'
+S3Bucket = 'TsuDAT_data'
 
 # S3 directories under S3Bucket
 InputS3DataDir = 'input-data'
@@ -220,14 +220,15 @@ def send_sqs_message(**kwargs):
     msg = json.dumps(kwargs)
     log.debug('SQS message JSON: %s' % msg)
 
-    # send the JSON
-    sqs = sqs_connect()
-    log.debug('Creating SQS queue %s' % SQSQueueName)
-    queue = sqs.create_queue(SQSQueueName)
-    m = boto.sqs.message.Message()
-    m.set_body(msg)
-    status = queue.write(m)
-    log.info('Wrote SQS message: %s' % kwargs['status'])
+# replace with RabbitMQ?
+#    # send the JSON
+#    sqs = sqs_connect()
+#    log.debug('Creating SQS queue %s' % SQSQueueName)
+#    queue = sqs.create_queue(SQSQueueName)
+#    m = boto.sqs.message.Message()
+#    m.set_body(msg)
+#    status = queue.write(m)
+#    log.info('Wrote SQS message: %s' % kwargs['status'])
     
 
 def send_sqs_message_lite(**kwargs):
@@ -245,13 +246,14 @@ def send_sqs_message_lite(**kwargs):
     # get JSON string
     msg = json.dumps(kwargs)
 
-    # send the JSON
-    sqs = boto.connect_sqs(os.environ['EC2_ACCESS_KEY'],
-                           os.environ['EC2_SECRET_ACCESS_KEY'])
-    queue = sqs.create_queue(SQSQueueName)
-    m = boto.sqs.message.Message()
-    m.set_body(msg)
-    status = queue.write(m)
+# replace with RabbitMQ?
+#    # send the JSON
+#    sqs = boto.connect_sqs(os.environ['EC2_ACCESS_KEY'],
+#                           os.environ['EC2_SECRET_ACCESS_KEY'])
+#    queue = sqs.create_queue(SQSQueueName)
+#    m = boto.sqs.message.Message()
+#    m.set_body(msg)
+#    status = queue.write(m)
     
 
 def run_tsudat_log(msg=None):
