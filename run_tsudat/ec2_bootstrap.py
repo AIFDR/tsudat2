@@ -27,8 +27,8 @@ import boto
 import tsudat_log as log
 
 
-# the bucket to use
-S3Bucket = 'TsuDAT_data'
+## the bucket to use
+#S3Bucket = 'TsuDAT_data'
 
 # S3 directories under S3Bucket
 InputS3DataDir = 'input-data'
@@ -419,6 +419,7 @@ if __name__ == '__main__':
     import re
 
     global UserData, User, Project, Scenario, Setup, BaseDir, Debug, Instance
+    global S3Bucket
 
     def excepthook(type, value, tb):
         """Exception hook routine."""
@@ -468,6 +469,9 @@ if __name__ == '__main__':
     if not UserData.get('BASEDIR', ''):
         error = True
         error_msg.append("BASEDIR field doesn't exist or is empty")
+    if not UserData.get('BUCKET', ''):
+        error = True
+        error_msg.append("BUCKET field doesn't exist or is empty")
 
     if error:
         msg = '\n'.join(error_msg)
@@ -483,6 +487,7 @@ if __name__ == '__main__':
     Scenario = UserData['SCENARIO']
     Setup = UserData['SETUP']
     BaseDir = UserData['BASEDIR']
+    S3Bucket = UserData['BUCKET']
 
     if UserData['DEBUG'].lower() == 'debug':
         Debug = True
