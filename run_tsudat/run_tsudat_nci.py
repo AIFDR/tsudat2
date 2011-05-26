@@ -22,10 +22,11 @@ log.log_logging_level = log.INFO
 
 
 # the AMI we are going to run
-DefaultAmi = 'ami-54a55b3d'  # Ubuntu_10.04_TsuDAT_2.0.28
+#DefaultAmi = 'emi-DF191069'  # Ubuntu_9.10
+DefaultAmi = 'emi-326E0D10'  # Ubuntu_9.10_tsudat_2.0
 
 # keypair used to start instance
-DefaultKeypair = 'tsudat2'
+DefaultKeypair = 'tsudatkey'
 
 # various S3 default things
 DefaultSQSQueuename = 'tsudat_aifdr_org'
@@ -104,13 +105,13 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     scen        scenario name
     setup       type of run ('trial', etc)
     event       event number
-    nuke        optional - destroy any existing structure first
+    nuke        optional - destroy any existing structure first (IGNORED)
 
     Creates a TSUDAT directory structure under the 'base' path.
-    If 'nuke' is True, delete any structure under base/user/proj/scen/setup.
+    The created 'user' directory has a data+time suffix added.
 
     Returns a tuple of paths to places under 'base' required by the UI:
-        (raw_elevation, bondaries, meshes, polygons, gauges)
+        (user_base, raw_elevation, boundaries, meshes, polygons, gauges)
     """
 
     global ScriptsDir
@@ -130,9 +131,10 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
             pass            # ignore "already there' errors
 
     # create base directory
-    run_dir = os.path.join(base, user, proj, scen, setup)
-    if nuke:
-        shutil.rmtree(run_dir, ignore_errors=True)
+    timestamp = time.strftime('_%Y%m%dT%H%M%S')
+    run_dir = os.path.join(base, user+timestamp, proj, scen, setuu
+#    if nuke:
+#        shutil.rmtree(run_dir, ignore_errors=True)
     makedirs_noerror(run_dir)
 
     # create the 'raw_elevation' directory for a project
@@ -438,7 +440,7 @@ def run_tsudat(json_data):
 
     # clean up the local filesystem
     dir_path = os.path.join(project.working_directory, project.user)
-    log.debug('Deleting work directory: %s' % dir_path)
+#    log.debug('Deleting work directory: %s' % dir_path)
 #    shutil.rmtree(dir_path)
     log.debug('Deleting zipped S3 data: %s' % zippath)
     shutil.rmtree(zippath, ignore_errors=True)
