@@ -132,7 +132,7 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
 
     # create base directory
     timestamp = time.strftime('_%Y%m%dT%H%M%S')
-    run_dir = os.path.join(base, user+timestamp, proj, scen, setuu
+    run_dir = os.path.join(base, user+timestamp, proj, scen, setup)
 #    if nuke:
 #        shutil.rmtree(run_dir, ignore_errors=True)
     makedirs_noerror(run_dir)
