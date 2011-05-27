@@ -69,8 +69,9 @@ def main():
             contribs = SpacesPattern.split(contribs.strip())
             for (rp, contrib) in zip(return_periods, contribs):
                 contrib = float(contrib)
-                if contrib > 0.0:
-                    out_fd.write('%s,%d,%d,%s\n' % (hpID, rp, sfid, contrib))
+#                if contrib > 0.0:
+#                    out_fd.write('%s,%d,%d,%.2f\n' % (hpID, rp, sfid, contrib))
+                out_fd.write('%s,%d,%d,%.2f\n' % (hpID, rp, sfid, contrib))
 
         print '%d' % count,
         sys.stdout.flush()
