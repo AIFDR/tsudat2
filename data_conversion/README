@@ -25,11 +25,11 @@ Rows with a zero waveheight or zero probability are not written.
 make_hp_rp_fid_cc.py
 --------------------
 Writes a file "hp_rp_fid_cc.csv" that contains 'deag' data which specifies the
-ciontribution for each subfault for all combinations of hazard point and return
+contribution for each subfault for all combinations of hazard point and return
 period.  The file contains rows:
 <hpID>,<rpID>,<sfltID>,<contrib>
 
-Note: we do not write rows for which <contrib> is 0.0.
+Note: we do not write rows for which <contrib> is 0.0.  THIS IS NO LONGER TRUE.
 
 make_hp_sflt_rp_wh.py
 ---------------------
