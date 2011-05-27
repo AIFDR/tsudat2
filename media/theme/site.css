@@ -1,0 +1,15 @@
+#header {
+background: #132538 url(img/header-bg-tsudat.png) no-repeat;
+border-top: 1px solid #7a7a7a;
+border-bottom: 2px solid #008cb3;
+font-size: 1.2em;
+}
+
+#logo {
+float: left;
+width: 225px;
+height: 50px;
+background: url(img/logo-tsudat-bg.png) no-repeat;
+overflow: hidden;
+text-indent: -9999em;
+}
