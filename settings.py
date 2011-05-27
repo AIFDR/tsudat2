@@ -157,25 +157,22 @@ TEMPLATE_DIRS = (
 
 AUTHENTICATION_BACKENDS = ('geonode.core.auth.GranularBackend',)
 
-GOOGLE_API_KEY = ""
+GOOGLE_API_KEY = "ABQIAAAAcoX_Z5d4BsocQFMReoaL9xQtMYM1wbPau4lKVThVkdSgRUXxNBSYM5nl7vvQLde1V90hi8HNf8VA1Q"
 LOGIN_REDIRECT_URL = "/"
 
 DEFAULT_LAYERS_OWNER='admin'
 
 # Where should newly created maps be focused?
-DEFAULT_MAP_CENTER = (-84.7, 12.8)
+DEFAULT_MAP_CENTER = (133.9017, -23.8067)
 
 # How tightly zoomed should newly created maps be?
 # 0 = entire world;
 # maximum zoom is between 12 and 15 (for Google Maps, coverage varies by area)
-DEFAULT_MAP_ZOOM = 7
+DEFAULT_MAP_ZOOM = 4
 
 MAP_BASELAYERSOURCES = {
     "any": {
         "ptype":"gx_olsource"
-    },
-    "capra": {
-        "url":"/geoserver/wms"
     },
     "google":{
         "ptype":"gx_googlesource",
@@ -194,7 +191,7 @@ MAP_BASELAYERS = [{
     "source":"any",
     "type":"OpenLayers.Layer.OSM",
     "args":["OpenStreetMap"],
-    "visibility": True,
+    "visibility": False,
     "fixed": True,
     "group":"background"
   },{
@@ -217,8 +214,26 @@ MAP_BASELAYERS = [{
   },{
     "source":"google",
     "group":"background",
+    "name":"ROADMAP",
+    "visibility": False,
+    "fixed": True,
+  },{
+    "source":"google",
+    "group":"background",
+    "name":"TERRAIN",
+    "visibility": False,
+    "fixed": True,
+  },{
+    "source":"google",
+    "group":"background",
     "name":"SATELLITE",
     "visibility": False,
+    "fixed": True,
+  },{
+    "source":"google",
+    "group":"background",
+    "name":"HYBRID",
+    "visibility": True,
     "fixed": True,
 }]
 
