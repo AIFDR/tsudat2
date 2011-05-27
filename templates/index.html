@@ -11,6 +11,12 @@
 Ext.onReady(function(){
 {% autoescape off %}
 
+  var clientButton = new Ext.Button({
+     renderTo: 'tsudat_client', 
+     text: '{% trans "Launch TsuDAT Simulation Client" %}',
+     handler: function(){ window.location = "/tsudat2-client/"; }
+  });
+
   var exploreMapButton = new Ext.Button({
      renderTo: 'explore_map', 
      text: '{% trans "Explore Maps" %}',
@@ -42,8 +48,11 @@ Ext.onReady(function(){
 <!-- TODO: i18n on the text here -->
   <div class="block">
     <h2> {% trans "Welcome" %} </h2>
-<h3><a href='/tsudat2-client/'>Client</a></h3>
-<img src='https://d3nwyuy0nl342s.cloudfront.net/img/db93c7afa887922ce84ec40d87f7cb328c24b0f3/687474703a2f2f75706c6f61642e77696b696d656469612e6f72672f77696b6970656469612f636f6d6d6f6e732f7468756d622f392f39392f4a6170616e6573655f4869726167616e615f6b796f6b6173686f7461695f736d616c6c5f5453552e706e672f31353070782d4a6170616e6573655f4869726167616e615f6b796f6b6173686f7461695f736d616c6c5f5453552e706e67'>
+    <p>
+  <div class="block">
+     <div class="selfclear">
+      <div id="tsudat_client" class="content-button"></div>
+    </div>
     <p>
     {% blocktrans %}
 The Tsunami Data Access and Modelling Tool (TsuDAT) is a web-browser based tool for tsunami inundation and impact modelling. Its aim is to increase the capability of government and non-government organisations to conduct tsunami inundation and impact modelling and improve their capacity to manage their tsunami risk.
