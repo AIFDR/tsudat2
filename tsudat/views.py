@@ -9,6 +9,8 @@ from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt, csrf_response_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.gis.geos import *
+from django.conf import settings
+from django.template import RequestContext
 
 from vectorformats.Formats import Django, GeoJSON
 
@@ -21,6 +23,14 @@ geoj = GeoJSON.GeoJSON()
 
 def index(request):
     return redirect('/tsudat2-client/')
+
+def disclaimer(request):
+    return render_to_response("disclaimer.html", RequestContext(request, {
+        "GEOSERVER_BASE_URL": settings.GEOSERVER_BASE_URL,
+        "GEONETWORK_BASE_URL": settings.GEONETWORK_BASE_URL,
+        "site": settings.SITEURL
+    }))
+
 
 def return_period(request):
     if not "wh" in request.GET: 
@@ -200,6 +210,12 @@ def polygon_from_csv(request):
 @csrf_exempt
 def project(request, id=None):
     if id == None and request.method == "POST":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to save new projects',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
@@ -218,6 +234,12 @@ def project(request, id=None):
             data = {'status': 'failure', 'msg': 'Project Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "PUT":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to save projects',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
             p = Project.objects.get(pk=id)
@@ -232,6 +254,12 @@ def project(request, id=None):
             data = {'status': 'failure', 'msg': 'Project Update Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "DELETE":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to delete projects',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             p = Project.objects.get(pk=id)
             p.delete()
@@ -270,6 +298,12 @@ def internal_polygon_types(request):
 def internal_polygon(request, id=None):
     #TODO: GET polygons for project_id and/or type
     if id == None and request.method == "POST":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
@@ -288,6 +322,12 @@ def internal_polygon(request, id=None):
             data = {'status': 'failure', 'msg': 'Internal Polygon Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), mimetype='application/json')
     elif id != None and request.method == "PUT":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
@@ -310,6 +350,12 @@ def internal_polygon(request, id=None):
             data = {'status': 'failure', 'msg': 'Internal Polygon Update Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     elif id != None and request.method == "DELETE":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 ip = InternalPolygon.objects.get(pk=id)
@@ -347,6 +393,12 @@ def internal_polygon(request, id=None):
 def gauge_point(request, id=None):
     #TODO: GET gauge points for project_id and/or type
     if id == None and request.method == "POST":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
@@ -365,6 +417,12 @@ def gauge_point(request, id=None):
             data = {'status': 'failure', 'msg': 'Gauge Point Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), mimetype='application/json')
     elif id != None and request.method == "PUT":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = geojson.loads(request.raw_post_data, object_hook=geojson.GeoJSON.to_instance)
@@ -387,6 +445,12 @@ def gauge_point(request, id=None):
             data = {'status': 'failure', 'msg': 'Gauge Point Update Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     elif id != None and request.method == "DELETE":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             gp = GaugePoint.objects.get(pk=id)
             gp.delete()
@@ -422,6 +486,12 @@ def gauge_point(request, id=None):
 def scenario(request, id=None):
     #TODO: GET scenarios for a project (other params?) 
     if id == None and request.method == "POST":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             data = json.loads(request.raw_post_data) 
             s = Scenario()
@@ -436,6 +506,12 @@ def scenario(request, id=None):
             data = {'status': 'failure', 'msg': 'Scenario Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "PUT":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             data = json.loads(request.raw_post_data) 
             s = Scenario(pk=id)
@@ -453,6 +529,12 @@ def scenario(request, id=None):
             data = {'status': 'failure', 'msg': 'Scenario Update Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     elif id != None and request.method == "DELETE":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             scenario = Scenario(pk=id)
             scenario.delete()
@@ -527,6 +609,12 @@ def data_set(request, id=None):
 @csrf_exempt
 def project_data_set(request, id=None):
     if id == None and request.method == "POST":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = json.loads(request.raw_post_data) 
@@ -545,6 +633,12 @@ def project_data_set(request, id=None):
             data = {'status': 'failure', 'msg': 'Project Dataset Creation Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     elif id != None and request.method == "PUT":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 data = json.loads(request.raw_post_data) 
@@ -567,6 +661,12 @@ def project_data_set(request, id=None):
             data = {'status': 'failure', 'msg': 'Project Dataset Update Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     elif id != None and request.method == "DELETE":
+        if not request.user.is_authenticated():
+            return HttpResponse(
+                'You must be logged in to perform this action',
+                mimetype="text/plain",
+                status=401
+            )
         try:
             try:
                 project_data_set = ProjectDataSet(pk=id)

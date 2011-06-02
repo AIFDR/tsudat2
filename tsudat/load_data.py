@@ -91,6 +91,64 @@ def load_event_subfaults():
         event.save()
 
 @transaction.commit_manually
+def load_subfault_detail():
+    subfault_detail_file = open('../data/hp_rp_fid_cc.csv')
+    counter = index = count = 0
+    finished_hps = []
+    thinned_hps = []
+    valid_hps = [] 
+    sflt_id_mapping = {}
+    hp_id_mapping = {}
+    
+    cursor = connection.cursor()
+   
+    current_hp_id = None
+
+    finished = SubFaultDetail.objects.values('hazard_point').distinct()
+    for x in finished:
+        hp = HazardPoint.objects.get(id=x['hazard_point'])
+        finished_hps.append(hp.tsudat_id) 
+  
+    print finished_hps 
+
+    for line in subfault_detail_file.xreadlines():
+        parts = line.strip().split(',')
+        #print parts
+        try:
+            hp_tsudat_id = int(parts[0])
+            if not hp_tsudat_id in thinned_hps and not hp_tsudat_id in finished_hps:
+                if not hp_tsudat_id in valid_hps:
+                    hp = HazardPoint.objects.get(tsudat_id=hp_tsudat_id)
+                    hp_id_mapping[hp_tsudat_id] = hp.id 
+                    valid_hps.append(hp_tsudat_id)
+                sflt_tsudat_id = int(parts[2])
+                if(sflt_tsudat_id in sflt_id_mapping):
+                    sflt = sflt_id_mapping[sflt_tsudat_id]
+                else:
+                    sflt = SubFault.objects.get(tsudat_id=int(parts[2]))
+                    sflt_id_mapping[sflt_tsudat_id] = sflt.id
+                    sflt = None
+                rp = float(parts[1])
+                contribution = float(parts[3])
+                sql ="insert into tsudat_subfaultdetail (hazard_point_id, sub_fault_id, return_period, contribution) VALUES (%i, %i, %f, %f)" % (hp_id_mapping[hp_tsudat_id], sflt_id_mapping[sflt_tsudat_id], rp, contribution)
+                print sql
+                cursor.execute(sql)
+                if(hp_tsudat_id != current_hp_id):
+                    print "Committing Hazard Point %s" % (hp_tsudat_id)
+                    transaction.commit()
+                    current_hp_id = hp_tsudat_id
+                count += 1
+        except ObjectDoesNotExist:
+            # Hazard Points are 'thinned'
+            thinned_hps.append(int(parts[0]))
+            #print thinned_hps
+        counter += 1
+        index += 1
+        if(counter >= 100):
+            print "%s (%s)" % (index, count)
+            counter = 0
+
+@transaction.commit_manually
 def load_event_wave_heights():
     event_wave_heights_file = open('../data/event_hp_wh.csv')
     counter = index = count = 0
@@ -195,4 +253,5 @@ def load_wave_heights(file):
 #load_event_subfaults()
 #load_wave_heights('values')
 #load_wave_heights('color')
-load_event_wave_heights()
+#load_event_wave_heights()
+load_subfault_detail()
