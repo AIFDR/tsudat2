@@ -64,10 +64,11 @@
         | <strong>{% trans "Need Help?" %}</strong>
         <a href="{% url geonode.views.static "help" %}">{% trans "Help" %}</a> 
         | <a href="{% url geonode.views.developer %}">{% trans "For Developers" %}</a>
+        | <a href="{% url tsudat.views.disclaimer %}">{% trans "Disclaimer" %}</a>
         <p>
-        <img src="/tsudat-media/theme/img/ga-logo.jpg"> 
-        <img src="/tsudat-media/theme/img/aifdr-logo.png">
-        <img src="/tsudat-media/theme/img/nci-logo.png">
+        <img src="/tsudat-media/theme/img/logo-ga.png" style="margin: 10px 10px 0;"> 
+        <img src="/tsudat-media/theme/img/logo-aifdr.png" style="margin: 10px 10px 0;">
+        <img src="/tsudat-media/theme/img/logo-nci.png" style="margin: 10px 10px 0;">
         </p>
       </div>
       {% endblock %}
