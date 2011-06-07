@@ -5,3 +5,8 @@ include/
 *.log
 local_settings.py
 .DS_Store
+site_media/
+media/wh_rp_hazard_graphs/
+data/event_hp_wh.csv
+data/hp_rp_fid_cc.csv
+data/hp_sflt_rp_wh.csv
