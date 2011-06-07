@@ -1,6 +1,9 @@
 import os, sys, traceback
 import re
+import dircache
+import shutil
 
+sys.path.append(".")
 sys.path.append("../")
 sys.path.append("../../")
 os.environ['DJANGO_SETTINGS_MODULE'] = "tsudat2.settings"
@@ -38,6 +41,9 @@ def load_subfaults():
     for line in sf_file.readlines():
         parts = line.strip().split(' ') 
         lon = float(parts[0])
+        if(lon > 180):
+            lon = lon - 260
+        print lon
         lat = float(parts[1])
         id = int(parts[2])
         sz = SourceZone.objects.get(name=parts[3])
@@ -245,13 +251,29 @@ def load_wave_heights(file):
             traceback.print_exc(file=sys.stdout) 
             pass
 
+def rename_wh_rp_graphs():
+    base_dir = '/var/www/tsudat2/media/wh_rp_hazard_graphs'
+    list = dircache.listdir(base_dir)
+    for x in list:
+        print x
+        lon = x[:7]
+        lat = x[8:15]
+        if(lat.endswith('.')):
+            lat = lat[:-1]
+        pnt = Point(float(lon), float(lat), srid=4326)        
+        hp = HazardPoint.objects.distance(pnt).order_by('distance')[:1][0]
+        src = '%s/%s' % (base_dir, x)
+        dst = '%s/new/%d.png' % (base_dir, hp.tsudat_id)
+        shutil.copyfile(src, dst)
+
 #load_hazard_points()
 #load_source_zones()
-#load_subfaults()
+load_subfaults()
 #load_sz_geom()
 #load_events()
 #load_event_subfaults()
 #load_wave_heights('values')
 #load_wave_heights('color')
 #load_event_wave_heights()
-load_subfault_detail()
+#load_subfault_detail()
+#rename_wh_rp_graphs()
