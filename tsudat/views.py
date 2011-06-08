@@ -24,6 +24,9 @@ geoj = GeoJSON.GeoJSON()
 def index(request):
     return redirect('/tsudat2-client/')
 
+def about(request):
+    return render_to_response("about.html")
+
 def disclaimer(request):
     return render_to_response("disclaimer.html", RequestContext(request, {
         "GEOSERVER_BASE_URL": settings.GEOSERVER_BASE_URL,
