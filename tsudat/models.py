@@ -36,7 +36,6 @@ IP_TYPE_CHOICES = (
     (1, 'Mesh Resolution'),
     (2, 'Mesh Friction'),
     (3, 'Area of Interest'),
-    (4, 'Area of Significance'),
 )
 
 DATASET_TYPE_CHOICES = (
@@ -466,3 +465,37 @@ class Land(models.Model):
     class Meta:
         db_table = 'land_10m'
         managed = False
+
+class Building(models.Model):
+    objectid = models.IntegerField()
+    longitude = models.FloatField()
+    latitude = models.FloatField()
+    lid = models.CharField(max_length=80)
+    address = models.CharField(max_length=80)
+    suburb = models.CharField(max_length=80)
+    state = models.CharField(max_length=80)
+    postcode = models.IntegerField()
+    feature_na = models.CharField(max_length=80)
+    nexis_cad_field = models.CharField(max_length=80)
+    mb_code = models.FloatField()
+    cd_code = models.IntegerField()
+    sla_code = models.IntegerField()
+    lga_code = models.IntegerField()
+    sd_code = models.IntegerField()
+    nexis_year = models.CharField(max_length=80)
+    nexis_use = models.CharField(max_length=80)
+    nexis_bloc = models.IntegerField()
+    nexis_foot = models.FloatField()
+    nexis_floo = models.FloatField()
+    nexis_cons = models.CharField(max_length=80)
+    nexis_roof = models.CharField(max_length=80)
+    wall_type = models.CharField(max_length=80)
+    nexis_no_o = models.IntegerField()
+    str_value = models.FloatField()
+    cont_value = models.IntegerField()
+    nexis_peop = models.FloatField()
+    nexis_inco = models.CharField(max_length=80)
+    near_fid = models.IntegerField()
+    shore_dist = models.FloatField()
+    geom = models.PointField(srid=4326)
+    objects = models.GeoManager()
