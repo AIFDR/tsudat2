@@ -131,6 +131,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.debug",
     "django.core.context_processors.i18n",
     "django.core.context_processors.media",
+    "django.core.context_processors.request",
+    "notification.context_processors.notification",
     "geonode.maps.context_processors.resource_urls",
 )
 
@@ -140,6 +142,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'pagination.middleware.PaginationMiddleware',
 )
 
 # This isn't required for running the geonode site, but it when running sites that inherit the geonode.settings module.
@@ -244,12 +247,13 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.admin',
+    'django.contrib.humanize',
     'django.contrib.gis',
+    'notification',
     'geonode.maps',
     'geonode.core',
     'geonode.proxy',
     'profiles',
-    'notification',
     'staticfiles',
     'tsudat',
     'djcelery',
@@ -257,6 +261,8 @@ INSTALLED_APPS = (
     'django_extensions',
     'registration',
     'avatar',
+    'pagination',
+    'timezones',
 )
 
 def get_user_url(u):
