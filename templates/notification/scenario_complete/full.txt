@@ -1,0 +1,6 @@
+Scenario Complete
+
+Your Scenario "{{ scenario_name }}" Has finished processing.
+The project map can be visited at the following URL.
+
+{{ siteurl }}{{ map.get_absolute_url }}
