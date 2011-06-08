@@ -16,7 +16,7 @@ import tempfile
 
 
 # the base of the TsuDAT user directory structures
-TsuDATBase = '/tmp/tsudat'
+TsuDATBase = '/data'
 TsuDATMux = '/media/1TB_USB3/Tsu-DAT_Data/earthquake_data'
 
 
@@ -38,7 +38,6 @@ def main(Setup):
     InteriorRegions = scenario.interior_regions_list
     InteriorHazardPoints = scenario.interior_hazard_points_file
     LandwardBoundary = scenario.landward_boundary_file
-    InteriorHPs = scenario.interior_hazard_points_file
     GaugeFile = scenario.gauge_file
     CombinedElevationFile = scenario.combined_elevation_file
     RasterResolution = scenario.raster_resolution
@@ -63,6 +62,11 @@ def main(Setup):
     # the directory containing all data files required
     DataFilesDir = './fake_ui_files.%s' % Scenario
 
+    # create the user working directory
+    (user_dir, raw_elevations, boundaries, meshes, polygons, gauges,
+     topographies) = run_tsudat.make_tsudat_dir(TsuDATBase, User, Project,
+                                                Scenario, Setup, Event)
+
     # build the appropriate json data file
     (_, json_file) = tempfile.mkstemp(suffix='.json',
                                       prefix='fake_ui_', text=True)
@@ -72,40 +76,36 @@ def main(Setup):
                  'setup': Setup,
                  'event_number': Event,
                  'working_directory': WorkingDirectory,
+                 'user_directory': user_dir,
                  'mux_directory': TsuDATMux,
                  'initial_tide': InitialTide,
                  'start_time': StartTime,
                  'end_time': EndTime,
                  'smoothing': Smoothing,
                  'bounding_polygon_file': BoundingPolygon,
+                 'raw_elevation_directory': raw_elevations,
                  'elevation_data_list': RawElevationFiles,
                  'combined_elevation_file': CombinedElevationFile,
                  'mesh_friction': MeshFriction,
                  'raster_resolution': RasterResolution,
-                 'layers_list': LayersList,
                  'export_area': ExportArea,
+                 'gauge_file': GaugeFile,
+                 'bounding_polygon_maxarea': BoundingPolygonMaxArea,
+                 'interior_regions_list': InteriorRegions,
+                 'interior_hazard_points_file': InteriorHazardPoints,
+                 'landward_boundary_file': LandwardBoundary,
+                 'zone_number': ZoneNumber,
+                 'layers_list': LayersList,
                  'get_results_max': GetResultsMax,
                  'get_timeseries': GetTimeseries,
-                 'gauge_file': GaugeFile,
-                 'interior_regions_list': InteriorRegions,
-                 'interior_hazard_points_file': InteriorHPs,
-                 'bounding_polygon_maxarea': BoundingPolygonMaxArea,
-                 'landward_boundary_file': LandwardBoundary,
-                 'interior_hazard_points_file': InteriorHazardPoints,
                  'ascii_grid_filenames': [],
                  'sts_filestem': STSFileStem,
-                 'zone_number': ZoneNumber,
                  'getsww': GetSWW,          # if True, forces delivery of SWW files
                  'force_run': ForceRun,     # if True, *forces* a simulation
                  'debug': Debug}            # if True, forces DEBUG logging
 
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
-
-    # create the user working directory
-    (run_dir, raw_elevations, boundaries, meshes,
-     polygons, gauges) = run_tsudat.make_tsudat_dir(TsuDATBase, User, Project,
-                                                    Scenario, Setup, Event)
 
     # copy data files to correct places in user directory
     # maintain time/data stats
@@ -125,7 +125,6 @@ def main(Setup):
 
     # fudge for BB
     if CombinedElevationFile:
-        topographies = os.path.join(os.path.dirname(gauges), 'topographies')
         shutil.copy2(os.path.join(DataFilesDir, 'topographies', CombinedElevationFile), topographies)
 
     # now run the simulation

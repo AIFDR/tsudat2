@@ -26,7 +26,8 @@ initial_tide = 0.0
 start_time = 0
 end_time = 27000
 smoothing = 0.1
-raster_resolution = 20
+#raster_resolution = 20
+raster_resolution = 250
 mesh_friction = 0.01
 layers_list = ['stage', 'depth']
 export_area = 'All'
@@ -36,7 +37,7 @@ bounding_polygon_maxarea = 100000
 zone_number = 54
 
 # miscellaneous stuff
-working_directory = '/tmp/tsudat'
+working_directory = '/data'
 
 getsww = True
 force_run = True
