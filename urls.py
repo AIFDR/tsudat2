@@ -43,7 +43,7 @@ urlpatterns = patterns('',
     (r'^profiles/', include('profiles.urls')),
     (r'^admin/', include(admin.site.urls)),
     (r'^tsudat/', include('tsudat.urls')),
-    #url(r'^$', 'tsudat.views.index', name='tsudat-index'),
+    (r'^notices/', include('notification.urls')),
     )
 
 # Extra static file endpoint for development use
