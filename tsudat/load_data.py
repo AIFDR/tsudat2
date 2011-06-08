@@ -11,6 +11,7 @@ os.environ['DJANGO_SETTINGS_MODULE'] = "tsudat2.settings"
 from django.contrib.gis.geos import *
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection, transaction
+from django.contrib.gis.utils import LayerMapping
 
 from tsudat2.tsudat.models import *
 
@@ -266,9 +267,46 @@ def rename_wh_rp_graphs():
         dst = '%s/new/%d.png' % (base_dir, hp.tsudat_id)
         shutil.copyfile(src, dst)
 
+def load_buildings():
+    # For Nexis Data
+    mapping = {
+        'objectid' : 'OBJECTID',
+        'longitude' : 'LONGITUDE',
+        'latitude' : 'LATITUDE',
+        'lid' : 'LID',
+        'address' : 'ADDRESS',
+        'suburb' : 'SUBURB',
+        'state' : 'STATE',
+        'postcode' : 'POSTCODE',
+        'feature_na' : 'FEATURE_NA',
+        'nexis_cad_field' : 'NEXIS_CAD_',
+        'mb_code' : 'MB_CODE',
+        'cd_code' : 'CD_CODE',
+        'sla_code' : 'SLA_CODE',
+        'lga_code' : 'LGA_CODE',
+        'sd_code' : 'SD_CODE',
+        'nexis_year' : 'NEXIS_YEAR',
+        'nexis_use' : 'NEXIS_USE',
+        'nexis_bloc' : 'NEXIS_BLOC',
+        'nexis_foot' : 'NEXIS_FOOT',
+        'nexis_floo' : 'NEXIS_FLOO',
+        'nexis_cons' : 'NEXIS_CONS',
+        'nexis_roof' : 'NEXIS_ROOF',
+        'wall_type' : 'WALL_TYPE',
+        'nexis_no_o' : 'NEXIS_NO_O',
+        'str_value' : 'STR_VALUE',
+        'cont_value' : 'CONT_VALUE',
+        'nexis_peop' : 'NEXIS_PEOP',
+        'nexis_inco' : 'NEXIS_INCO',
+        'near_fid' : 'NEAR_FID',
+        'shore_dist' : 'SHORE_DIST',
+        'geom' : 'POINT'}
+    lm = LayerMapping(Building, '/var/www/tsudat2/data/nexis/nexis_batemans.shp', mapping)
+    lm.save(verbose=True)
+
 #load_hazard_points()
 #load_source_zones()
-load_subfaults()
+#load_subfaults()
 #load_sz_geom()
 #load_events()
 #load_event_subfaults()
@@ -277,3 +315,4 @@ load_subfaults()
 #load_event_wave_heights()
 #load_subfault_detail()
 #rename_wh_rp_graphs()
+load_buildings()
