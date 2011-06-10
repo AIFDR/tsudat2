@@ -16,9 +16,8 @@ import tempfile
 
 
 # the base of the TsuDAT user directory structures
-TsuDATBase = '/data'
-TsuDATMux = '/media/1TB_USB3/Tsu-DAT_Data/earthquake_data'
-
+TsuDATMux = '/data/Tsu-DAT_Data/earthquake_data'
+TsuDATBase = '/data/tsudat_runs'
 
 def main(Setup):
     """Behave like the UI and run a TsuDAT simulation on EC2.
@@ -66,6 +65,7 @@ def main(Setup):
     (user_dir, raw_elevations, boundaries, meshes, polygons, gauges,
      topographies) = run_tsudat.make_tsudat_dir(TsuDATBase, User, Project,
                                                 Scenario, Setup, Event)
+    print('user_dir=%s' % str(user_dir))
 
     # build the appropriate json data file
     (_, json_file) = tempfile.mkstemp(suffix='.json',

@@ -37,7 +37,7 @@ bounding_polygon_maxarea = 100000
 zone_number = 54
 
 # miscellaneous stuff
-working_directory = '/data'
+working_directory = '/data/tsudat_runs'
 
 getsww = True
 force_run = True

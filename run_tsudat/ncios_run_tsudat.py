@@ -25,14 +25,15 @@ import messaging_amqp as msg
 
 import anuga
 from anuga.geometry.polygon import number_mesh_triangles
-#import anuga.utilities.log as logger
 import tsudat_log as logger
 import export_depthonland_max as edm
 import export_newstage_max as enm
 
-#logger.console_logging_level = logger.CRITICAL+1    # turn console logging off
 logger.console_logging_level = logger.DEBUG
 logger.log_logging_level = logger.DEBUG
+
+log_filename = 'tsudat.log'
+log = logger.Log(logfile=log_filename, level=logger.DEBUG)
 
 
 # patternmatching for any number of spaces
@@ -41,6 +42,9 @@ SpacesPattern = re.compile(' +')
 # define a 'project' object
 class Project(object):
     pass
+
+# create the global project object
+project = Project()
 
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
@@ -53,40 +57,6 @@ def abort(msg):
     log.critical(msg)
     sys.exit(10)
 
-
-def send_message(status, **kwargs):
-    """Send a rabbit message.
-    
-    kwargs   a dict of keyword arguments
-            
-    Send a JSON representation of the kwargs dict.
-    Add the user, project, scenario, setup global values, etc.
-    """
-                        
-    # add the global values
-#    kwargs['user'] = project.user
-#    kwargs['project'] = project.project
-#    kwargs['scenario'] = project.scenario
-#    kwargs['setup'] = project.setup
-#    kwargs['instance'] = project.instance
-                                    
-    # add time as float and string (UTC, ISO 8601 format)
-    kwargs['time'] = time.time()
-    kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
-
-    # finally, message status
-    kwargs['status'] = status
-                                                        
-    # get JSON string
-    message = json.dumps(kwargs)
-    kwargs['message'] = message
-    log.debug('server message JSON: %s' % msg)
-                                                                        
-    # send the JSON
-    msg.post_worker_message(project.user, project.project, project.scenario,
-                            project.setup, **kwargs)
-    log.info('Wrote message: %s' % str(msg))
-                                                                        
 
 def run_model():
     """Run a tsunami simulation for a scenario."""
@@ -957,33 +927,43 @@ def run_tsudat(json_file):
 
     # add defaults to JSON data, creates global 'project' object
     adorn_project(json_file)
-
-    # send the START message
-    send_message('START')
-
     if project.debug:
         dump_project_py()
 
     # populate with some fixed values
     project.multi_mux = True
 
-    # always run the tsudat simulation
-    log.info('#'*90)
-    log.info('# Running simulation')
-    log.info('#'*90)
-    setup_model()
+    # actually run the simulation
+#    youngest_input = get_youngest_input()
+#    sww_file = os.path.join(project.output_folder, project.scenario+'.sww')
+#    try:
+#        sww_ctime = os.path.getctime(sww_file)
+#    except OSError:
+#        sww_ctime = 0.0         # SWW file not there
 
-    build_elevation()
+    if True:  # project.force_run or youngest_input > sww_ctime:
+        log.info('#'*90)
+        log.info('# Running simulation')
+        log.info('#'*90)
+        setup_model()
 
-    project.payload = {}
-    gauges = build_urs_boundary(project.mux_input_filename,
-                                project.event_sts)
-    project.payload['hpgauges'] = gauges
+        build_elevation()
 
-    get_minmaxAOI()
+        project.payload = {}
+        gauges = build_urs_boundary(project.mux_input_filename,
+                                    project.event_sts)
+        project.payload['hpgauges'] = gauges
 
-    run_model()
-    log.info('End of simulation')
+        get_minmaxAOI()
+
+        run_model()
+        log.info('End of simulation')
+    else:
+        log.info('#'*80)
+        log.info('# Not running simulation')
+        log.debug('# SWW file %s is younger than input data' % sww_file)
+        log.info('# If you want to force a simulation run, select FORCE RUN')
+        log.info('#'*80)
 
     # add *all* SWW files in the output directory to result dictionary
     # (whether we ran a simulation or not)
@@ -1024,32 +1004,3 @@ def run_tsudat(json_file):
 
     return project.payload
 
-################################################################################
-
-if __name__ == '__main__':
-    global log, project
-
-    log_filename = 'tsudat.log'
-    log = logger.Log(logfile=log_filename, level=logger.DEBUG)
-
-    log('Worker start')
-
-    # repeat forever: get message, process message
-    while True:
-        msg_dict = msg.get_server_message()
-        log('msg_dict=%s' % str(msg_dict))
-        message = msg_dict['message']
-
-        # create the global project object
-        project = Project()
-
-        # get JSON data file path
-        json_file = message['JSONData']
-
-        payload = run_tsudat(json_file)
-        log('payload=%s' % str(payload))
-
-        # store output data, signal server
-        send_message('STOP', payload=payload)
-
-        del project

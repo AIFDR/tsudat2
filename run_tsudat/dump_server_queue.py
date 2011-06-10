@@ -37,8 +37,10 @@ def queue_messages():
     while msg:
         msg = chan.basic_get(queue=config.Queue, no_ack=True)
         if msg:
-            d = json.loads(msg.body)
-            yield d
+            message = json.loads(msg.body)
+            print('message=%s' % str(message))
+            print('type(message)=%s' % type(message))
+            yield message
     # no more messages, tear down messaging
     chan.close()
     conn.close()
@@ -46,19 +48,18 @@ def queue_messages():
 
 if __name__ == '__main__':
     for msg in queue_messages():
+        print('msg=%s' % str(msg))
+        print('type(msg)=%s' % type(msg))
         instance = msg.get('instance', '<none>')
-        #status = msg['status']
-        status = msg.get('status', 'STATUS')
+        status = msg.get('status', '<none>')
         timestamp = msg['timestamp']
         gen_file = msg.get('generated_datafile', '')
         message = msg.get('message', '')
-        m = ('%s: %-8s at %s%s%s%s%s%s%s'
+        m = ('%s: %-8s at %s%s%s%s%s'
              % (instance, status, timestamp,
-                '\n\t      User: %s' % message['User'],
-                '\n\t   Project: %s' % message['Project'],
-                '\n\t  Scenario: %s' % message['Scenario'],
-                '\n\t   BaseDir: %s' % message['BaseDir'],
-                '\n\tScriptPath: %s' % message['ScriptPath'],
-                '\n\t     Setup: %s' % message['Setup']))
+                '\n\t      User: %s' % msg['user'],
+                '\n\t   Project: %s' % msg['project'],
+                '\n\t  Scenario: %s' % msg['scenario'],
+                '\n\t     Setup: %s' % msg['setup']))
         print(m)
 

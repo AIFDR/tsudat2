@@ -10,7 +10,8 @@ import numpy as num
 from anuga.abstract_2d_finite_volumes.util import remove_lone_verts
 from anuga.coordinate_transforms.geo_reference import Geo_reference
 from anuga.utilities.file_utils import get_all_swwfiles
-import anuga.utilities.log as log
+#import anuga.utilities.log as log
+import tsudat_log as logger
 
 import types
 from Scientific.IO.NetCDF import NetCDFFile
@@ -76,6 +77,8 @@ def export_depthonland_max(name_in, name_out,
         Yshift        10000000.0000000000
         Parameters
     """
+
+    log = logger.Log()
 
     (basename_in, in_ext) = os.path.splitext(name_in)
     (basename_out, out_ext) = os.path.splitext(name_out)

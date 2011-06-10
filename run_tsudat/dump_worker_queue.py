@@ -65,4 +65,5 @@ if __name__ == '__main__':
                     '\n\tScriptPath: %s' % message['ScriptPath'],
                     '\n\t     Setup: %s' % message['Setup']))
         print(m)
+        print('message=%s' % str(message))
 

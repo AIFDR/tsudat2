@@ -12,37 +12,24 @@ import json
 import traceback
 import zipfile
 import tempfile
+import subprocess
 import boto
 
 import messaging_amqp as msg
-import tsudat_log as logr
-
-log.console_logging_level = log.CRITICAL+1    # turn console logging off
-log.log_logging_level = log.INFO
+import tsudat_log as logger
 
 
-# the AMI we are going to run
-DefaultAmi = 'emi-326E0D10'  # Ubuntu_9.10_tsudat_2.0
+logger.console_logging_level = logger.CRITICAL+1    # turn console logging off
+logger.log_logging_level = logger.INFO
 
-# keypair used to start instance
-DefaultKeypair = 'tsudatkey'
+
+# the AMI of the instance to run, and associated metadata
+DefaultAMI = 'ami-0000001a'
+DefaultKeypair = 'testkey'
+DefaultType = 'c1.large'
 
 # path to the mounted common filesystem
-CommonFileSystem = os.path.join(os.sep, 'data')
-
-DefaultInputDataDir = 'input-data'
-DefaultOutputDataDir = 'output-data'
-DefaultAbortDataDir = 'abort'
-DefaultURSOrderFile = 'urs_order.csv'
-
-# define defaults for various pieces of OpenStack things
-# used by default_project_values()
-# format: iterable of (<name>, <default value>)
-DefaultJSONValues = (('InputDataDir', DefaultInputDataDir),
-                     ('OutputDataDir', DefaultOutputDataDir),
-                     ('AbortDataDir', DefaultAbortDataDir),
-                     ('urs_order_file', DefaultURSOrderFile),
-                    )
+CommonFileSystem = os.path.join(os.sep, 'data', 'tsudat_runs')
 
 # dictionary to handle attribute renaming from JSON->project
 # format: {'UI_name': 'ANUGA_name', ...}
@@ -54,13 +41,23 @@ RenameDict = {'mesh_friction': 'friction',
               'elevation_data_list': 'point_filenames',
              }
 
+# various default values
+DefaultURSOrderFile = 'urs_order.csv'
+
+# define defaults for various things
+# used by default_project_values()
+# format: iterable of (<name>, <default value>)
+DefaultJSONValues = (('urs_order_file', DefaultURSOrderFile),
+                    )
+
+
 # name of run_tsudat() file, here and on worker (name change)
 Ec2RunTsuDAT = 'ncios_run_tsudat.py'
 Ec2RunTsuDATOnEC2 = 'run_tsudat.py'
 
 # names of additional required files in input-data directory
-RequiredFiles = ['export_depthonland_max.py',
-                 'export_newstage_max.py']
+RequiredFiles = ['export_depthonland_max.py', 'export_newstage_max.py',
+                 'messaging_amqp.py']
 
 # name of the JSON data file
 JsonDataFilename = 'data.json'
@@ -86,7 +83,7 @@ project.multi_mux = True
 def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     """Create a TsuDAT2 work directory.
 
-    base        path to base of new directory structure
+    base        path to base of new directory structure (eg, /tmp/tsudat)
     user        user name
     proj        project name
     scen        scenario name
@@ -102,6 +99,8 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     """
 
     global ScriptsDir
+
+    print('base=%s' % str(base))
 
     def touch(path):
         """Helper function to do a 'touch' for a file."""
@@ -120,10 +119,9 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     # create base directory
     timestamp = time.strftime('_%Y%m%dT%H%M%S')
     run_dir = os.path.join(base, user+timestamp, proj, scen, setup)
-    if nuke:
-        shutil.rmtree(run_dir, ignore_errors=True)
     user_dir = os.path.join(base, user+timestamp)
     makedirs_noerror(run_dir)
+    print('made: %s' % str(run_dir))
 
     # create the 'raw_elevation' directory for a project
     raw_elevation = os.path.join(base, user+timestamp, proj, 'raw_elevation')
@@ -273,44 +271,6 @@ def excepthook(type, value, tb):
     msg += '='*80 + '\n'
     log.critical(msg)
 
-
-def start_ami(ami, key_name=DefaultKeypair, instance_type='m1.large',
-              user_data=None):
-    """Start the configured AMI, wait until it's running.
-
-    ami            the ami ID ('ami-????????')
-    key_name       the keypair name
-    instance_type  type of instance to run
-    user_data      the user data string to pass to instance
-    """
-
-    access_key = os.environ['EC2_ACCESS_KEY']
-    secret_key = os.environ['EC2_SECRET_ACCESS_KEY']
-    ec2 = boto.connect_ec2(access_key, secret_key)
-    access_key = 'DEADBEEF'
-    secret_key = 'DEADBEEF'
-    del access_key, secret_key
-
-    if user_data is None:
-        user_data = ''
-
-    reservation = ec2.run_instances(image_id=ami, key_name=key_name,
-                                    instance_type=instance_type,
-                                    user_data=user_data)
-    # got some sort of race - "instance not found"? - try waiting a bit
-    time.sleep(1)
-
-    # Wait a minute or two while it boots
-    instance = reservation.instances[0]
-    while True:
-        instance.update()
-        if instance.state == 'running':
-            break
-        time.sleep(1)
-
-    return instance
-
-
 def dump_project_py():
     """Debug routine - dump project attributes to the log."""
 
@@ -344,7 +304,72 @@ def default_project_values():
 
     for (name, value) in DefaultJSONValues:
         if getattr(project, name, None) is None:
+            if name == 'urs_order_file':
+                value = os.path.join(project.user_directory, project.project,
+                                     project.scenario, project.setup)
             setattr(project, name, value)
+
+def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
+              user_data=None):
+    """Start the configured AMI, wait until it's running.
+
+    ami            the ami ID ('ami-????????')
+    key_name       the keypair name
+    instance_type  type of instance to run
+    user_data      the user data string to pass to instance
+    """
+
+    # write user data to a file
+    (fd, userdata_file) = tempfile.mkstemp(prefix='tsudat_userdata_', text=True)
+    os.write(fd, user_data)
+    os.close(fd)
+
+    cmd = ('/usr/bin/euca-run-instances %s -k %s -t %s -f %s'
+           % (ami, key_name, instance_type, userdata_file))
+    log.debug('Doing: %s' % cmd)
+    log.debug('user_data: %s' % user_data)
+    retcode = os.system(cmd)
+    log.debug('retcode=%d' % retcode)
+
+    time.sleep(3)
+    os.remove(userdata_file)
+
+#    access_key = os.environ['EC2_ACCESS_KEY']
+#    secret_key = os.environ['EC2_SECRET_KEY']
+#    region = boto.ec2.regioninfo.RegionInfo(name="openstack", endpoint="openstack.nci.org.au")
+#    ec2 = boto.connect_ec2(aws_access_key_id=access_key,
+#                           aws_secret_access_key=secret_key,
+#                           is_secure=False,
+#                           region=region,
+#                           port=8773,
+#                           path="/V1.0/")
+#    access_key = 'DEADBEEF'
+#    secret_key = 'DEADBEEF'
+#    del access_key, secret_key
+#
+#    if user_data is None:
+#        user_data = ''
+#
+#    log.debug('Doing: ec2.run_instances(image_id=%s, key_name=%s,'
+#                                    'instance_type=%s,'
+#                                    'user_data=%s)'
+#              % (ami, key_name, instance_type, user_data))
+#    reservation = ec2.run_instances(image_id=ami, key_name=key_name,
+#                                    instance_type=instance_type,
+#                                    user_data=user_data)
+#    # got some sort of race - "instance not found"? - try waiting a bit
+#    time.sleep(1)
+#
+#    # Wait a minute or two while it boots
+#    instance = reservation.instances[0]
+#    while True:
+#        instance.update()
+#        if instance.state == 'running':
+#            break
+#        time.sleep(1)
+#
+#    return instance
+
 
 def run_tsudat(json_data):
     """Run ANUGA on an NCI OpenStack worker.
@@ -362,11 +387,14 @@ def run_tsudat(json_data):
     default_project_values()
 
     # set logfile to be in run output folder
+
+    log_filename = os.path.join(project.output_folder, 'ui.log')
+    global log
     if project.debug:
-        log.log_logging_level = log.DEBUG
-    log.log_filename = os.path.join(project.output_folder, 'ui.log')
-    if project.debug:
+        log = logger.Log(logfile=log_filename, level=logger.DEBUG)
         dump_project_py()
+    else:
+        log = logger.Log(logfile=log_filename)
 
     # do all required data generation before EC2 run
     log.info('#'*90)
@@ -389,7 +417,7 @@ def run_tsudat(json_data):
     dump_json_to_file(project, json_file)
     dump_project_py()
 
-    # move the work directory to commom filesystem with worker
+    # move the work directory to common filesystem with worker
     source_dir = project.user_directory.split(os.sep)[-1]
     source = project.user_directory
     destination = os.path.join(CommonFileSystem, source_dir)
@@ -404,8 +432,9 @@ def run_tsudat(json_data):
     except AttributeError:                                          #DELETE ME
         getsww = False                                              #DELETE ME
 
-    # get JSON for worker message
+    # get JSON for worker
     message = {'User': project.user,
+               'UserDir': project.user_directory,
                'Project': project.project,
                'Scenario': project.scenario,
                'Setup': project.setup,
@@ -430,6 +459,7 @@ def run_tsudat(json_data):
     with open(restart_file, 'wb') as fp:
         fp.write(user_data)
 
-    # now send signal to worker
-    log.info('Signalling worker, message=%s' % str(message))
-    send_message(message)
+    # now start a worker
+    log.info('Starting worker, user_data=%s' % str(user_data))
+    start_ami(DefaultAMI, user_data=user_data)
+    log.info('Started instance')

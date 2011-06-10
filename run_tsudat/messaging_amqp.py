@@ -10,23 +10,13 @@ import json
 import time
 from amqplib import client_0_8 as amqp
 
-
-# messaging configuration
-#MsgHost='localhost:5672'
-MsgHost = '124.168.213.210:5672'
-MsgUserid = 'tsudat2'
-MsgPassword = 'tsudat12'
+# AMQP configuration
+MsgHost = '192.43.239.232:5672'
+MsgUserid = 'guest'
+MsgPassword = 'guest'
 MsgVirtualHost = '/'
-Exchange = 'tsudat'
-Queue = 'messages'
-
-##MsgHost='localhost:5672'
-#MsgHost = '124.168.213.210:5672'
-#MsgUserid = 'guest'
-#MsgPassword = 'guest'
-#MsgVirtualHost = '/'
-#Exchange = 'sorting_room'
-#Queue = 'po_box'
+Exchange = 'sorting_room'
+Queue = 'po_box'
 
 WorkerRouting = 'worker'
 ServerRouting = 'server'
@@ -36,35 +26,24 @@ ServerRouting = 'server'
 Timeout = 5.0
 
 
-def post_server_message(user, project, scenario, setup, instance, **kwargs):
+def post_server_message(message):
     """Send a message to the server.
 
-    kwargs   a dict of keyword arguments
-
-    Send a JSON representation of the kwargs dict.
-    Add the User, Project, Scenario, Setup & Ip values.
+    message   the message string
     """
 
-    # add the global values
-    kwargs['user'] = user
-    kwargs['project'] = project
-    kwargs['scenario'] = scenario
-    kwargs['setup'] = setup
-    kwargs['instance'] = instance
-
-    # add time as float and string (UTC, ISO 8601 format)
-    kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
-
-    # get JSON string
-    msg = json.dumps(kwargs)
-
-    # send the JSON
+    # create connection
     conn = amqp.Connection(host=MsgHost, userid=MsgUserid,
                            password=MsgPassword, virtual_host=MsgVirtualHost,
                            insist=False)
     chan = conn.channel()
 
-    msg_obj = amqp.Message(msg)
+    # declare the exchange
+    chan.exchange_declare(exchange=Exchange, type='direct',
+                          durable=True, auto_delete=False)
+
+    # send the message
+    msg_obj = amqp.Message(message)
     msg_obj.properties["delivery_mode"] = 2
     routing_key = ServerRouting
     chan.basic_publish(msg_obj, exchange=Exchange, routing_key=routing_key)
@@ -73,26 +52,11 @@ def post_server_message(user, project, scenario, setup, instance, **kwargs):
     conn.close()
 
 
-def post_worker_message(user, project, scenario, setup, **kwargs):
+def post_worker_message(message):
     """Send a message to the worker(s).
 
-    kwargs   a dict of keyword arguments
-
-    Send a JSON representation of the kwargs dict.
-    Add the User, Project, Scenario, Setup & Ip values.
+    message   the message string
     """
-
-    # add the global values
-    kwargs['user'] = user
-    kwargs['project'] = project
-    kwargs['scenario'] = scenario
-    kwargs['setup'] = setup
-
-    # add time as float and string (UTC, ISO 8601 format)
-    kwargs['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
-
-    # get JSON string
-    msg = json.dumps(kwargs)
 
     # send the JSON
     conn = amqp.Connection(host=MsgHost, userid=MsgUserid,
@@ -100,7 +64,12 @@ def post_worker_message(user, project, scenario, setup, **kwargs):
                            insist=False)
     chan = conn.channel()
 
-    msg_obj = amqp.Message(msg)
+    # declare the exchange
+    chan.exchange_declare(exchange=Exchange, type='direct',
+                          durable=True, auto_delete=False)
+
+    # send the message
+    msg_obj = amqp.Message(message)
     msg_obj.properties["delivery_mode"] = 2
     routing_key = WorkerRouting
     chan.basic_publish(msg_obj, exchange=Exchange, routing_key=routing_key)
@@ -131,7 +100,7 @@ def get_server_message():
     while True:
         msg = chan.basic_get(queue=Queue, no_ack=True)
         if msg:
-            msg_dict = json.loads(msg.body)
+            message = msg.body
             break
         else:
             time.sleep(Timeout)
@@ -141,13 +110,13 @@ def get_server_message():
     conn.close()
 
     # return message dict
-    return msg_dict
+    return message
 
 
 def get_worker_message():
     """Get a message from a worker.
 
-    Returns message dictionary.  Returns None if no message available
+    Returns message string.  Returns None if no message available
     """
 
     # create exchange+queue, bound
@@ -165,16 +134,16 @@ def get_worker_message():
     # now get messages, convert from JSON and yield each one
     msg = chan.basic_get(queue=Queue, no_ack=True)
     if msg:
-        msg_dict = json.loads(msg.body)
+        message = msg.body
     else:
-        msg_dict = None
+        message = None
 
     # tear down messaging connection
     chan.close()
     conn.close()
 
     # return message dict
-    return msg_dict
+    return message
 
 
 if __name__ == '__main__':
@@ -188,22 +157,21 @@ if __name__ == '__main__':
 
     # send X messages to the worker(s)
     for i in range(NumMessages):
-        print('Sending message to worker(s): instance=%d' % i)
-        post_worker_message(User, Project, Scenario, Setup, instance=i, state='RUN')
+        message = 'Instance %s, state=RUN' % i
+        print('Sending message to worker(s): %s' % message)
+        post_worker_message(message)
 
-    # pretend to be a worker, read each messages, respond with 2 (Start & STOP)
+    # pretend to be a worker, read each messages, respond with 2 (START & STOP)
     for i in range(NumMessages):
         msg = get_server_message()
-        instance = msg['instance']
-        print('Worker got %s message, instance=%d, timestamp=%s'
-              % (msg['state'], instance, msg['timestamp']))
-        post_server_message(User, Project, Scenario, Setup, instance, state='START')
-        post_server_message(User, Project, Scenario, Setup, instance, state='STOP')
+        print('msg=%s' % str(msg))
+        print('Worker got message: %s' % msg)
+        post_server_message('START')
+        post_server_message('STOP')
 
     # now server reads worker messages
     while True:
         msg = get_worker_message()
         if msg is None:
             break
-        print('From worker: state=%s, instance=%d, timestamp=%s'
-              % (msg['state'], msg['instance'], msg['timestamp']))
+        print('From worker: %s' % msg)
