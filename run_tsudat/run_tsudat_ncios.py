@@ -24,7 +24,7 @@ logger.log_logging_level = logger.INFO
 
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-0000001a'
+DefaultAMI = 'ami-0000001f'     # Ubuntu_10.04_Tsudat_2.0.2
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
