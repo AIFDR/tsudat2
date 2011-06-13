@@ -22,7 +22,7 @@ from gdalconst import *
 import osr
 
 from util.LatLongUTMconversion import LLtoUTM 
-from run_tsudat import run_tsudat_nci as run_tsudat
+from run_tsudat import run_tsudat_ncios as run_tsudat
 
 import re
 
@@ -67,9 +67,14 @@ def run_tsudat_simulation(user, scenario_id):
     TsuDATMux = settings.TSUDAT_MUX_DIR
 
     # create the user working directory
-    (work_dir, raw_elevations, boundaries, meshes,
-             polygons, gauges, _) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username, _slugify(scenario.project.name),
-                                                            _slugify(scenario.name), scenario.model_setup, scenario.event.tsudat_id)
+    (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
+     topographies, user_dir) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username,
+                                                          _slugify(scenario.project.name),
+                                                          _slugify(scenario.name),
+                                                          scenario.model_setup,
+                                                          scenario.event.tsudat_id)
+    print('run_tsudat_simulation: work_dir=%s' % work_dir)      ##?
+    print('run_tsudat_simulation: user_dir=%s' % user_dir)      ##?
 
     project_geom = scenario.project.geom
     project_extent = scenario.project.geom.extent
@@ -92,7 +97,7 @@ def run_tsudat_simulation(user, scenario_id):
     # Polygons
     print polygons
     bounding_polygon_file = open(os.path.join(polygons, 'bounding_polygon.csv'), 'w')
-    for coord in project_geom.coords[0]:
+    for coord in project_geom.coords[0][:-1]:
         bounding_polygon_file.write('%f,%f\n' % (coord[0], coord[1]))
     bounding_polygon_file.close()
  
@@ -104,7 +109,7 @@ def run_tsudat_simulation(user, scenario_id):
         ipfile = open(os.path.join(polygons, 'ip%s.csv' % count), 'w')
         geom = ip.geom
         geom.transform(srid)
-        for coord in geom.coords[0]:
+        for coord in geom.coords[0][:-1]:
             ipfile.write('%f,%f\n' % (coord[0], coord[1]))
         InteriorRegions.append([ip.type, ipfile.name, ip.value])
         ipfile.close()
@@ -197,7 +202,7 @@ def run_tsudat_simulation(user, scenario_id):
 
     # Landward Boundary
     landward_boundary_file = open(os.path.join(boundaries, 'landward_boundary.csv'), 'w')
-    for coord in project_geom.coords[0]:
+    for coord in project_geom.coords[0][:-1]:
         pnt_wkt = 'SRID=%s;POINT(%f %f)' % (srid, coord[0], coord[1])
         logger.debug(pnt_wkt)
         land = Land.objects.filter(the_geom__intersects=pnt_wkt)
@@ -236,8 +241,9 @@ def run_tsudat_simulation(user, scenario_id):
                
     json_dict = {
                     'user': user.username,
+                    'user_directory': user_dir,
                     'project': scenario.project.name,
-                    'scenario_name': scenario.name,
+                    'scenario': scenario.name,
                     'setup': scenario.model_setup,
                     'event_number': scenario.event.tsudat_id,
                     'working_directory': TsuDATBase,
@@ -247,6 +253,7 @@ def run_tsudat_simulation(user, scenario_id):
                     'end_time': scenario.end_time,
                     'smoothing': scenario.smoothing_param,
                     'bounding_polygon_file': bounding_polygon_file.name,
+                    'raw_elevation_directory': raw_elevations,
                     'elevation_data_list': RawElevationFiles,
                     'mesh_friction': scenario.default_friction_value,
                     'raster_resolution': scenario.raster_resolution,
@@ -255,18 +262,22 @@ def run_tsudat_simulation(user, scenario_id):
                     'bounding_polygon_maxarea': scenario.project.max_area,
                     'interior_regions_list': InteriorRegions,
                     'interior_hazard_points_file': interior_hazard_points_file.name, 
-                    'landward_boundary': landward_boundary_file.name,
-                    'zone': utm_zone,
-                    'layers_file': layers, 
+                    'landward_boundary_file': landward_boundary_file.name,
+                    'zone_number': utm_zone,
+                    'layers_list': layers, 
                     'get_results_max': True,
                     'get_timeseries': True 
                 }
+
+    print('json_dict=%s' % str(json_dict))      ##?
+    print('sys.path=%s' % str(sys.path))        ##?
 
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
     # now run the simulation
-    #run_tsudat.run_tsudat(json_file)
+    print("calling run_tsudat.run_tsudat(), user.username='%s'" % user.username)    ##?
+    run_tsudat.run_tsudat(json_file)
 
     # TEMPORARY!!
 
