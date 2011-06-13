@@ -66,12 +66,22 @@ def run_tsudat_simulation(user, scenario_id):
     TsuDATBase = settings.TSUDAT_BASE_DIR
     TsuDATMux = settings.TSUDAT_MUX_DIR
 
+    # change setup value to one of expected strings
+    trial_edit = {'T': 'trial', 't': 'trial',
+                  'F': 'final', 'f': 'final'}
+    actual_setup = trial_edit.get(scenario.model_setup, 'trial')
+
+    # fake a prject name                            ##?
+    if not scenario.project.name:                   ##?
+        scenario.project.name = 'no_project_name'   ##?
+               
     # create the user working directory
     (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
      topographies, user_dir) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username,
                                                           _slugify(scenario.project.name),
                                                           _slugify(scenario.name),
-                                                          scenario.model_setup,
+#                                                          scenario.model_setup,
+                                                          actual_setup,
                                                           scenario.event.tsudat_id)
     print('run_tsudat_simulation: work_dir=%s' % work_dir)      ##?
     print('run_tsudat_simulation: user_dir=%s' % user_dir)      ##?
@@ -238,13 +248,14 @@ def run_tsudat_simulation(user, scenario_id):
     # build the scenario json data file
     date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
     json_file = os.path.join(work_dir, '%s.%s.json' % (_slugify(scenario.name), date_time))
-               
+
     json_dict = {
                     'user': user.username,
                     'user_directory': user_dir,
-                    'project': scenario.project.name,
-                    'scenario': scenario.name,
-                    'setup': scenario.model_setup,
+                    'project': _slugify(scenario.project.name),
+                    'scenario': _slugify(scenario.name),
+#                    'setup': scenario.model_setup,
+                    'setup': actual_setup,
                     'event_number': scenario.event.tsudat_id,
                     'working_directory': TsuDATBase,
                     'mux_directory': TsuDATMux,
@@ -270,6 +281,7 @@ def run_tsudat_simulation(user, scenario_id):
                 }
 
     print('json_dict=%s' % str(json_dict))      ##?
+    print('cwd=%s' % str(os.getcwd()))          ##?
     print('sys.path=%s' % str(sys.path))        ##?
 
     with open(json_file, 'w') as fd:
