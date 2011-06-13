@@ -24,7 +24,7 @@ logger.log_logging_level = logger.INFO
 
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-0000001f'     # Ubuntu_10.04_Tsudat_2.0.2
+DefaultAMI = 'ami-00000034'     # Ubuntu_10.04_Tsudat_2.0.22
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
@@ -319,56 +319,24 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     user_data      the user data string to pass to instance
     """
 
+    if user_data is None:
+        user_data = ''
+
     # write user data to a file
     (fd, userdata_file) = tempfile.mkstemp(prefix='tsudat_userdata_', text=True)
     os.write(fd, user_data)
     os.close(fd)
 
-    cmd = ('/usr/bin/euca-run-instances %s -k %s -t %s -f %s'
+    cmd = ('. /root/.nova/novarc; '
+           '/usr/bin/euca-run-instances %s -k %s -t %s -f %s'
            % (ami, key_name, instance_type, userdata_file))
     log.debug('Doing: %s' % cmd)
     log.debug('user_data: %s' % user_data)
     retcode = os.system(cmd)
     log.debug('retcode=%d' % retcode)
 
-    time.sleep(3)
+    time.sleep(1)
     os.remove(userdata_file)
-
-#    access_key = os.environ['EC2_ACCESS_KEY']
-#    secret_key = os.environ['EC2_SECRET_KEY']
-#    region = boto.ec2.regioninfo.RegionInfo(name="openstack", endpoint="openstack.nci.org.au")
-#    ec2 = boto.connect_ec2(aws_access_key_id=access_key,
-#                           aws_secret_access_key=secret_key,
-#                           is_secure=False,
-#                           region=region,
-#                           port=8773,
-#                           path="/V1.0/")
-#    access_key = 'DEADBEEF'
-#    secret_key = 'DEADBEEF'
-#    del access_key, secret_key
-#
-#    if user_data is None:
-#        user_data = ''
-#
-#    log.debug('Doing: ec2.run_instances(image_id=%s, key_name=%s,'
-#                                    'instance_type=%s,'
-#                                    'user_data=%s)'
-#              % (ami, key_name, instance_type, user_data))
-#    reservation = ec2.run_instances(image_id=ami, key_name=key_name,
-#                                    instance_type=instance_type,
-#                                    user_data=user_data)
-#    # got some sort of race - "instance not found"? - try waiting a bit
-#    time.sleep(1)
-#
-#    # Wait a minute or two while it boots
-#    instance = reservation.instances[0]
-#    while True:
-#        instance.update()
-#        if instance.state == 'running':
-#            break
-#        time.sleep(1)
-#
-#    return instance
 
 
 def run_tsudat(json_data):

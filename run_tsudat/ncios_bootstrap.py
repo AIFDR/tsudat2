@@ -40,6 +40,10 @@ UserDataURL = '%s/2007-01-19/user-data' % InstanceInfoURL
 # URL to get instance ID
 InstanceURL = '%s/latest/meta-data/instance-id' % InstanceInfoURL
 
+# path to check for good /data mount & sleep time
+CheckMountPath = '/data/tsudat_runs'
+CheckMountSleep = 5
+
 # sub-directory holding run_tsudat.py and other scripts/data
 ScriptsDirectory = 'scripts'
 
@@ -49,8 +53,8 @@ JSONFile = 'data.json'
 # number of minutes to keep idle machine alive -  the idea is to keep instance
 # alive for debugging.  for nice message order, IdleTime should not be an
 # integer multiple of ReminderTime.
-IdleTime = 30 - 1	# 0.5 hour (almost)
-ReminderTime = 5
+IdleTime = 10 - 1	# 10 mins (almost)
+ReminderTime = 1
 
 # message status strings
 StatusStart = 'START'
@@ -231,8 +235,9 @@ def bootstrap():
         log.debug('Returned files:\n%s' % gen_str)
 
     # convert gen_files to JSON and add to stopping message
-    gen_files_json = json.dumps(gen_files)
-    send_message(status=StatusStop, payload=gen_files_json)
+#    gen_files_json = json.dumps(gen_files)
+#    send_message(status=StatusStop, payload=gen_files_json)
+    send_message(status=StatusStop, payload=gen_files)
 
     # stop this AMI
     log.info('run_tsudat() finished, shutting down')
@@ -257,6 +262,12 @@ if __name__ == '__main__':
 
     # plug our handler into the python system
     sys.excepthook = excepthook
+
+    # wait here until /data mounted
+    while not os.path.isdir(CheckMountPath):
+        print('Waiting for /data mount (checking %s, sleep %ds)'
+              % (CheckMountPath, CheckMountSleep))
+        time.sleep(CheckMountSleep)
         
     # get instance ID
     with os.popen('wget -O - -q %s' % InstanceURL) as fd:

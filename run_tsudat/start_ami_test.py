@@ -38,12 +38,13 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     os.write(fd, user_data)
     os.close(fd)
 
-    cmd = 'euca-run-instances -f %s -k %s -t %s %s' % (tfile, key_name, instance_type, ami)
+    cmd = ('. /home/tsudat/.nova/novarc; euca-run-instances -f %s -k %s -t %s %s'
+           % (tfile, key_name, instance_type, ami))
     print('Doing: %s' % cmd) 
     os.system(cmd)
 
     time.sleep(1)
-#    os.remove(tfile)
+    os.remove(tfile)
 
 
 if __name__ == '__main__':
