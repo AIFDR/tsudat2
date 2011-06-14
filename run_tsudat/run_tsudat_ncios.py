@@ -27,7 +27,7 @@ logger.log_logging_level = logger.INFO
 PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-00000036'     # Ubuntu_10.04_Tsudat_2.0.24
+DefaultAMI = 'ami-00000037'     # Ubuntu_10.04_Tsudat_2.0.24
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
@@ -209,7 +209,7 @@ def adorn_project(json_data):
     # set default values for attributes that aren't defined or not provided
     define_default('mesh_file', '%s.msh' % project.scenario)
 
-    define_default('debug', False)
+    define_default('debug', True)
     define_default('force_run', True)
 
     # add extra derived attributes
