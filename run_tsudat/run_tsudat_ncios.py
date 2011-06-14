@@ -23,13 +23,17 @@ logger.console_logging_level = logger.CRITICAL+1    # turn console logging off
 logger.log_logging_level = logger.INFO
 
 
+# HUGE BIG FUDGE
+PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
+
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-00000034'     # Ubuntu_10.04_Tsudat_2.0.22
+DefaultAMI = 'ami-00000036'     # Ubuntu_10.04_Tsudat_2.0.24
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
 # path to the mounted common filesystem
-CommonFileSystem = os.path.join(os.sep, 'data', 'tsudat_runs')
+#CommonFileSystem = os.path.join(os.sep, 'data', 'tsudat_runs')
+CommonFileSystem = os.path.join(os.sep, 'data', 'run_tsudat')
 
 # dictionary to handle attribute renaming from JSON->project
 # format: {'UI_name': 'ANUGA_name', ...}
@@ -95,12 +99,17 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     The created 'user' directory has a data+time suffix added.
 
     Returns a tuple of paths to places under 'base' required by the UI:
-        (user_base, raw_elevation, boundaries, meshes, polygons, gauges)
+        (user_base, raw_elevation, boundaries, meshes, polygons,
+         gauges, topographies, user_dir)
     """
 
     global ScriptsDir
 
     print('base=%s' % str(base))
+    print('user=%s' % str(user))
+    print('proj=%s' % str(proj))
+    print('scen=%s' % str(scen))
+    print('setup=%s' % str(setup))
 
     def touch(path):
         """Helper function to do a 'touch' for a file."""
@@ -118,8 +127,8 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
 
     # create base directory
     timestamp = time.strftime('_%Y%m%dT%H%M%S')
-    run_dir = os.path.join(base, user+timestamp, proj, scen, setup)
     user_dir = os.path.join(base, user+timestamp)
+    run_dir = os.path.join(user_dir, proj, scen, setup)
     makedirs_noerror(run_dir)
     print('made: %s' % str(run_dir))
 
@@ -143,8 +152,8 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
     ScriptsDir = os.path.join(run_dir, 'scripts')
 
     # return paths to various places under 'base'
-    return (user_dir, raw_elevation, boundaries, meshes, polygons,
-            gauges, topographies)
+    return (run_dir, raw_elevation, boundaries, meshes, polygons,
+            gauges, topographies, user_dir)
 
 def send_message(message):
     """Send a message to the worker(s).
@@ -194,6 +203,7 @@ def adorn_project(json_data):
         new_key = RenameDict.get(key, key)
 
         # set new attribute in project object
+        print('setting project attribute %s to %s' % (new_key, value))
         project.__setattr__(new_key, value)
 
     # set default values for attributes that aren't defined or not provided
@@ -233,11 +243,11 @@ def adorn_project(json_data):
     # Generate full paths to data files
     #####
 
-    # The complete path to the elevation, generated in build_elevation()
-    if project.combined_elevation_file:
-        project.combined_elevation_file = os.path.join(
-                                              project.topographies_folder,
-                                              project.combined_elevation_file)
+#    # The complete path to the elevation, generated in build_elevation()
+#    if project.combined_elevation_file:
+#        project.combined_elevation_file = os.path.join(
+#                                              project.topographies_folder,
+#                                              project.combined_elevation_file)
 
     # The absolute pathname of the mesh, generated in run_model.py
     if project.mesh_file:
@@ -326,17 +336,21 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     (fd, userdata_file) = tempfile.mkstemp(prefix='tsudat_userdata_', text=True)
     os.write(fd, user_data)
     os.close(fd)
+    print('write user_data file: %s' % userdata_file)
+    print('user_data=%s' % str(user_data))
 
-    cmd = ('. /root/.nova/novarc; '
-           '/usr/bin/euca-run-instances %s -k %s -t %s -f %s'
+    cmd = ('. /root/.nova/novarc; /usr/bin/euca-run-instances %s -k %s -t %s -f %s'
            % (ami, key_name, instance_type, userdata_file))
     log.debug('Doing: %s' % cmd)
     log.debug('user_data: %s' % user_data)
+    print('Doing: %s' % cmd)
+    print('user_data: %s' % user_data)
     retcode = os.system(cmd)
     log.debug('retcode=%d' % retcode)
+    print('retcode=%d' % retcode)
 
     time.sleep(1)
-    os.remove(userdata_file)
+    #os.remove(userdata_file)
 
 
 def run_tsudat(json_data):
@@ -362,6 +376,7 @@ def run_tsudat(json_data):
         log = logger.Log(logfile=log_filename, level=logger.DEBUG)
         dump_project_py()
     else:
+        print('log filename=%s' % log_filename)
         log = logger.Log(logfile=log_filename)
 
     # do all required data generation before EC2 run
@@ -371,13 +386,17 @@ def run_tsudat(json_data):
 
     # copy all required python modules to scripts directory
     ec2_name = os.path.join(ScriptsDir, Ec2RunTsuDATOnEC2)
+    src_name = os.path.join(PathToRunTsudat, Ec2RunTsuDAT)
     log.debug("Copying worker run file '%s' to scripts directory '%s'."
-              % (Ec2RunTsuDAT, ec2_name))
-    shutil.copy(Ec2RunTsuDAT, ec2_name)
+              % (src_name, ec2_name))
+    print("Copying worker run file '%s' to scripts directory '%s'."
+          % (src_name, ec2_name))
+    shutil.copy(src_name, ec2_name)
 
     for extra in RequiredFiles:
-        log.info('Copying %s to scripts directory' % extra)
-        shutil.copy(extra, ScriptsDir)
+        src_name = os.path.join(PathToRunTsudat, extra)
+        log.info('Copying %s to %s' % (src_name, ScriptsDir))
+        shutil.copy(src_name, ScriptsDir)
 
     # dump the current 'projects' object back into JSON, put in 'scripts'
     json_file = os.path.join(ScriptsDir, JsonDataFilename)
@@ -391,6 +410,7 @@ def run_tsudat(json_data):
     destination = os.path.join(CommonFileSystem, source_dir)
     if destination != source:
         log.debug('mv %s %s' % (source, destination))
+        print('mv %s %s' % (source, destination))
         shutil.move(source, destination)
 
     # WHEN WE NO LONGER NEED THE 'GETSWW' OPTION, DELETE ALL LINES: #DELETE ME
