@@ -45,8 +45,8 @@ GEOSERVER_CREDENTIALS = "admin", "geoserver"
 GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
 GEONETWORK_CREDENTIALS = "admin", 'admin'
 
-TSUDAT_BASE_DIR='/tmp/tsudat'
-TSUDAT_MUX_DIR='/data_area/Tsu-DAT_1.0/Tsu-DAT_Data/earthquake_data'
+TSUDAT_BASE_DIR='/data/run_tsudat/'
+TSUDAT_MUX_DIR='/data/Tsu-DAT_Data/earthquake_data'   # *instance* path to mux data
 
 # Celery Settings
 CARROT_BACKEND = "django"

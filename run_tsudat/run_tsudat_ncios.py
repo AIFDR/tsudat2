@@ -27,7 +27,7 @@ logger.log_logging_level = logger.INFO
 PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-00000037'     # Ubuntu_10.04_Tsudat_2.0.24
+DefaultAMI = 'ami-00000038'     # Ubuntu_10.04_Tsudat_2.0.26
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
@@ -150,6 +150,11 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
 
     # save scripts path globally to help run_tsudat()
     ScriptsDir = os.path.join(run_dir, 'scripts')
+
+    # make all directories writable by everybody
+    cmd = 'chmod -R a+rw %s' % user_dir
+    print(cmd)
+    os.system(cmd)
 
     # return paths to various places under 'base'
     return (run_dir, raw_elevation, boundaries, meshes, polygons,
@@ -295,7 +300,7 @@ def dump_project_py():
 def dump_json_to_file(project, json_file):
     """Dump project object back to a JSON file.
 
-    project  the project object to dump
+    project    the project object to dump
     json_file  the file to dump JSON to
 
     Dump all 'non-special' attributes of the object.
@@ -349,9 +354,6 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     log.debug('retcode=%d' % retcode)
     print('retcode=%d' % retcode)
 
-    time.sleep(1)
-    #os.remove(userdata_file)
-
 
 def run_tsudat(json_data):
     """Run ANUGA on an NCI OpenStack worker.
@@ -404,14 +406,14 @@ def run_tsudat(json_data):
     dump_json_to_file(project, json_file)
     dump_project_py()
 
-    # move the work directory to common filesystem with worker
-    source_dir = project.user_directory.split(os.sep)[-1]
-    source = project.user_directory
-    destination = os.path.join(CommonFileSystem, source_dir)
-    if destination != source:
-        log.debug('mv %s %s' % (source, destination))
-        print('mv %s %s' % (source, destination))
-        shutil.move(source, destination)
+#    # move the work directory to common filesystem with worker
+#    source_dir = project.user_directory.split(os.sep)[-1]
+#    source = project.user_directory
+#    destination = os.path.join(CommonFileSystem, source_dir)
+#    if destination != source:
+#        log.debug('mv %s %s' % (source, destination))
+#        print('mv %s %s' % (source, destination))
+#        shutil.move(source, destination)
 
     # WHEN WE NO LONGER NEED THE 'GETSWW' OPTION, DELETE ALL LINES: #DELETE ME
     # for now, assume ['getsww': False] if project.getsww undefined #DELETE ME

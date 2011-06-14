@@ -24,6 +24,8 @@ import osr
 from util.LatLongUTMconversion import LLtoUTM 
 from run_tsudat import run_tsudat_ncios as run_tsudat
 
+from tsudat import landward
+
 import re
 
 try:
@@ -84,6 +86,12 @@ def run_tsudat_simulation(user, scenario_id):
                                                           actual_setup,
                                                           scenario.event.tsudat_id)
     print('run_tsudat_simulation: work_dir=%s' % work_dir)      ##?
+    print('run_tsudat_simulation: raw_elevations=%s' % raw_elevations)      ##?
+    print('run_tsudat_simulation: boundaries=%s' % boundaries)      ##?
+    print('run_tsudat_simulation: meshes=%s' % meshes)      ##?
+    print('run_tsudat_simulation: polygons=%s' % polygons)      ##?
+    print('run_tsudat_simulation: gauges=%s' % gauges)      ##?
+    print('run_tsudat_simulation: topographies=%s' % topographies)      ##?
     print('run_tsudat_simulation: user_dir=%s' % user_dir)      ##?
 
     project_geom = scenario.project.geom
@@ -211,13 +219,24 @@ def run_tsudat_simulation(user, scenario_id):
         '''
 
     # Landward Boundary
-    landward_boundary_file = open(os.path.join(boundaries, 'landward_boundary.csv'), 'w')
+    
+    # Iterate over the in the project geometry and add a l or s flag and call landward.landward with them
+    points_list = []
     for coord in project_geom.coords[0][:-1]:
         pnt_wkt = 'SRID=%s;POINT(%f %f)' % (srid, coord[0], coord[1])
-        logger.debug(pnt_wkt)
         land = Land.objects.filter(the_geom__intersects=pnt_wkt)
         if(land.count() > 0):
-            landward_boundary_file.write('%f,%f\n' % (coord[0], coord[1]))
+            points_list.append((coord[0], coord[1], "l")) 
+        else:
+            points_list.append((coord[0], coord[1], "s")) 
+    print('points_list=%s' % str(points_list))
+    landward_points = landward.landward(points_list)
+    print('landward_points=%s' % str(landward_points))
+    
+    # Write out the landward points to a file
+    landward_boundary_file = open(os.path.join(boundaries, 'landward_boundary.csv'), 'w')
+    for pt in landward_points:
+        landward_boundary_file.write('%f,%f\n' % (pt[0], pt[1]))
     landward_boundary_file.close()
 
     # Interior Hazard Points File
@@ -225,8 +244,10 @@ def run_tsudat_simulation(user, scenario_id):
     hps = HazardPoint.objects.filter(geom__intersects=project_geom).order_by('tsudat_id')
     for hp in hps:
         the_geom = hp.geom
+        latitude=the_geom.coords[1]
+        longitude=the_geom.coords[0]
         the_geom.transform(srid)
-        interior_hazard_points_file.write('%f,%f\n' % (the_geom.coords[0], the_geom.coords[1]))
+        interior_hazard_points_file.write('%d,%f,%f,%f,%f\n' % (hp.tsudat_id,longitude,latitude,the_geom.coords[0], the_geom.coords[1]))
     interior_hazard_points_file.close()
     
     # Gauges
@@ -291,6 +312,7 @@ def run_tsudat_simulation(user, scenario_id):
     print("calling run_tsudat.run_tsudat(), user.username='%s'" % user.username)    ##?
     run_tsudat.run_tsudat(json_file)
 
+    """
     # TEMPORARY!!
 
     output_file = open('/var/www/tsudat2/data/batemans_bay_output.json', 'r')
@@ -324,7 +346,7 @@ def run_tsudat_simulation(user, scenario_id):
         cmd = "/usr/bin/gdalwarp -of GTiff -s_srs EPSG:%d -t_srs EPSG:4326 %s %s" % (srid, result, tif_file_path)
         os.system(cmd)
  
-        new_layer = save(base, tif_file_path, user, overwrite = False, title=layer_title, abstract=layer_abstract, permissions=layer_perm_spec, keywords = keywords) 
+        new_layer = save(base, tif_file_path, user, overwrite = True, title=layer_title, abstract=layer_abstract, permissions=layer_perm_spec, keywords = keywords) 
         output_layers.append(new_layer.typename)
 
     # Create a project Map in the GeoNode
@@ -344,5 +366,5 @@ def run_tsudat_simulation(user, scenario_id):
             'scenario_name': scenario.name,
         }
         notification.send([user], "scenario_complete", data)
-
+    """
     return True
