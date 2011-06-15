@@ -319,10 +319,12 @@ def default_project_values():
 
     for (name, value) in DefaultJSONValues:
         if getattr(project, name, None) is None:
-            if name == 'urs_order_file':
-                value = os.path.join(project.user_directory, project.project,
-                                     project.scenario, project.setup)
+#            if name == 'urs_order_file':
+#                value = os.path.join(project.user_directory, project.project,
+#                                     project.scenario, project.setup)
             setattr(project, name, value)
+
+    project.sts_filestem = project.scenario
 
 def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
               user_data=None):
