@@ -40,8 +40,11 @@ UserDataURL = '%s/2007-01-19/user-data' % InstanceInfoURL
 # URL to get instance ID
 InstanceURL = '%s/latest/meta-data/instance-id' % InstanceInfoURL
 
+# URL to get public IP
+PublicIpUrl = '%s/latest/meta-data/public-ipv4' % InstanceInfoURL
+
 # path to check for good /data mount & sleep time
-CheckMountPath = '/data/tsudat_runs'
+CheckMountPath = '/data/run_tsudat'
 CheckMountSleep = 5
 
 # sub-directory holding run_tsudat.py and other scripts/data
@@ -63,6 +66,15 @@ StatusAbort = 'ABORT'
 StatusIdle = 'IDLE'
 StatusLog = 'LOG'
 StatusError = 'ERROR'
+
+
+def get_public_ip():
+    """Get the public address of this instance."""
+
+    # get public IP
+    with os.popen('wget -O - -q %s' % InstanceURL) as fd:
+        public_ip = fd.readline()
+    return public_ip 
 
 
 def abort(msg):
@@ -90,7 +102,25 @@ def error(msg):
     send_message_lite(status=StatusERROR, message=msg)
 
     # then stop the AMI
-    os.system('/usr/bin/euca-terminate-instances %s' % Instance)
+    terminate_instance()
+
+
+def terminate_instance():
+    """Terminate the instance, release public IP."""
+
+    # get public IP
+    public_ip = get_public_ip()
+
+    # disassociate IP with this instance and terminate the instance
+    cmd = '/usr/bin/euca-disassociate-address %s' % public_ip
+    print('Doing: %s' % cmd)
+    os.system(cmd)
+
+    cmd = '/usr/bin/euca-terminate-instances %s' % Instance
+    print('Doing: %s' % cmd)
+    os.system(cmd)
+
+    sys.exit(0)
 
 
 def wait_a_while():
@@ -116,7 +146,7 @@ def shutdown():
         wait_a_while()
         send_message(status=StatusStop)
 
-    os.system('/usr/bin/euca-terminate-instances %s' % Instance)
+    terminate_instance()
 
 
 def send_message(**kwargs):
@@ -214,7 +244,13 @@ def bootstrap():
     gen_files = run_tsudat.run_tsudat(json_path)
 
     # add local log files to the 'log' entry
-    gen_files['log'] = glob.glob('*.log')
+    local_logs = glob.glob('*.log')
+    log_gen_files = []
+    for l_l in local_logs:
+        dst = os.path.join(new_pythonpath, l_l)
+        shutil.copyfile(l_l, dst)
+        log_gen_files.append(dst)
+    gen_files['log'] = log_gen_files
 
     # before we possibly delete the gen_files['sww'], get output path
     save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
