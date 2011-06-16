@@ -49,6 +49,7 @@ CheckMountSleep = 5
 
 # sub-directory holding run_tsudat.py and other scripts/data
 ScriptsDirectory = 'scripts'
+OutputsDirectory = 'outputs'
 
 # name of the JSON file in the S3 input data
 JSONFile = 'data.json'
@@ -144,7 +145,6 @@ def shutdown():
 
     if Debug:
         wait_a_while()
-        send_message(status=StatusStop)
 
     terminate_instance()
 
@@ -164,6 +164,8 @@ def send_message(**kwargs):
     kwargs['scenario'] = Scenario
     kwargs['setup'] = Setup
     kwargs['instance'] = Instance
+    kwargs['project_id'] = ProjectID
+    kwargs['scenario_id'] = ScenarioID
 
     # add time as float and string (UTC, ISO 8601 format)
     kwargs['time'] = time.time()
@@ -244,17 +246,19 @@ def bootstrap():
     gen_files = run_tsudat.run_tsudat(json_path)
 
     # add local log files to the 'log' entry
+    output_path = os.path.join(UserDir, Project, Scenario, Setup,
+                               OutputsDirectory)
     local_logs = glob.glob('*.log')
     log_gen_files = []
     for l_l in local_logs:
-        dst = os.path.join(new_pythonpath, l_l)
+        dst = os.path.join(output_path, l_l)
         shutil.copyfile(l_l, dst)
         log_gen_files.append(dst)
     gen_files['log'] = log_gen_files
 
-    # before we possibly delete the gen_files['sww'], get output path
-    save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
-    log.debug('save_zip_base=%s' % save_zip_base)
+#    # before we possibly delete the gen_files['sww'], get output path
+#    save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
+#    log.debug('save_zip_base=%s' % save_zip_base)
 
     # if user data shows 'getsww' as False, remove 'sww' key from dictionary
     if not UserData.get('GETSWW', True):
@@ -271,8 +275,6 @@ def bootstrap():
         log.debug('Returned files:\n%s' % gen_str)
 
     # convert gen_files to JSON and add to stopping message
-#    gen_files_json = json.dumps(gen_files)
-#    send_message(status=StatusStop, payload=gen_files_json)
     send_message(status=StatusStop, payload=gen_files)
 
     # stop this AMI
@@ -285,6 +287,7 @@ if __name__ == '__main__':
 
     global UserData, User, Project, Scenario, Setup, BaseDir, Debug, Instance
     global UserDir
+    global ProjectID, ScenarioID
 
     def excepthook(type, value, tb):
         """Exception hook routine."""
@@ -343,6 +346,9 @@ if __name__ == '__main__':
     if not UserData.get('BASEDIR', ''):
         error_flag = True
         error_msg.append("BASEDIR field doesn't exist or is empty")
+
+    ProjectID = UserData.get('PROJECT_ID', '')
+    ScenarioID = UserData.get('SCENARIO_ID', '')
 
     if error_flag:
         msg = '\n'.join(error_msg)
