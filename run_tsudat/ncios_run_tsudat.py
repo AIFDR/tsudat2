@@ -424,6 +424,8 @@ def setup_model():
                                                       project.bounding_polygon_file))
     project.bounding_maxarea = project.bounding_polygon_maxarea \
                                * project.scale_factor
+    log.critical('project.bounding_polygon_maxarea=%s' % str(project.bounding_polygon_maxarea))
+    log.critical('project.scale_factor=%s' % str(project.scale_factor))
 
     # Estimate the number of triangles
     triangle_min = number_mesh_triangles(project.interior_regions,
@@ -526,14 +528,35 @@ def build_elevation():
     project.combined_elevation_file = os.path.join(project.topographies_folder,
                                                    'combined_elevation.pts')
 
+#    # Create Geospatial data from ASCII files
+#    geospatial_data = {}
+#    if not project.ascii_grid_filenames == []:
+#        for filename in project.ascii_grid_filenames:
+#            absolute_filename = join(project.topographies_folder, filename)
+#        
+#            anuga.asc2dem(absolute_filename+'.asc',
+#                                          use_cache=False,
+#                                          verbose=True)
+#        
+#            anuga.dem2pts(absolute_filename+'.dem', use_cache=False, verbose=True)
+#
+#            G_grid = anuga.geospatial_data.Geospatial_data(file_name=absolute_filename+'.pts',verbose=True)
+#                                                    
+#            print 'Clip geospatial object'
+#            geospatial_data[filename] = G_grid.clip(project.bounding_polygon)
+
     # Create Geospatial data from TXT files
     geospatial_data = {}
     for filename in project.point_filenames:
         log.info('Reading elevation file %s' % filename)
         absolute_filename = os.path.join(project.raw_elevation_directory, filename)
+        name_stem = absolute_filename[:-4]	# remove 'asc'
+        log.info('name_stem=%s' % name_stem)
+        anuga.asc2dem(absolute_filename, use_cache=False, verbose=True)
+        anuga.dem2pts(name_stem+'.dem', use_cache=False, verbose=True)
+        pts_filename = name_stem + '.pts'
         G_points = anuga.geospatial_data.\
-                       Geospatial_data(file_name=absolute_filename,
-                                       verbose=False)
+                       Geospatial_data(file_name=pts_filename, verbose=False)
 
         geospatial_data[filename] = G_points.clip(project.bounding_polygon)
 
@@ -739,10 +762,6 @@ def get_minmaxAOI():
             project.ymaxAOI = ymaxAOI
             return
 
-    msg = ("Didn't find 'aoi' type in project.interior_regions_list: %s"
-           % str(project.interior_regions_list))
-    abort(msg)
-
 
 def export_results_max():
     """Export maximum results.
@@ -835,7 +854,7 @@ def get_timeseries():
     log.debug('get_timeseries: input SWW file=%s' % name)
     log.debug('get_timeseries: gauge file=%s' % project.gauge_file)
     anuga.sww2csv_gauges(name, project.gauge_file,
-                         quantities=project.layers_list, verbose=False)
+                         quantities=['stage'], verbose=False)
 
     # since ANUGA code doesn't return a list of generated files,
     # look in output directory for 'gauge_*.csv' files.
@@ -853,7 +872,7 @@ def make_stage_plot(filename, out_dir=None):
     Creates a PNG timeseries plot file from the timeseries file.
 
     Assumes the input file is CSV format, 1 header line and columns:
-        time, hours, stage, depth
+        time, hours, stage
     """
 
     # read timeseries file, get data
@@ -867,7 +886,7 @@ def make_stage_plot(filename, out_dir=None):
     hours = []
     stage = []
     for line in lines:
-        (_, hval, sval, _) = line.strip().split(',')
+        (_, hval, sval) = line.strip().split(',')
         hours.append(float(hval))
         stage.append(float(sval))
 
@@ -987,14 +1006,19 @@ def run_tsudat(json_file):
         log.info('~'*90)
         log.info('~ Running get_timeseries()')
         log.info('~'*90)
-        file_list = get_timeseries()
-        project.payload['timeseries'] = file_list  # add files to output dict
-        # generate plot files
-        plot_list = []
-        for filename in file_list:
-            plot_file = make_stage_plot(filename)
-            plot_list.append(plot_file)
-        project.payload['timeseries_plot'] = plot_list  # add files to out dict
+        # if project.layers_list is [], do nothing
+        if project.layers_list:
+            file_list = get_timeseries()
+            project.payload['timeseries'] = file_list  # add files to output dict
+            # generate plot files
+            plot_list = []
+            for filename in file_list:
+                plot_file = make_stage_plot(filename)
+                plot_list.append(plot_file)
+            project.payload['timeseries_plot'] = plot_list  # add files to out dict
+        else:
+            project.payload['timeseries'] = []
+            project.payload['timeseries_plot'] = []
 
         log.info('get_timeseries() has finished')
     else:
