@@ -783,6 +783,7 @@ def export_results_max():
                      'olddepth': 'oldstage-elevation',
                      'depth': edm.export_depthonland_max,
                      'speed': '(xmomentum**2 + ymomentum**2)**0.5/(stage-elevation+1.e-6)',
+                     'velocity': '(xmomentum**2 + ymomentum**2)**0.5/(stage-elevation+1.e-6)',
                      'energy': '(((xmomentum/(stage-elevation+1.e-6))**2'
                                '  + (ymomentum/(stage-elevation+1.e-6))**2)'
                                '*0.5*1000*(stage-elevation+1.e-6))+(9.81*stage*1000)',
@@ -848,6 +849,13 @@ def get_timeseries():
 
     Returns a list of generated files.
     """
+
+    # check contents of project.gauge_file, if empty, do nothing
+    with open(project.gauge_file, 'r') as fd:
+        lines = fd.readlines()
+    if len(lines) < 2:
+        log.info('get_timeseries: Nothing to do')
+        return []
 
     # generate the result files
     name = os.path.join(project.output_folder, project.scenario+'.sww')
@@ -990,41 +998,25 @@ def run_tsudat(json_file):
     project.payload['sww'] = glob.glob(glob_mask)
 
     # now do optional post-run extractions
-    if project.get_results_max:
-        log.info('~'*90)
-        log.info('~ Running export_results_max()')
-        log.info('~'*90)
-        file_list = export_results_max()
-        project.payload['results_max'] = file_list  # add files to output dict
-        log.info('export_results_max() has finished')
-    else:
-        log.info('~'*90)
-        log.info('~ Not running export_results_max() - not requested')
-        log.info('~'*90)
+    log.info('~'*90)
+    log.info('~ Running export_results_max()')
+    log.info('~'*90)
+    file_list = export_results_max()
+    project.payload['results_max'] = file_list  # add files to output dict
+    log.info('export_results_max() has finished')
 
-    if project.get_timeseries:
-        log.info('~'*90)
-        log.info('~ Running get_timeseries()')
-        log.info('~'*90)
-        # if project.layers_list is [], do nothing
-        if project.layers_list:
-            file_list = get_timeseries()
-            project.payload['timeseries'] = file_list  # add files to output dict
-            # generate plot files
-            plot_list = []
-            for filename in file_list:
-                plot_file = make_stage_plot(filename)
-                plot_list.append(plot_file)
-            project.payload['timeseries_plot'] = plot_list  # add files to out dict
-        else:
-            project.payload['timeseries'] = []
-            project.payload['timeseries_plot'] = []
-
-        log.info('get_timeseries() has finished')
-    else:
-        log.info('~'*90)
-        log.info('~ Not running get_timeseries() - not requested')
-        log.info('~'*90)
+    log.info('~'*90)
+    log.info('~ Running get_timeseries()')
+    log.info('~'*90)
+    file_list = get_timeseries()
+    project.payload['timeseries'] = file_list  # add files to output dict
+    # generate plot files
+    plot_list = []
+    for filename in file_list:
+        plot_file = make_stage_plot(filename)
+        plot_list.append(plot_file)
+    project.payload['timeseries_plot'] = plot_list  # add files to out dict
+    log.info('get_timeseries() has finished')
 
     return project.payload
 
