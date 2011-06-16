@@ -114,12 +114,16 @@ def terminate_instance():
 
     # disassociate IP with this instance and terminate the instance
     cmd = '/usr/bin/euca-disassociate-address %s' % public_ip
-    print('Doing: %s' % cmd)
-    os.system(cmd)
+    log.debug('Doing: %s' % cmd)
+    with os.popen(cmd) as fd:
+        result = fd.readline()
+    log.debug('result: %s' % str(result))
 
     cmd = '/usr/bin/euca-terminate-instances %s' % Instance
-    print('Doing: %s' % cmd)
-    os.system(cmd)
+    log.debug('Doing: %s' % cmd)
+    with os.popen(cmd) as fd:
+        result = fd.readline()
+    log.debug('result: %s' % str(result))
 
     sys.exit(0)
 
