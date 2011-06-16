@@ -28,7 +28,7 @@ PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
 DefaultBPMaxarea = 250000
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-0000003b'     # Ubuntu_10.04_Tsudat_2.0.28
+DefaultAMI = 'ami-0000003c'     # Ubuntu_10.04_Tsudat_2.0.29
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
