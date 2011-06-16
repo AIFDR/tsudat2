@@ -27,7 +27,7 @@ logger.log_logging_level = logger.INFO
 PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-00000038'     # Ubuntu_10.04_Tsudat_2.0.26
+DefaultAMI = 'ami-0000003b'     # Ubuntu_10.04_Tsudat_2.0.28
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
@@ -265,7 +265,7 @@ def adorn_project(json_data):
                                              project.landward_boundary_file)
 
     # The absolute pathname for the .sts file, generated in build_boundary.py
-    project.event_sts = project.boundaries_folder
+    project.event_sts = os.path.join(project.boundaries_folder, project.scenario)
 
     # The absolute pathname for the gauges file
     project.gauge_file = os.path.join(project.gauges_folder, project.gauge_file)
@@ -286,8 +286,12 @@ def excepthook(type, value, tb):
     msg += '='*80 + '\n'
     log.critical(msg)
 
-def dump_project_py():
+def dump_project_py(msg=None):
     """Debug routine - dump project attributes to the log."""
+
+    # log optional message
+    if msg:
+        log.info(msg)
 
     # list all project.* attributes
     for key in dir(project):
@@ -368,17 +372,24 @@ def run_tsudat(json_data):
 
     # get JSON data and adorn project object with its data
     adorn_project(json_data)
+    dump_project_py('project object as read')
 
     # default certain values if not supplied in JSON data
     default_project_values()
 
-    # set logfile to be in run output folder
+    # FUDGE!  If project.bounding_polygon_maxarea is 0, fake a value
+    print('FUDGE: project.bounding_polygon_maxarea=%s' % str(project.bounding_polygon_maxarea))
+    if project.bounding_polygon_maxarea == 0:
+        project.bounding_polygon_maxarea = 1000000
+    project.setup = 'final'
 
+    dump_project_py('project object after defaulting/fudging')
+
+    # set logfile to be in run output folder
     log_filename = os.path.join(project.output_folder, 'ui.log')
     global log
     if project.debug:
         log = logger.Log(logfile=log_filename, level=logger.DEBUG)
-        dump_project_py()
     else:
         print('log filename=%s' % log_filename)
         log = logger.Log(logfile=log_filename)
@@ -406,16 +417,7 @@ def run_tsudat(json_data):
     json_file = os.path.join(ScriptsDir, JsonDataFilename)
     log.info('Dumping JSON to file %s' % json_file)
     dump_json_to_file(project, json_file)
-    dump_project_py()
-
-#    # move the work directory to common filesystem with worker
-#    source_dir = project.user_directory.split(os.sep)[-1]
-#    source = project.user_directory
-#    destination = os.path.join(CommonFileSystem, source_dir)
-#    if destination != source:
-#        log.debug('mv %s %s' % (source, destination))
-#        print('mv %s %s' % (source, destination))
-#        shutil.move(source, destination)
+    dump_project_py('project object as passed to instance')
 
     # WHEN WE NO LONGER NEED THE 'GETSWW' OPTION, DELETE ALL LINES: #DELETE ME
     # for now, assume ['getsww': False] if project.getsww undefined #DELETE ME
