@@ -95,9 +95,6 @@ def export_depthonland_max(name_in, name_out,
 
     assert(isinstance(block_size, (int, long, float)))
 
-    log.debug('Reading from %s' % name_in)
-    log.debug('Output directory is %s' % name_out)
-
     # open SWW file
     fid = NetCDFFile(name_in)
 
