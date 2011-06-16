@@ -186,12 +186,10 @@ def define_default(name, default):
         if not value:
             setattr(project, name, default)
 
-def adorn_project(json_data, project_id, scenario_id):
+def adorn_project(json_data):
     """Adorn the project object with data from the json file.
 
     json_data    path to the UI JSON data file
-    project_id   ID for the project
-    scenario_id  ID for scenario
 
     Also adds extra project attributes derived from JSON data.
     """
@@ -213,10 +211,6 @@ def adorn_project(json_data, project_id, scenario_id):
         # set new attribute in project object
         print('setting project attribute %s to %s' % (new_key, value))
         project.__setattr__(new_key, value)
-
-    # set the two ID values
-    project.project_id = project_id
-    project.scenario_id = scenario_id
 
     # set default values for attributes that aren't defined or not provided
     define_default('mesh_file', '%s.msh' % project.scenario)
@@ -376,12 +370,10 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
 
 
 
-def run_tsudat(json_data, project_id=None, scenario_id=None):
+def run_tsudat(json_data):
     """Run ANUGA on an NCI OpenStack worker.
 
     json_data    the path to the JSON data file
-    project_id   ID for the project
-    scenario_id  ID for scenario
 
     The two ID values are passed to the instance and placed into 
     every message back to the server.
@@ -391,7 +383,7 @@ def run_tsudat(json_data, project_id=None, scenario_id=None):
     sys.excepthook = excepthook
 
     # get JSON data and adorn project object with its data
-    adorn_project(json_data, project_id, scenario_id)
+    adorn_project(json_data)
 
     # default certain values if not supplied in JSON data
     default_project_values()
