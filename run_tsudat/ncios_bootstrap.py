@@ -268,7 +268,6 @@ def bootstrap():
     if not UserData.get('GETSWW', True):
         msg = 'Userdata says not to save SWW files, deleting...'
         log.info(msg)
-        send_message(status=StatusLog, msg=msg)
         del gen_files['sww']
 
     # optionally dump returned file data
