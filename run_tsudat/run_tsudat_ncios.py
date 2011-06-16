@@ -186,10 +186,12 @@ def define_default(name, default):
         if not value:
             setattr(project, name, default)
 
-def adorn_project(json_data):
+def adorn_project(json_data, project_id, scenario_id):
     """Adorn the project object with data from the json file.
 
-    json_data  path to the UI JSON data file
+    json_data    path to the UI JSON data file
+    project_id   ID for the project
+    scenario_id  ID for scenario
 
     Also adds extra project attributes derived from JSON data.
     """
@@ -211,6 +213,10 @@ def adorn_project(json_data):
         # set new attribute in project object
         print('setting project attribute %s to %s' % (new_key, value))
         project.__setattr__(new_key, value)
+
+    # set the two ID values
+    project.project_id = project_id
+    project.scenario_id = scenario_id
 
     # set default values for attributes that aren't defined or not provided
     define_default('mesh_file', '%s.msh' % project.scenario)
@@ -370,22 +376,25 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
 
 
 
-def run_tsudat(json_data):
+def run_tsudat(json_data, project_id=None, scenario_id=None):
     """Run ANUGA on an NCI OpenStack worker.
 
-    json_data  the path to the JSON data file
+    json_data    the path to the JSON data file
+    project_id   ID for the project
+    scenario_id  ID for scenario
+
+    The two ID values are passed to the instance and placed into 
+    every message back to the server.
     """
 
     # plug our exception handler into the python system
     sys.excepthook = excepthook
 
     # get JSON data and adorn project object with its data
-    adorn_project(json_data)
-    print('project.finaltime=%s' % str(project.finaltime))
+    adorn_project(json_data, project_id, scenario_id)
 
     # default certain values if not supplied in JSON data
     default_project_values()
-    print('project.finaltime=%s' % str(project.finaltime))
 
 
     # FUDGE!  If project.bounding_polygon_maxarea is 0, fake a value
@@ -394,8 +403,6 @@ def run_tsudat(json_data):
         print('FUDGE: project.bounding_polygon_maxarea=%s, set to %d'
               % (str(project.bounding_polygon_maxarea), DefaultBPMaxarea))
     project.setup = 'final'
-    print('project.finaltime=%s' % str(project.finaltime))
-
 
     # set logfile to be in run output folder
     log_filename = os.path.join(project.output_folder, 'ui.log')
@@ -406,20 +413,6 @@ def run_tsudat(json_data):
         log = logger.Log(logfile=log_filename)
 
     dump_project_py('project object as read')
-
-#    # set logfile to be in run output folder
-#    log_filename="/tmp/fuck"
-#    global log
-#    log = logger.Log(logfile=log_filename, level=logger.DEBUG)
-#    
-#    print('*************************************** log_filename=%s' % str(log_filename))
-#    global log
-#    if project.debug:
-#        log = logger.Log(logfile=log_filename, level=logger.DEBUG)
-#    else:
-#        print('log filename=%s' % log_filename)
-#        log = logger.Log(logfile=log_filename)
-#    print('*************************************** log=%s' % str(log))
 
     # do all required data generation before EC2 run
     log.info('#'*90)
