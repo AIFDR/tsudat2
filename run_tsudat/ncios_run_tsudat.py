@@ -176,6 +176,8 @@ def adorn_project(json_file):
     with open(json_file, 'r') as fp:
         ui_dict = json.load(fp)
 
+    log.debug('ui_dict=%s' % str(ui_dict))
+
     # adorn project object with entries from ui_dict
     for (key, value) in ui_dict.iteritems():
         # convert to str (ANUGA can't handle unicode yet)
@@ -184,6 +186,7 @@ def adorn_project(json_file):
             value = str(value)
 
         # set new attribute in project object
+        log.debug('Setting %s to %s' % (str(key), str(value)))
         project.__setattr__(key, value)
 
     # if project.debug isn't defined, set it to False
@@ -424,8 +427,6 @@ def setup_model():
                                                       project.bounding_polygon_file))
     project.bounding_maxarea = project.bounding_polygon_maxarea \
                                * project.scale_factor
-    log.critical('project.bounding_polygon_maxarea=%s' % str(project.bounding_polygon_maxarea))
-    log.critical('project.scale_factor=%s' % str(project.scale_factor))
 
     # Estimate the number of triangles
     triangle_min = number_mesh_triangles(project.interior_regions,
