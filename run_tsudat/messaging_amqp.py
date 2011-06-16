@@ -228,11 +228,14 @@ if __name__ == '__main__':
     Setup = 'setup'
     NumMessages = 3
 
+    """
     # send X messages to the server queue
     for i in range(NumMessages):
         message = 'Instance %s, state=RUN' % i
         print('Sending message to worker(s): %s' % message)
         post_server_message(message)
+
+    """
 
     # pretend to be the server, read each message
     c = ServerMessages()
@@ -242,4 +245,4 @@ if __name__ == '__main__':
             break
         print('Server got message: %s' % msg)
         c.ack_message()
-
+    del c
