@@ -146,8 +146,81 @@ def get_worker_message():
     return message
 
 
+class ServerMessages(object):
+    """Class to read from the server queue.
+
+    If reading an processing with ACK:
+        c = ServerMessages()
+        while True:
+            msg = c.recv_message()
+            if msg is None:
+                break
+            # prolonged processing here
+            c.ack_message()
+
+    """
+
+    def __init__(self):
+        """Initialise the system.
+
+        Uses default configuration, allow override later.
+        """
+
+        # create exchange+queue, bound
+        self.conn = amqp.Connection(host=MsgHost, userid=MsgUserid,
+                                    password=MsgPassword, virtual_host=MsgVirtualHost,
+                                    insist=False)
+        self.chan = self.conn.channel()
+
+        self.chan.queue_declare(queue=Queue, durable=True, exclusive=False, auto_delete=False)
+        self.chan.exchange_declare(exchange=Exchange, type="direct", durable=True, auto_delete=False,)
+
+        routing_key = WorkerRouting
+        self.chan.queue_bind(queue=Queue, exchange=Exchange, routing_key=routing_key)
+
+    def recv_message(self, no_ack=False):
+        """Receive a message from the queue.
+
+        no_ack  if True, don't need to ACK messages
+
+        Returns a message if there is one, else None.
+        """
+
+        # now get a messages
+        msg = self.chan.basic_get(queue=Queue, no_ack=False)
+        if msg:
+            message = msg.body
+            if no_ack:
+                self.delivery_tag = None
+            else:
+                self.delivery_tag = msg.delivery_tag
+        else:
+            message = None
+            self.delivery_tag = None
+
+        return message
+
+    def ack_message(self):
+        """ACK the message we just read."""
+
+        if self.delivery_tag is None:
+            # error, can't ACK
+            msg = "Can't ACK as no message read?"
+            raise Exception(msg)
+
+        self.chan.basic_ack(self.delivery_tag)
+
+    def __del__(self):
+        """Destroy the messaging infrastructure."""
+
+        # tear down messaging connection
+        self.chan.close()
+        self.conn.close()
+        
+        
+    
 if __name__ == '__main__':
-    """Test a little."""
+    """Test class ServerMessages() a little."""
 
     User = 'user'
     Project = 'project'
@@ -155,23 +228,18 @@ if __name__ == '__main__':
     Setup = 'setup'
     NumMessages = 3
 
-    # send X messages to the worker(s)
+    # send X messages to the server queue
     for i in range(NumMessages):
         message = 'Instance %s, state=RUN' % i
         print('Sending message to worker(s): %s' % message)
-        post_worker_message(message)
+        post_server_message(message)
 
-    # pretend to be a worker, read each messages, respond with 2 (START & STOP)
-    for i in range(NumMessages):
-        msg = get_server_message()
-        print('msg=%s' % str(msg))
-        print('Worker got message: %s' % msg)
-        post_server_message('START')
-        post_server_message('STOP')
-
-    # now server reads worker messages
+    # pretend to be the server, read each message
+    c = ServerMessages()
     while True:
-        msg = get_worker_message()
+        msg = c.recv_message()
         if msg is None:
             break
-        print('From worker: %s' % msg)
+        print('Server got message: %s' % msg)
+        c.ack_message()
+
