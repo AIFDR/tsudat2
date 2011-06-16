@@ -25,6 +25,7 @@ logger.log_logging_level = logger.INFO
 
 # HUGE BIG FUDGE
 PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
+DefaultBPMaxarea = 250000
 
 # the AMI of the instance to run, and associated metadata
 DefaultAMI = 'ami-0000003b'     # Ubuntu_10.04_Tsudat_2.0.28
@@ -288,16 +289,19 @@ def excepthook(type, value, tb):
 
 def dump_project_py(msg=None):
     """Debug routine - dump project attributes to the log."""
+    global log
 
     # log optional message
     if msg:
         log.info(msg)
+        pass
 
     # list all project.* attributes
     for key in dir(project):
         if not key.startswith('__'):
             try:
                 log.info('project.%s=%s' % (key, eval('project.%s' % key)))
+                pass
             except AttributeError:
                 pass
 
@@ -360,6 +364,11 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     log.debug('retcode=%d' % retcode)
     print('retcode=%d' % retcode)
 
+#[root@tsudat run_tsudat]# euca-run-instances ami-0000003b -k testkey
+#RESERVATION r-2g9ypl9m  tsudat  default
+#INSTANCE    i-000000f0  ami-0000003b            scheduling  testkey 0       m1.small    2011-06-16T08:29:46Z    unknown zone        
+
+
 
 def run_tsudat(json_data):
     """Run ANUGA on an NCI OpenStack worker.
@@ -372,18 +381,21 @@ def run_tsudat(json_data):
 
     # get JSON data and adorn project object with its data
     adorn_project(json_data)
-    dump_project_py('project object as read')
+    print('project.finaltime=%s' % str(project.finaltime))
 
     # default certain values if not supplied in JSON data
     default_project_values()
+    print('project.finaltime=%s' % str(project.finaltime))
+
 
     # FUDGE!  If project.bounding_polygon_maxarea is 0, fake a value
-    print('FUDGE: project.bounding_polygon_maxarea=%s' % str(project.bounding_polygon_maxarea))
     if project.bounding_polygon_maxarea == 0:
-        project.bounding_polygon_maxarea = 1000000
+        project.bounding_polygon_maxarea = DefaultBPMaxarea
+        print('FUDGE: project.bounding_polygon_maxarea=%s, set to %d'
+              % (str(project.bounding_polygon_maxarea), DefaultBPMaxarea))
     project.setup = 'final'
+    print('project.finaltime=%s' % str(project.finaltime))
 
-    dump_project_py('project object after defaulting/fudging')
 
     # set logfile to be in run output folder
     log_filename = os.path.join(project.output_folder, 'ui.log')
@@ -391,8 +403,23 @@ def run_tsudat(json_data):
     if project.debug:
         log = logger.Log(logfile=log_filename, level=logger.DEBUG)
     else:
-        print('log filename=%s' % log_filename)
         log = logger.Log(logfile=log_filename)
+
+    dump_project_py('project object as read')
+
+#    # set logfile to be in run output folder
+#    log_filename="/tmp/fuck"
+#    global log
+#    log = logger.Log(logfile=log_filename, level=logger.DEBUG)
+#    
+#    print('*************************************** log_filename=%s' % str(log_filename))
+#    global log
+#    if project.debug:
+#        log = logger.Log(logfile=log_filename, level=logger.DEBUG)
+#    else:
+#        print('log filename=%s' % log_filename)
+#        log = logger.Log(logfile=log_filename)
+#    print('*************************************** log=%s' % str(log))
 
     # do all required data generation before EC2 run
     log.info('#'*90)
