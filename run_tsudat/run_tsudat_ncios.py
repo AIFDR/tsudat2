@@ -364,12 +364,6 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     log.debug('retcode=%d' % retcode)
     print('retcode=%d' % retcode)
 
-#[root@tsudat run_tsudat]# euca-run-instances ami-0000003b -k testkey
-#RESERVATION r-2g9ypl9m  tsudat  default
-#INSTANCE    i-000000f0  ami-0000003b            scheduling  testkey 0       m1.small    2011-06-16T08:29:46Z    unknown zone        
-
-
-
 def run_tsudat(json_data):
     """Run ANUGA on an NCI OpenStack worker.
 
@@ -387,7 +381,6 @@ def run_tsudat(json_data):
 
     # default certain values if not supplied in JSON data
     default_project_values()
-
 
     # FUDGE!  If project.bounding_polygon_maxarea is 0, fake a value
     if project.bounding_polygon_maxarea == 0:
@@ -447,6 +440,8 @@ def run_tsudat(json_data):
                'BaseDir': project.run_directory,
                'ScriptPath': ScriptsDir,
                'JSONData': os.path.join(ScriptsDir, JsonDataFilename),
+               'project_id': project.project_id,
+               'scenario_id': project.scenario_id,
                'getsww': getsww,                                    #DELETE ME
                'Debug': 'debug' if project.debug else 'production'}
 
