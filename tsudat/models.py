@@ -1,9 +1,13 @@
 import sys, traceback
 import geojson
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry, LinearRing, LineString
 from django.contrib.gis.gdal import SpatialReference
 from django.contrib.gis.db import models
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import User
+
+import logging
+logger = logging.getLogger("tsudat2.tsudat.models")
 
 RETURN_PERIOD_CHOICES = (
     (10, '10 years'),
@@ -123,6 +127,7 @@ class EventWaveHeight(models.Model):
 
 class Project(models.Model):
     name = models.CharField(max_length=50)
+    user = models.ForeignKey(User) 
     geom = models.PolygonField()
     max_area = models.PositiveIntegerField()
 
@@ -140,8 +145,12 @@ class Project(models.Model):
                     srs = SpatialReference(crs)
                     geom.set_srid(srs.srid)
                     geom.transform(4326)
+                ls = LineString(geom[0].coords)
+                if(ls.simple == False):
+                    return None, 'Error Creating Geometry: Polygon is not Valid'
                 self.geom = geom
             except:
+                logger.debug(sys.exc_info())
                 return None, 'Error Creating Geometry'
             if('name' in data.__dict__['properties']):
                 self.name = data.__dict__['properties']['name']
@@ -374,7 +383,11 @@ class InternalPolygon(models.Model):
                     srs = SpatialReference(crs)
                     geom.set_srid(srs.srid)
                     geom.transform(4326)
-                # ToDo Topology Check (Simple Polygon, Doesnt Intersect Others)
+                # Topology Checks
+                # - Is LinearRing (simple polygon, doesnt intersect itself)
+                ls = LineString(geom[0].coords)
+                if(ls.simple == False):
+                    return None, 'Error Creating Geometry: Polygon is not Valid'
                 self.geom = geom
             except:
                 return None, "Invalid Geometry"
@@ -393,10 +406,21 @@ class InternalPolygon(models.Model):
                 try:
                     project_id = data.__dict__['properties']['project_id']
                     self.project = Project.objects.get(id=int(project_id))
+                    # Topology Check
+                    # - verify that the internal polygon is completely within the project polygon
+                    if(self.project.geom.contains(self.geom) == False):
+                        return None, 'Error Creating Geometry: Internal Polygon not Within Project Polygon' 
                 except (ValueError, ObjectDoesNotExist):
                     return None, "Invalid Project"
             else:
                 return None, "Project is Required"
+            # Topology Check
+            # - verify that the internal polygon doesnt intersect any other internal polygons for this project
+            xip = InternalPolygon.objects.filter(project=self.project, geom__intersects=geom)
+            if(xip.count() > 0):
+                for ip in xip:
+                    if(self.geom.contains(ip.geom) == False and self.geom.within(ip.geom) == False):
+                        return None, 'Error Creating Geometry: Polygon Intersects other Polygons'
             if("value" in  data.__dict__['properties']):
                 try:
                     self.value = float(data.__dict__['properties']['value'])
