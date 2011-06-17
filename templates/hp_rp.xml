@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<StyledLayerDescriptor version="1.0.0" 
+xsi:schemaLocation="http://www.opengis.net/sld StyledLayerDescriptor.xsd" 
+xmlns="http://www.opengis.net/sld" 
+xmlns:ogc="http://www.opengis.net/ogc" 
+xmlns:xlink="http://www.w3.org/1999/xlink" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+                
+<NamedLayer>
+<Name>tsudat:tsudat_hazardpoint_rp</Name>
+<UserStyle>
+<Title>TsuDAT Hazard Point for Return Period Style</Title>
+<Abstract>Style for layer tsudat_hazardpoint_rp</Abstract>
+<FeatureTypeStyle>
+              
+<Rule> 
+<Name>tsudat_hazardpoint_rp</Name>
+<Title>Wave Height {{ cls1s }} - {{ cls1e }}</Title>
+<Abstract>tsudat_hazardpoint_rp</Abstract>
+<ogc:Filter>
+         <ogc:And>
+           <ogc:PropertyIsGreaterThanOrEqualTo>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls1s }}</ogc:Literal>
+           </ogc:PropertyIsGreaterThanOrEqualTo>
+           <ogc:PropertyIsLessThan>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls1e }}</ogc:Literal>
+           </ogc:PropertyIsLessThan>
+         </ogc:And>
+  </ogc:Filter>
+         <PointSymbolizer>
+            <Graphic>
+              <Mark>
+                <WellKnownName>circle</WellKnownName>
+                <Fill>
+                  <CssParameter name="fill">#D9D9EA</CssParameter>
+                </Fill>
+              </Mark>
+              <Size>6</Size>
+            </Graphic>
+          </PointSymbolizer>
+</Rule>
+  
+<Rule> 
+<Name>tsudat_hazardpoint_rp</Name>
+<Title>Wave Height {{ cls2s }} - {{ cls2e }}</Title>
+<Abstract>tsudat_hazardpoint_rp</Abstract>
+<ogc:Filter>
+         <ogc:And>
+           <ogc:PropertyIsGreaterThanOrEqualTo>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls2s }}</ogc:Literal>
+           </ogc:PropertyIsGreaterThanOrEqualTo>
+           <ogc:PropertyIsLessThan>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls2e }}</ogc:Literal>
+           </ogc:PropertyIsLessThan>
+         </ogc:And>
+  </ogc:Filter>
+         <PointSymbolizer>
+            <Graphic>
+              <Mark>
+                <WellKnownName>circle</WellKnownName>
+                <Fill>
+                  <CssParameter name="fill">#BCBDDC</CssParameter>
+                </Fill>
+              </Mark>
+              <Size>6</Size>
+            </Graphic>
+          </PointSymbolizer>
+</Rule>
+
+  <Rule> 
+<Name>tsudat_hazardpoint_rp</Name>
+<Title>Wave Height {{ cls3s }} - {{ cls3e }}</Title>
+<Abstract>tsudat_hazardpoint_rp</Abstract>
+<ogc:Filter>
+         <ogc:And>
+           <ogc:PropertyIsGreaterThanOrEqualTo>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls3s }}</ogc:Literal>
+           </ogc:PropertyIsGreaterThanOrEqualTo>
+           <ogc:PropertyIsLessThan>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls3e }}</ogc:Literal>
+           </ogc:PropertyIsLessThan>
+         </ogc:And>
+  </ogc:Filter>
+         <PointSymbolizer>
+            <Graphic>
+              <Mark>
+                <WellKnownName>circle</WellKnownName>
+                <Fill>
+                  <CssParameter name="fill">#9E9AC8</CssParameter>
+                </Fill>
+              </Mark>
+              <Size>6</Size>
+            </Graphic>
+          </PointSymbolizer>
+</Rule>
+  <Rule> 
+<Name>tsudat_hazardpoint_rp</Name>
+<Title>Wave Height {{ cls4s }} - {{ cls4e }}</Title>
+<Abstract>tsudat_hazardpoint_rp</Abstract>
+<ogc:Filter>
+         <ogc:And>
+           <ogc:PropertyIsGreaterThanOrEqualTo>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls4s }}</ogc:Literal>
+           </ogc:PropertyIsGreaterThanOrEqualTo>
+           <ogc:PropertyIsLessThan>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls4e }}</ogc:Literal>
+           </ogc:PropertyIsLessThan>
+         </ogc:And>
+  </ogc:Filter>
+         <PointSymbolizer>
+            <Graphic>
+              <Mark>
+                <WellKnownName>circle</WellKnownName>
+                <Fill>
+                  <CssParameter name="fill">#756BB1</CssParameter>
+                </Fill>
+              </Mark>
+              <Size>6</Size>
+            </Graphic>
+          </PointSymbolizer>
+</Rule>
+  <Rule> 
+<Name>tsudat_hazardpoint_rp</Name>
+<Title>Wave Height {{ cls5s }} - {{ cls5e }}</Title>
+<Abstract>tsudat_hazardpoint_rp</Abstract>
+<ogc:Filter>
+         <ogc:And>
+           <ogc:PropertyIsGreaterThanOrEqualTo>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls5s }}</ogc:Literal>
+           </ogc:PropertyIsGreaterThanOrEqualTo>
+           <ogc:PropertyIsLessThan>
+             <ogc:PropertyName>wave_height</ogc:PropertyName>
+             <ogc:Literal>{{ cls5e }}</ogc:Literal>
+           </ogc:PropertyIsLessThan>
+         </ogc:And>
+  </ogc:Filter>
+         <PointSymbolizer>
+            <Graphic>
+              <Mark>
+                <WellKnownName>circle</WellKnownName>
+                <Fill>
+                  <CssParameter name="fill">#54278F</CssParameter>
+                </Fill>
+              </Mark>
+              <Size>6</Size>
+            </Graphic>
+          </PointSymbolizer>
+</Rule>
+
+</FeatureTypeStyle>
+</UserStyle>
+</NamedLayer>
+</StyledLayerDescriptor>
