@@ -106,6 +106,8 @@ STATIC_URL = "/media/"
 GEONODE_UPLOAD_PATH = os.path.join(STATIC_URL, "upload/")
 GEONODE_CLIENT_LOCATION = SITEURL + 'media/static/'
 
+AVATAR_STORAGE_DIR=os.path.join("avatars/")
+
 # Additional directories which hold static files
 STATICFILES_DIRS = [
     os.path.join(PROJECT_ROOT, "media"),
@@ -283,7 +285,7 @@ except ImportError:
     pass
 
 import logging, sys
-for _module in ["geonode.maps.views", "geonode.maps.gs_helpers", "tsudat2.tsudat.tasks"]:
+for _module in ["geonode.maps.views", "geonode.maps.gs_helpers", "tsudat2.tsudat.models", "tsudat2.tsudat.views", "tsudat2.tsudat.tasks"]:
    _logger = logging.getLogger(_module)
    _logger.addHandler(logging.StreamHandler(sys.stderr))
    _logger.setLevel(logging.DEBUG)
