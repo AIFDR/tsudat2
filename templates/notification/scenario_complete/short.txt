@@ -1,1 +1,1 @@
-{{ scenario_name }} Scenario Completed Processing
+{{ scenario_name }} tsunami simulation finished 

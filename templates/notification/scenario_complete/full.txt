@@ -1,6 +1,6 @@
-Scenario Complete
+Simulation Finished
 
-Your Scenario "{{ scenario_name }}" Has finished processing.
-The project map can be visited at the following URL.
+Your Scenario "{{ scenario_name }}" has finished processing.
+The project map of the results can be visited at the following URL.
 
-{{ siteurl }}{{ map.get_absolute_url }}
+{{ siteurl|slice:":-1" }}{{ map.get_absolute_url }}
