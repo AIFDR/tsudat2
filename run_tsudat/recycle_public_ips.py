@@ -16,13 +16,13 @@ import time
 # log file
 LogFile = '/home/tsudat/recycle_public_ips.log'
 
-# patternmatching for any number of spaces/tabs
+# patternmatch for any number of spaces/tabs
 SpacesPattern = re.compile('[ \t]+')
 
 
 def log(msg=None):
     # get timestamp
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%SZ', time.gmtime())
+    timestamp = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
     # write the message
     if msg is None:
@@ -37,31 +37,34 @@ def main():
 
     # establish the logfile
     log_fd = open(LogFile, 'a')
-    log('=' * 80)
-    log('recycle_public_ips.py starting')
 
-    # establish the environment and get allocated addresss
+    # establish the environment and get allocated addresses
+# can't do this in python 2.4
+#    with os.popen('. /home/tsudat/.nova/novarc; euca-describe-addresses') as fd:
+#        lines = fd.readlines()
+
     fd = os.popen('. /home/tsudat/.nova/novarc; euca-describe-addresses')
     lines = fd.readlines()
     fd.close()
 
-    # step through the output, releasing IPs not associates with an instance
+    # step through the output, releasing IPs not associated with an instance
     for line in lines:
         line = line.strip()
         split_line = SpacesPattern.split(line)        
-        if len(split_line) > 2:
-            # associated IP
-            continue
+        if len(split_line) == 2:
+            # unassociated IP, release it
+            (_, ip) = split_line
+            cmd = '. /home/tsudat/.nova/novarc; euca-release-address %s' % ip
 
-        # got an un-associated IP, release it
-        (_, ip) = split_line
-        cmd = '. /home/tsudat/.nova/novarc; euca-release-address %s' % ip
-        log(cmd)
-        #os.system(cmd)
-        fd = os.popen(cmd)
-        lines = fd.readlines()
-        fd.close()
-        log(''.join(lines))
+# can't do this in python 2.4
+#            with os.popen(cmd) as fd:
+#                lines = fd.readlines()
+
+            log(cmd)
+            fd = os.popen(cmd)
+            lines = fd.readlines()
+            fd.close()
+            log(''.join(lines))
 
     # close log
     log_fd.close()
