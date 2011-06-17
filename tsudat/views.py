@@ -11,6 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.gis.geos import *
 from django.conf import settings
 from django.template import RequestContext
+from django.db.models import Avg, Max, Min, Count
 
 from vectorformats.Formats import Django, GeoJSON
 
@@ -18,6 +19,9 @@ from geonode.maps.models import *
 
 from tsudat.models import *
 from tsudat.tasks import run_tsudat_simulation
+
+import logging
+logger = logging.getLogger("tsudat2.tsudat.views")
 
 geoj = GeoJSON.GeoJSON()
 
@@ -62,6 +66,30 @@ def return_period(request):
 
 def return_periods(request):
     return HttpResponse(json.dumps(RETURN_PERIOD_CHOICES), mimetype='application/json')
+
+def hazard_point_style(request):
+    if "rp" in request.GET:
+        rp = int(request.GET.get('rp'))
+        results = HazardPointDetail.objects.filter(return_period=rp).aggregate(Min('wave_height'),  Max('wave_height'))
+        min = results['wave_height__min']
+        max = results['wave_height__max']
+        interval = ((max - min) / 5)
+        return render_to_response("hp_rp.xml", RequestContext(request, {
+            "max": max,
+            "min": min,
+            "cls1s": min,
+            "cls1e": min+interval,
+            "cls2s": min+interval,
+            "cls2e": min+interval*2,
+            "cls3s": min+interval*2,
+            "cls3e": min+interval*3,
+            "cls4s": min+interval*3,
+            "cls4e": min+interval*4,
+            "cls5s": min+interval*4,
+            "cls5e": max,
+        }), mimetype="application/sld")
+    else:
+        pass
 
 def hazard_points(request):
     if "rp" in request.GET:
@@ -226,6 +254,7 @@ def project(request, id=None):
                 data = {'status': 'failure', 'msg': 'Project Creation Failed', 'reason': 'Invalid GeoJSON'}
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             p = Project()
+            p.user = request.user
             p, reason = p.from_json(data)
             if p is None:
                 data = {'status': 'failure', 'msg': 'Project Creation Failed', 'reason': reason}
