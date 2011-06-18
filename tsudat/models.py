@@ -198,6 +198,8 @@ class Scenario(models.Model):
     anuga_log_timestamp = models.DateTimeField(null=True, blank=True)
     anuga_end_timestamp = models.DateTimeField(null=True, blank=True)
     anuga_payload = models.TextField(null=True, blank=True)
+    tsudat_start_timestamp = models.DateTimeField(null=True, blank=True)
+    tsudat_end_timestamp = models.DateTimeField(null=True, blank=True)
 
     def __unicode__(self):
         return self.name

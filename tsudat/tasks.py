@@ -1,4 +1,4 @@
-imporm os, sys
+import os, sys
 import logging
 import shutil
 import simplejson as json
@@ -441,5 +441,7 @@ def process_finished_simulations():
                 notification.send([user], "scenario_complete", data)
             
             scenario.anuga_status = "DONE"
+            s.anuga_end_timestamp = datetime.now()
+
             logger.debug("scenario saved")
             scenario.save()

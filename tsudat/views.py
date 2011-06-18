@@ -2,6 +2,7 @@ import sys
 import traceback
 import simplejson as json
 import geojson
+import datetime
 
 from django.shortcuts import render_to_response, redirect
 from django.http import HttpResponse
@@ -533,6 +534,7 @@ def scenario(request, id=None):
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             else:
                 s.anuga_status = "INIT"
+                s.tsudat_start_timestamp = datetime.now() 
                 s.save()
                 data = {'status': 'success', 'msg': 'Scenario Creation Successful', 'id': s.pk}
                 return HttpResponse(json.dumps(data), mimetype='application/json')

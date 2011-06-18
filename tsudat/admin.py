@@ -2,7 +2,7 @@ from django.contrib.gis import admin
 from tsudat.models import *
 
 class ScenarioAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'project', 'anuga_status', 'anuga_instance', 'anuga_start_timestamp', 'anuga_end_timestamp',)
+    list_display = ('id', 'name', 'project', 'anuga_status', 'anuga_instance', 'tsudat_start_timestamp', 'anuga_start_timestamp', 'anuga_end_timestamp','tsudat_end_timestamp')
     list_filter = ('anuga_status',)
     search_fields = ('name',)
 
