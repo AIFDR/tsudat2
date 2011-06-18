@@ -532,6 +532,8 @@ def scenario(request, id=None):
                 data = {'status': 'failure', 'msg': 'Scenario Creation Failed', 'reason': reason}
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             else:
+                s.anuga_status = "INIT"
+                s.save()
                 data = {'status': 'success', 'msg': 'Scenario Creation Successful', 'id': s.pk}
                 return HttpResponse(json.dumps(data), mimetype='application/json')
         except:
@@ -553,6 +555,8 @@ def scenario(request, id=None):
                 return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
             else:
                 data = {'status': 'success', 'msg': 'Scenario Update Successful', 'id': s.pk}
+                s.anuga_status = "UPDT"
+                s.save()
                 return HttpResponse(json.dumps(data), mimetype='application/json')
         except ObjectDoesNotExist:
             data = {'status': 'failure', 'msg': 'Scenario Update Failed', 'reason': 'Invalid Scenario'}
