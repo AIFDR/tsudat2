@@ -1,12 +1,17 @@
 from django.contrib.gis import admin
 from tsudat.models import *
 
+class ScenarioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'project', 'anuga_status', 'anuga_instance', 'anuga_start_timestamp', 'anuga_end_timestamp',)
+    list_filter = ('anuga_status',)
+    search_fields = ('name',)
+
 admin.site.register(HazardPoint, admin.OSMGeoAdmin)
 admin.site.register(HazardPointDetail, admin.ModelAdmin)
 admin.site.register(SourceZone, admin.OSMGeoAdmin)
 admin.site.register(Event, admin.ModelAdmin)
 admin.site.register(Project, admin.OSMGeoAdmin)
-admin.site.register(Scenario, admin.ModelAdmin)
+admin.site.register(Scenario, ScenarioAdmin)
 admin.site.register(GaugePoint, admin.OSMGeoAdmin)
 admin.site.register(InternalPolygon, admin.OSMGeoAdmin)
 admin.site.register(DataSet, admin.OSMGeoAdmin)
