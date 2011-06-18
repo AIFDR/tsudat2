@@ -3,6 +3,7 @@ import logging
 import shutil
 import simplejson as json
 import tempfile
+import datetime
 from time import gmtime, strftime, sleep
 
 from django import db
@@ -73,32 +74,24 @@ def run_tsudat_simulation(user, scenario_id):
     TsuDATMux = settings.TSUDAT_MUX_DIR
 
     # change setup value to one of expected strings
-    scenario.model_setup = 'F'
-    print('FUDGE: scenario.model_setup=%s' % str(scenario.model_setup))
+    print('original scenario.model_setup=%s' % scenario.model_setup)
     trial_edit = {'t': 'trial', 'T': 'trial', 'trial': 'trial', 'TRIAL': 'trial',
                   'f': 'final', 'F': 'final', 'final': 'final', 'FINAL': 'final'}
     actual_setup = trial_edit.get(scenario.model_setup, 'trial')
+    print('actual_setup=%s' % actual_setup)
 
-    # fake a prject name                            ##?
-    if not scenario.project.name:                   ##?
-        scenario.project.name = 'no_project_name'   ##?
+    # fake a prject name                                  ##?
+    if not scenario.project.name:                         ##?
+        scenario.project.name = _slugify(scenario.name)   ##?
                
     # create the user working directory
     (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
      topographies, user_dir) = run_tsudat.make_tsudat_dir(TsuDATBase, user.username,
                                                           _slugify(scenario.project.name),
                                                           _slugify(scenario.name),
-#                                                          scenario.model_setup,
+##?                                                          scenario.model_setup,
                                                           actual_setup,
                                                           scenario.event.tsudat_id)
-    print('run_tsudat_simulation: work_dir=%s' % work_dir)      ##?
-    print('run_tsudat_simulation: raw_elevations=%s' % raw_elevations)      ##?
-    print('run_tsudat_simulation: boundaries=%s' % boundaries)      ##?
-    print('run_tsudat_simulation: meshes=%s' % meshes)      ##?
-    print('run_tsudat_simulation: polygons=%s' % polygons)      ##?
-    print('run_tsudat_simulation: gauges=%s' % gauges)      ##?
-    print('run_tsudat_simulation: topographies=%s' % topographies)      ##?
-    print('run_tsudat_simulation: user_dir=%s' % user_dir)      ##?
 
     project_geom = scenario.project.geom
     project_extent = scenario.project.geom.extent
@@ -115,6 +108,8 @@ def run_tsudat_simulation(user, scenario_id):
     else:
         srid_base = 32700
     srid = srid_base + utm_zone
+    scenario.project.srid = srid
+    scenario.project.save()
 
     project_geom.transform(srid) 
 
@@ -289,7 +284,7 @@ def run_tsudat_simulation(user, scenario_id):
                     'project_id': scenario.project.id,
                     'scenario': _slugify(scenario.name),
                     'scenario_id': scenario.id,
-#                    'setup': scenario.model_setup,
+##?                    'setup': scenario.model_setup,
                     'setup': actual_setup,
                     'event_number': scenario.event.tsudat_id,
                     'working_directory': TsuDATBase,
@@ -315,22 +310,22 @@ def run_tsudat_simulation(user, scenario_id):
                     'get_timeseries': True 
                 }
 
-    print('json_dict=%s' % str(json_dict))      ##?
-    print('cwd=%s' % str(os.getcwd()))          ##?
-    print('sys.path=%s' % str(sys.path))        ##?
-
     with open(json_file, 'w') as fd:
         json.dump(json_dict, fd, indent=2, separators=(',', ':'))
 
+    scenario.tsudat_payload = json.dumps(json_dict) 
+    scenario.save()
+    
     # now run the simulation
-    print("calling run_tsudat.run_tsudat(), user.username='%s'" % user.username)    ##?
     run_tsudat.run_tsudat(json_file)
+    scenario.anuga_status = "QUEUE"
+    scenario.save()
     return True
 
 
 @periodic_task(run_every=crontab(hour="*", minute="*", day_of_week="*"))
 def process_finished_simulations():
-    print "firing test task"
+    print "firing process_finished_simulations task"
 
     c = messaging_amqp.ServerMessages()
     while True:
@@ -343,15 +338,39 @@ def process_finished_simulations():
         c.ack_message()
 
         output_json = json.loads(msg)
-        if output_json['status'] == "STOP" and "payload" in output_json.keys():
-            user = User.objects.get(username=output_json['user']) 
-            scenario = Scenario.objects.get(pk=output_json['scenario_id'])
+        scenario = Scenario.objects.get(pk=output_json['scenario_id'])
+        user = User.objects.get(username=output_json['user']) 
+
+        if output_json['status'] == "START":
+            scenario.anuga_status = output_json['status']
+            scenario.anuga_instance = output_json['instance']
+            scenario.anuga_start_timestamp = datetime.datetime.fromtimestamp(float(output_json['time']))
+            scenario.save()
+        elif output_json['status'] == "ABORT":
+            scenario.anuga_status = output_json['status'] 
+            scenario.anuga_abort_message = output_json['message']
+            scenario.anuga_log_timestamp = datetime.datetime.fromtimestamp(float(output_json['time']))
+            scenario.save()
+        elif output_json['status'] == "LOG":
+            scenario.anuga_status = output_json['status']
+            scenario.anuga_log_message = output_json['msg']
+            scenario.anuga_log_timestamp = datetime.datetime.fromtimestamp(float(output_json['time']))
+            #scenario.save()
+        elif output_json['status'] == "IDLE":
+            pass
+        elif output_json['status'] == "STOP" and "payload" in output_json.keys():
+            scenario.anuga_payload = output_json["payload"]
+            scenario.anuga_status = output_json['status']
+            scenario.anuga_end_timestamp = datetime.datetime.fromtimestamp(float(output_json['time']))
+            scenario.save()
 
             # Setup the new layers in the GeoNode
 
-            # HardCoded
-            elevation_files = ['fixme'] 
-            srid = 32756
+            elevation_files = [] 
+            pds = ProjectDataSet.objects.filter(project=scenario.project).order_by('ranking')
+            for ds in pds:
+                elevation_files.append(ds.datasource.typename)
+            srid = scenario.project.srid 
 
             keywords = []
             keywords.append('category:hazard')
@@ -360,7 +379,6 @@ def process_finished_simulations():
             keywords.append('source:tsudat')
 
             layer_perm_spec = {"anonymous":"layer_readonly","authenticated":"layer_readonly","users":[[user.username,"layer_readwrite"]]}
-            output_layers = [] # get from ProjectDataSet
 
             for result in output_json['payload']['results_max']:
                 (head, tail) = os.path.split(result)
@@ -368,7 +386,7 @@ def process_finished_simulations():
                 tif_file_path = result.replace('.asc', '.tif')
        
                 layer_title = base 
-                layer_abstract = "This layer shows the maximum *flow depth/flow velocity/wave amplitude* from a 1 in %d year tsunami that was generated by a magnitude %f earthquake on the %s subduction zone. The tsunami amplitude at the 100 m water depth contour was %d and the tide height during the simulation was %f m. Elevation data used in this tsunami simulation includes %s." % (scenario.return_period, scenario.event.magnitude, scenario.event.source_zone.name, scenario.wave_height, scenario.initial_tidal_stage, ", ".join(elevation_files))
+                layer_abstract = "This layer shows the maximum ## from a 1 in %d year tsunami that was generated by a magnitude %f earthquake on the %s subduction zone. The tsunami amplitude at the 100 m water depth contour was %d and the tide height during the simulation was %f m. Elevation data used in this tsunami simulation includes %s." % (scenario.return_period, scenario.event.magnitude, scenario.event.source_zone.name, scenario.wave_height, scenario.initial_tidal_stage, ", ".join(elevation_files))
 
                 # Warp to 4326 / Convert to TIF
                 # Switch to using python bindings here, or at least use subprocess module to handle for errors
@@ -377,22 +395,29 @@ def process_finished_simulations():
  
                 new_layer = save(base, tif_file_path, user, overwrite = False, title=layer_title, abstract=layer_abstract, permissions=layer_perm_spec, keywords = keywords) 
                 # Set the proper default style
-                logger.debug("base=%s" % base)
-                if(base.endswith('velocity')):
+                if(new_layer.typename.endswith('velocity')):
                     style_name = "flow_speed"
-                elif(base.endswith('stage')):
+                    new_layer.abstract = layer_abstract.replace("##", "flow velocity")
+                elif(new_layer.typename.endswith('stage')):
                     style_name = "flow_stage"
-                elif(base.endswith('depth')):
+                    new_layer.abstract = layer_abstract.replace("##", "wave amplitude")
+                elif(new_layer.typename.endswith('depth')):
                     style_name = "flow_depth"
+                    new_layer.abstract = layer_abstract.replace("##", "flow depth")
+               
+                keywords.append('source:%s' % style_name) 
+                new_layer.keywords = keywords
                 cat = Layer.objects.gs_catalog
                 publishing = cat.get_layer(new_layer.name)
-                logger.debug(publishing)
+                logger.debug("publishing=%s" % str(publishing))
                 style = cat.get_style(style_name)
-                logger.debug(style)
+                logger.debug("style=%s" %  str(style))
                 publishing.default_style = style 
                 cat.save(publishing)
+                logger.debug("publishing saved")
  
                 new_layer.save()
+                logger.debug("layer saved")
 
                 output_layers.append(new_layer.typename)
 
@@ -413,3 +438,7 @@ def process_finished_simulations():
                     'scenario_name': scenario.name,
                 }
                 notification.send([user], "scenario_complete", data)
+            
+            scenario.anuga_status = "DONE"
+            logger.debug("scenario saved")
+            scenario.save()
