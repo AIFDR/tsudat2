@@ -1,4 +1,4 @@
-import os, sys
+imporm os, sys
 import logging
 import shutil
 import simplejson as json
@@ -379,7 +379,8 @@ def process_finished_simulations():
             keywords.append('source:tsudat')
 
             layer_perm_spec = {"anonymous":"layer_readonly","authenticated":"layer_readonly","users":[[user.username,"layer_readwrite"]]}
-
+            output_layers = [] 
+    
             for result in output_json['payload']['results_max']:
                 (head, tail) = os.path.split(result)
                 (base, ext) = os.path.splitext(tail)
