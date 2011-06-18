@@ -130,6 +130,7 @@ class Project(models.Model):
     user = models.ForeignKey(User) 
     geom = models.PolygonField()
     max_area = models.PositiveIntegerField()
+    srid = models.PositiveIntegerField(null=True, blank=True)
 
     objects = models.GeoManager()
 
@@ -188,6 +189,15 @@ class Scenario(models.Model):
     output_layers = models.ManyToManyField(ScenarioOutputLayer)
     output_max = models.BooleanField()
     use_aoi = models.BooleanField()
+    tsudat_payload = models.TextField(null=True, blank=True)
+    anuga_status = models.CharField(null=True, blank=True, max_length="5")
+    anuga_log_message = models.TextField(null=True, blank=True)
+    anuga_abort_message = models.TextField(null=True, blank=True)
+    anuga_instance = models.CharField(null=True, blank=True, max_length=10)
+    anuga_start_timestamp = models.DateTimeField(null=True, blank=True)
+    anuga_log_timestamp = models.DateTimeField(null=True, blank=True)
+    anuga_end_timestamp = models.DateTimeField(null=True, blank=True)
+    anuga_payload = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
         return self.name
