@@ -985,6 +985,8 @@ def run_tsudat(json_file):
         # bit of a FUDGE
         # the user may say "export over AOI" but not actually define an AOI
         # if this is true, change "export over AOI" to "ALL"
+        log.debug('project.export_area=%s' % str(project.export_area))
+        log.debug('project.interior_regions_list=%s' % str(project.interior_regions_list))
         got_aoi = False
         if project.export_area == 'aoi':
             for (irtype, filename, _) in project.interior_regions_list:
@@ -992,6 +994,7 @@ def run_tsudat(json_file):
                     got_aoi = True
                     break
         if not got_aoi:
+            log.info("FUDGE: setting project.export_area to 'all'")
             project.export_area = 'all'
 
         get_minmaxAOI()
