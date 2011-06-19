@@ -66,7 +66,7 @@ def run_model():
 
     # Reading the landward defined points, this incorporates the original
     # clipping polygon minus the 100m contour
-    landward_boundary = anuga.read_polygon(project.landward_boundary_file)
+    landward_boundary = anuga.read_polygon(project.landward_boundary_file, do_complex_check=False)
 
     # Combine sts polyline with landward points
     bounding_polygon_sts = event_sts + landward_boundary
@@ -415,7 +415,7 @@ def setup_model():
     # Create list of interior polygons with scaling factor
     project.interior_regions = []
     for (irtype, filename, maxarea) in project.interior_regions_list:
-        if irtype.lower() == 'mesh':
+        if irtype.lower() == 'resolution':
             polygon = anuga.read_polygon(os.path.join(project.polygons_folder,
                                                       filename))
             project.interior_regions.append([polygon,
@@ -981,6 +981,18 @@ def run_tsudat(json_file):
         gauges = build_urs_boundary(project.mux_input_filename,
                                     project.event_sts)
         project.payload['hpgauges'] = gauges
+
+        # bit of a FUDGE
+        # the user may say "export over AOI" but not actually define an AOI
+        # if this is true, change "export over AOI" to "ALL"
+        got_aoi = False
+        if project.export_area == 'aoi':
+            for (irtype, filename, _) in project.interior_regions_list:
+                if irtype.lower() == 'aoi':
+                    got_aoi = True
+                    break
+        if not got_aoi:
+            project.export_area = 'all'
 
         get_minmaxAOI()
 
