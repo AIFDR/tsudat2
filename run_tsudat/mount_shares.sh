@@ -8,7 +8,7 @@
 #    3. mount the /data share
 ################################################################################
 
-# time between mouont attempts (seconds)
+# time between attempts (seconds)
 SLEEPTIME=15
 
 
@@ -17,8 +17,15 @@ SLEEPTIME=15
 
 # get a public IP and allocate to this instance
 IP=$(euca-allocate-address | awk '{ print $2}')
-echo "Doing: euca-associate-address -i $HOSTNAME $IP"
-euca-associate-address -i $HOSTNAME $IP
+while true; do
+    echo "Doing: euca-associate-address -i $HOSTNAME $IP"
+    OUT=$(euca-associate-address -i $HOSTNAME $IP)
+    echo "$OUT"
+    if ! echo "$OUT" | grep -i "error" >/dev/null 2>&1; then
+        break
+    fi
+    sleep $SLEEPTIME
+done
 
 # mount the /data share
 while true; do
@@ -26,9 +33,10 @@ while true; do
         echo "/data has been mounted"
         break
     fi
-    if echo "$OUT" | grep "already mounted" >/dev/null 2>&1; then
+    if echo "$OUT" | grep -i "already mounted" >/dev/null 2>&1; then
         echo "/data already mounted"
         break
     fi
+    echo "$OUT"
     sleep $SLEEPTIME
 done

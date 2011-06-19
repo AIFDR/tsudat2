@@ -10,86 +10,138 @@ This program is run as root from /etc/rc.local.
 """
 
 import os
+import sys
 import re
 import time
 
 
 # time to sleep upon failure (seconds)
-SleepTime = 5
-
-# get this instance string (i-00000???)
-HostName = os.getenv('HOSTNAME')
+SleepTime = 30
 
 # patternmatch for any number of spaces/tabs
 SpacesPattern = re.compile('[ \t]+')
 
+# Instance information URL
+InstanceInfoURL = 'http://169.254.169.254'
+
+# URL to get instance ID
+InstanceURL = '%s/latest/meta-data/instance-id' % InstanceInfoURL
+
 
 def mount_share():
     while True:
-        # get an available allocated IP
-        cmd = '. /home/tsudat/.nova/novarc; euca-describe-addresses'
-        print(cmd)
-        with os.popen(cmd) as fd:
-            # expect: ADDRESS	192.43.239.145	i-00000173
-            # expect: ADDRESS	192.43.239.146	
-            lines = fd.readlines()
-        print(''.join(lines))
+        # get the instance string
+        with os.popen('wget -O - -q %s' % InstanceURL) as fd:
+            instance = fd.readline()
+        print('instance=%s' % str(instance)); sys.stdout.flush()
+        instance = str(instance)
+        if not instance.startswith('i-'):
+            # we didn't get an instance string
+            print('sleeping %d seconds' % SleepTime); sys.stdout.flush()
+            time.sleep(SleepTime)
+            continue
+
+        # get an unused allocated IP
+        cmd = '. /home/ubuntu/.nova/novarc; euca-describe-addresses'
+        print(cmd); sys.stdout.flush()
+        fd = os.popen(cmd)
+        # expect: ADDRESS	192.43.239.145	i-00000173
+        # expect: ADDRESS	192.43.239.146	
+        lines = fd.readlines()
+        status = fd.close()
+        print(''.join(lines)); sys.stdout.flush()
+
+        if status:
+            # some sort of error
+            print('sleeping %d seconds' % SleepTime); sys.stdout.flush()
+            time.sleep(SleepTime)
+            continue
+
         IP = None
         for line in lines:
-            if 'error' in line:
-                print('sleeping %d seconds' % SleepTime)
-                time.sleep(SleepTime)
-                continue
-
             l = SpacesPattern.split(line.strip())
             if len(l) == 2:
                 # got an unused allocated IP
                 IP = l[1]
-                print('unused allocated IP=%s' % IP)
+                print('unused allocated IP=%s' % IP); sys.stdout.flush()
                 break
 
         if IP is None:
-            # no free allocated IPs, try to allocate another
-            cmd = '. /home/tsudat/.nova/novarc; euca-allocate-address'
-            print(cmd)
-            with os.popen(cmd) as fd:
-                # expect: ADDRESS	192.43.239.146
-                line = fd.readline()
-            print(line)
-            if 'error' in line:
-                print('sleeping %d seconds' % SleepTime)
+            # no unused allocated IPs, try to allocate another
+            cmd = '. /home/ubuntu/.nova/novarc; euca-allocate-address'
+            print(cmd); sys.stdout.flush()
+            fd = os.popen(cmd)
+            # expect: ADDRESS	192.43.239.146
+            line = fd.readline()
+            status = fd.close()
+            print(line); sys.stdout.flush()
+
+            if status:
+                # some sort of error
+                print('sleeping %d seconds' % SleepTime); sys.stdout.flush()
                 time.sleep(SleepTime)
                 continue
+
             l = SpacesPattern.split(line.strip())
             IP = l[1]
-            print('newly allocated IP=%s' % IP)
+            print('newly allocated IP=%s' % IP); sys.stdout.flush()
+
+        #####
+        # At this point we have a good IP
+        # If we get an error associating, throw away the IP, start again
+        # because someone else my have used our IP
+        #####
 
         # associate IP with ourselves
-        cmd = '. /home/tsudat/.nova/novarc; euca-associate-address -i %s %s' (HostName, IP)
-        print(cmd)
-        with os.popen(cmd) as fd:
-            # expect: ADDRESS	192.43.239.142	i-00000171
-            line = fd.readline()
-        print(line)
-        if 'error' in line:
-            print('sleeping %d seconds' % SleepTime)
+        cmd = '. /home/ubuntu/.nova/novarc; euca-associate-address -i %s %s' % (instance, IP)
+        print(cmd); sys.stdout.flush()
+        fd = os.popen(cmd)
+        # expect: ADDRESS	192.43.239.142	i-00000171
+        line = fd.readline()
+        status = fd.close()
+        print(line); sys.stdout.flush()
+
+        if status:
+            # some sort of error, possibly someone else grabbed our IP
+            print('sleeping %d seconds' % SleepTime); sys.stdout.flush()
             time.sleep(SleepTime)
             continue
 
-        # now try to mount the /data share
-        cmd = 'mount -t nfs dcnfs.nci.org.au:/short/w85 /data'
-        print(cmd)
-        with os.popen(cmd) as fd:
+        #####
+        # At this point we have a good association
+        # Don't ever go to the top of the outer loop again
+        #####
+
+        # now try to create /data and mount the /data share
+        while True:
+            cmd = 'mkdir /data'
+            print(cmd); sys.stdout.flush()
+            fd = os.popen(cmd)
             line = fd.readline()
-        print(line)
-        if 'error' in line.lower():
-            print('sleeping %d seconds' % SleepTime)
-            time.sleep(SleepTime)
-            continue
-        if 'permission' in line.lower():
-            print('sleeping %d seconds' % SleepTime)
-            time.sleep(SleepTime)
-            continue
+            status = fd.close()
+            print(line); sys.stdout.flush()
+
+# ignore as error could be 'already exists'
+#            if status:	# some sort of error
+#                print('sleeping %d seconds' % SleepTime); sys.stdout.flush()
+#                time.sleep(SleepTime)
+#                continue
+
+            # this is why we must run as root
+            cmd = 'mount /data'
+            print(cmd); sys.stdout.flush()
+            fd = os.popen(cmd)
+            line = fd.readline()
+            status = fd.close()
+            print(line); sys.stdout.flush()
+
+            if status:	# some sort of error
+                print('sleeping %d seconds' % SleepTime); sys.stdout.flush()
+                time.sleep(SleepTime)
+                continue
+
+            # Success!
+            return
         
 
 if __name__ == '__main__':
