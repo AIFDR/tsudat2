@@ -6,6 +6,8 @@ from django.contrib.gis.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 
+from geonode.maps.models import Layer, Map, MapLayer
+
 import logging
 logger = logging.getLogger("tsudat2.tsudat.models")
 
@@ -200,6 +202,7 @@ class Scenario(models.Model):
     anuga_payload = models.TextField(null=True, blank=True)
     tsudat_start_timestamp = models.DateTimeField(null=True, blank=True)
     tsudat_end_timestamp = models.DateTimeField(null=True, blank=True)
+    map = models.ForeignKey(Map, null=True, blank=True)
 
     def __unicode__(self):
         return self.name
@@ -339,6 +342,16 @@ class Scenario(models.Model):
             return self, None
         except:
             return None, 'Unknown'
+
+class ScenarioLayer(models.Model):
+    scenario = models.ForeignKey(Scenario)
+    layer = models.ForeignKey(Layer)
+    type = models.ForeignKey(ScenarioOutputLayer)
+    ml = models.ForeignKey(MapLayer, null=True, blank=True)
+    ts = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return str(self.scenario) + ' ' + self.layer
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
