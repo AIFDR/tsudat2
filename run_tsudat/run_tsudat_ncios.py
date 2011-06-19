@@ -28,7 +28,8 @@ PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
 DefaultBPMaxarea = 250000
 
 # the AMI of the instance to run, and associated metadata
-DefaultAMI = 'ami-0000003c'     # Ubuntu_10.04_Tsudat_2.0.29
+#DefaultAMI = 'ami-0000003c'     # Ubuntu_10.04_Tsudat_2.0.29  OLD "GOOD" ONE
+DefaultAMI = 'ami-00000047'     # Ubuntu_10.04_Tsudat_2.0.40
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
@@ -126,10 +127,15 @@ def make_tsudat_dir(base, user, proj, scen, setup, event, nuke=False):
         except OSError:
             pass            # ignore "already there' errors
 
-    # create base directory
-    timestamp = time.strftime('_%Y%m%dT%H%M%S')
-    user_dir = os.path.join(base, user+timestamp)
-    run_dir = os.path.join(user_dir, proj, scen, setup)
+    # create base directory, if directory already there, sleep 1 sec and retry
+    while True:
+        timestamp = time.strftime('_%Y%m%dT%H%M%S')
+        user_dir = os.path.join(base, user+timestamp)
+        run_dir = os.path.join(user_dir, proj, scen, setup)
+        if not os.path.isdir(run_dir):
+            break
+        print('###### Directory clash!')
+        time.sleep(1.0)
     makedirs_noerror(run_dir)
     print('made: %s' % str(run_dir))
 
@@ -387,7 +393,6 @@ def run_tsudat(json_data):
         project.bounding_polygon_maxarea = DefaultBPMaxarea
         print('FUDGE: project.bounding_polygon_maxarea=%s, set to %d'
               % (str(project.bounding_polygon_maxarea), DefaultBPMaxarea))
-    project.setup = 'final'
 
     # set logfile to be in run output folder
     log_filename = os.path.join(project.output_folder, 'ui.log')
