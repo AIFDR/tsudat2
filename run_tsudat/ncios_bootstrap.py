@@ -66,7 +66,6 @@ StatusStop = 'STOP'
 StatusAbort = 'ABORT'
 StatusIdle = 'IDLE'
 StatusLog = 'LOG'
-StatusError = 'ERROR'
 
 
 def get_public_ip():
@@ -107,17 +106,17 @@ def error(msg):
 
 
 def terminate_instance():
-    """Terminate the instance, release public IP."""
+    """Terminate the instance."""
 
-    # get public IP
-    public_ip = get_public_ip()
-
-    # disassociate IP with this instance and terminate the instance
-    cmd = '/usr/bin/euca-disassociate-address %s' % public_ip
-    log.debug('Doing: %s' % cmd)
-    with os.popen(cmd) as fd:
-        result = fd.readline()
-    log.debug('result: %s' % str(result))
+#    # get public IP
+#    public_ip = get_public_ip()
+#
+#    # disassociate IP with this instance and terminate the instance
+#    cmd = '/usr/bin/euca-disassociate-address %s' % public_ip
+#    log.debug('Doing: %s' % cmd)
+#    with os.popen(cmd) as fd:
+#        result = fd.readline()
+#    log.debug('result: %s' % str(result))
 
     cmd = '/usr/bin/euca-terminate-instances %s' % Instance
     log.debug('Doing: %s' % cmd)
