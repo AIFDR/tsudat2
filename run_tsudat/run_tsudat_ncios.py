@@ -28,8 +28,9 @@ PathToRunTsudat = '/data/httpd/default/tsudat2/run_tsudat'
 DefaultBPMaxarea = 250000
 
 # the AMI of the instance to run, and associated metadata
-#DefaultAMI = 'ami-0000003c'     # Ubuntu_10.04_Tsudat_2.0.29  OLD "GOOD" ONE
-DefaultAMI = 'ami-00000047'     # Ubuntu_10.04_Tsudat_2.0.40
+#DefaultAMI = 'ami-00000047'     # Ubuntu_10.04_Tsudat_2.0.40
+#DefaultAMI = 'ami-00000048'     # Ubuntu_10.04_Tsudat_2.0.41 - catch ANUGA crash, mount_shares uses random IP
+DefaultAMI = 'ami-00000049'     # Ubuntu_10.04_Tsudat_2.0.42 - retry rabbitmq connection failures
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
