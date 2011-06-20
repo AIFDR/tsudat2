@@ -351,7 +351,7 @@ class ScenarioLayer(models.Model):
     ts = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
-        return str(self.scenario) + ' ' + self.layer
+        return str(self.scenario) + ' ' + str(self.layer)
 
 class GaugePoint(models.Model):
     project = models.ForeignKey(Project)
