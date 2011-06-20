@@ -30,7 +30,8 @@ DefaultBPMaxarea = 250000
 # the AMI of the instance to run, and associated metadata
 #DefaultAMI = 'ami-00000047'     # Ubuntu_10.04_Tsudat_2.0.40
 #DefaultAMI = 'ami-00000048'     # Ubuntu_10.04_Tsudat_2.0.41 - catch ANUGA crash, mount_shares uses random IP
-DefaultAMI = 'ami-00000049'     # Ubuntu_10.04_Tsudat_2.0.42 - retry rabbitmq connection failures
+#DefaultAMI = 'ami-00000049'     # Ubuntu_10.04_Tsudat_2.0.42 - retry rabbitmq connection failures
+DefaultAMI = 'ami-0000004a'     # Ubuntu_10.04_Tsudat_2.0.43 - ensure *.out logs saved to /data
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
@@ -367,9 +368,14 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     log.debug('user_data: %s' % user_data)
     print('Doing: %s' % cmd)
     print('user_data: %s' % user_data)
-    retcode = os.system(cmd)
-    log.debug('retcode=%d' % retcode)
-    print('retcode=%d' % retcode)
+    fd = os.popen(cmd)
+    lines = fd.readlines()
+    retcode = fd.close()
+
+#    retcode = os.system(cmd)
+
+    log.debug('retcode=%s' % str(retcode))
+    print('retcode=%s' % str(retcode))
 
 def run_tsudat(json_data):
     """Run ANUGA on an NCI OpenStack worker.
@@ -391,9 +397,9 @@ def run_tsudat(json_data):
 
     # FUDGE!  If project.bounding_polygon_maxarea is 0, fake a value
     if project.bounding_polygon_maxarea == 0:
-        project.bounding_polygon_maxarea = DefaultBPMaxarea
         print('FUDGE: project.bounding_polygon_maxarea=%s, set to %d'
               % (str(project.bounding_polygon_maxarea), DefaultBPMaxarea))
+        project.bounding_polygon_maxarea = DefaultBPMaxarea
 
     # set logfile to be in run output folder
     log_filename = os.path.join(project.output_folder, 'ui.log')
