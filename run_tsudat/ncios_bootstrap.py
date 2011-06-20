@@ -248,16 +248,21 @@ def bootstrap():
     log.info('Running run_tsudat.run_tsudat(%s)' % json_path)
     gen_files = run_tsudat.run_tsudat(json_path)
 
-    # add local log files to the 'log' entry
+    # add local log files to the 'log' entry (*.log, *.out)
     output_path = os.path.join(UserDir, Project, Scenario, Setup,
                                OutputsDirectory)
+    local_log_files = []
     local_logs = glob.glob('*.log')
-    log_gen_files = []
     for l_l in local_logs:
         dst = os.path.join(output_path, l_l)
         shutil.copyfile(l_l, dst)
-        log_gen_files.append(dst)
-    gen_files['log'] = log_gen_files
+        local_log_files.append(dst)
+    local_logs = glob.glob('*.out')
+    for l_l in local_logs:
+        dst = os.path.join(output_path, l_l)
+        shutil.copyfile(l_l, dst)
+        local_log_files.append(dst)
+    gen_files['log'] = local_log_files
 
 #    # before we possibly delete the gen_files['sww'], get output path
 #    save_zip_base = os.path.dirname(gen_files['sww'][0])[1:]
