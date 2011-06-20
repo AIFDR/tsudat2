@@ -13,6 +13,7 @@ import os
 import sys
 import re
 import time
+import random
 
 
 # time to sleep upon failure (seconds)
@@ -57,16 +58,15 @@ def mount_share():
             time.sleep(SleepTime)
             continue
 
-        IP = None
+        IP_list = []
         for line in lines:
             l = SpacesPattern.split(line.strip())
             if len(l) == 2:
                 # got an unused allocated IP
-                IP = l[1]
-                print('unused allocated IP=%s' % IP); sys.stdout.flush()
-                break
+                IP_list.append(l[1])
+        print('free IPs: %s' % str(IP_list)); sys.stdout.flush()
 
-        if IP is None:
+        if not IP_list:
             # no unused allocated IPs, try to allocate another
             cmd = '. /home/ubuntu/.nova/novarc; euca-allocate-address'
             print(cmd); sys.stdout.flush()
@@ -83,11 +83,21 @@ def mount_share():
                 continue
 
             l = SpacesPattern.split(line.strip())
-            IP = l[1]
-            print('newly allocated IP=%s' % IP); sys.stdout.flush()
+            IP_list = [l[1]]
+            print('newly allocated IP=%s' % l[1]); sys.stdout.flush()
 
         #####
-        # At this point we have a good IP
+        # pick a random IP from the list
+        #####
+
+        print('free IPs: %s' % str(IP_list)); sys.stdout.flush()
+        random.seed()
+        index = random.randrange(len(IP_list))
+        IP = IP_list[index]
+        print('free IP: %s' % str(IP)); sys.stdout.flush()
+
+        #####
+        # At this point we have an unused IP
         # If we get an error associating, throw away the IP, start again
         # because someone else my have used our IP
         #####
