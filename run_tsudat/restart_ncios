@@ -1,0 +1,88 @@
+#!/usr/bin/env python2.6
+
+"""
+Restart an NCIOS instance.
+
+usage: restart_ncios <user> <project> <scenario> <setup>
+
+"""
+
+import os
+import re
+
+
+# path to NOVA stuff
+NovaPath = '/home/tsudat/.nova'
+
+# the AMI we are going to run
+DefaultAmi = 'ami-0000004a'  # Ubuntu_10.04_Tsudat_2.0.43
+
+# keypair used to start instance
+DefaultKeypair = 'testkey'
+
+# base directory for restart data
+RestartDir = '/data/run_tsudat/_restart_'
+
+# patternmatch for any number of spaces/tabs
+SpacesPattern = re.compile('[ \t]+')
+
+
+def start_ami(ami, key_name=DefaultKeypair, instance_type='c1.large',
+              user_data_file=None):
+    """Start the configured AMI.
+
+    ami             the ami ID ('ami-????????')
+    key_name        the keypair name
+    instance_type   type of instance to run
+    user_data_file  the user data file with userdata to pass to instance
+    """
+
+    cmd = ('. %s/novarc; /usr/bin/euca-run-instances %s -k %s -t %s -f %s'
+           % (NovaPath, ami, key_name, instance_type, user_data_file))
+    fd = os.popen(cmd)
+    lines = fd.readlines()
+    retcode = fd.close()
+
+    if len(lines) == 2:
+        # got a start, dig out new instance name
+#RESERVATION	r-m36dat8n	tsudat	default
+#INSTANCE	i-0000020c	ami-0000004a	192.43.239.155	192.168.1.2	running	testkey	0		c1.large	2011-06-21T01:12:10Z	nova	
+        (_, instance, _) = SpacesPattern.split(lines[1].strip(), maxsplit=2)
+    else:
+        # else we have a failure to start
+        print(''.join(lines))
+        sys.exit(10)
+
+    return instance
+
+
+def restart(user, project, scenario, setup):
+    """Restart instance for supplied data."""
+
+    # check for existance of restart data
+    restart_file = os.path.join(RestartDir,
+                                '%s_%s_%s_%s.restart'
+                                % (user, project, scenario, setup))
+    if not os.path.isfile(restart_file):
+        print('Sorry, no restart for user %s, project=%s, scenario=%s, setup=%s'
+              % (user, project, scenario, setup))
+        sys.exit(0)
+
+    instance = start_ami(DefaultAmi, user_data_file=restart_file)
+
+    print('Started: %s' % instance)
+
+
+if __name__ == '__main__':
+    import sys
+
+    if len(sys.argv) != 5:
+        print __doc__
+        sys.exit(10)
+
+    user = sys.argv[1]
+    project = sys.argv[2]
+    scenario = sys.argv[3]
+    setup = sys.argv[4]
+
+    restart(user, project, scenario, setup)
