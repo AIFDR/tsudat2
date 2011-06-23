@@ -804,17 +804,18 @@ def export_results_max():
             log.critical('Unrecognized variable name: %s' % which_var)
             break
 
-        project.export_area = project.export_area.lower()
+        log.critical("project.export_area=%s" % project.export_area)
         if project.export_area == 'all':
             easting_min = None
             easting_max = None
             northing_min = None
             northing_max = None
         elif project.export_area == 'aoi':
-                easting_min = project.xminAOI
-                easting_max = project.xmaxAOI
-                northing_min = project.yminAOI
-                northing_max = project.ymaxAOI
+            log.critical("project.export_area == 'aoi'")
+            easting_min = project.xminAOI
+            easting_max = project.xmaxAOI
+            northing_min = project.yminAOI
+            northing_max = project.ymaxAOI
         else:
             log.critical('Unrecognized area name: %s' % project.export_area)
             break
@@ -988,6 +989,7 @@ def run_tsudat(json_file):
         log.debug('project.export_area=%s' % str(project.export_area))
         log.debug('project.interior_regions_list=%s' % str(project.interior_regions_list))
         got_aoi = False
+        project.export_area = project.export_area.lower()
         if project.export_area == 'aoi':
             for (irtype, filename, _) in project.interior_regions_list:
                 if irtype.lower() == 'aoi':
