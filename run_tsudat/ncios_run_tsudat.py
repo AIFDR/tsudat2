@@ -147,7 +147,8 @@ def run_model():
     Bd = anuga.Dirichlet_boundary([project.initial_tide, 0, 0])
     Bf = anuga.Field_boundary(project.event_sts+'.sts',
                         domain, mean_stage=project.initial_tide, time_thinning=1,
-                        default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
+## NICK debug                        default_boundary=anuga.Dirichlet_boundary([0, 0, 0]),
+                        default_boundary=Bt,
                         boundary_polygon=bounding_polygon_sts,
                         use_cache=True, verbose=False)
 
