@@ -106,6 +106,9 @@ def run_model():
     domain.set_datadir(project.output_folder)
     domain.set_minimum_storable_height(0.01)  # Don't store depth less than 1cm
 
+    # set overall friction before setting in interior regions
+    domain.set_quantity('friction', project.friction)
+
     # set friction in interior regions, if any defined
     friction_list = []
     for (irtype, filename, friction) in project.interior_regions_list:
@@ -134,7 +137,6 @@ def run_model():
         IC = project.initial_tide
 
     domain.set_quantity('stage', IC, use_cache=True, verbose=False)
-    domain.set_quantity('friction', project.friction)
     domain.set_quantity('elevation',
                         filename=project.combined_elevation_file,
                         use_cache=True, verbose=False, alpha=project.alpha)
