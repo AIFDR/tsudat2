@@ -15,6 +15,8 @@ SERVE_MEDIA = True
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 GEONODE_ROOT = os.path.dirname(geonode.__file__)
 
+DB_DATASTORE = False
+
 ADMINS = (
     ('Jeffrey Johnson', 'jjohnson@opengeo.org'),
 )
