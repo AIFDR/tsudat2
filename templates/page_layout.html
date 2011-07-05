@@ -11,7 +11,7 @@
   <link rel="stylesheet" type="text/css" href="/tsudat-media/theme/site.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="/tsudat-media/theme/notification.css" media="screen" />
   <script type="text/javascript" src="{% url django.views.i18n.javascript_catalog %}"></script>
-  <script type="text/javascript" src="{% url geonode.views.lang %}"></script>
+  <script type="text/javascript" src="{% url lang %}"></script>
   {% endblock %}
 </head>
 <body>
@@ -35,6 +35,9 @@
     <ul id="sitenav" class="selfclear">
         <li class="home"><a href="{% url geonode.views.index %}">Home</a></li> 
         <li class=""><a class="" id="dataLink" href="/tsudat2-client/">Simulation</a></li>
+        {% if user.is_authenticated %}
+            <li class=""><a class="" id="dataLink" href="{% url tsudat.views.scenario_list %}">Scenarios</a></li>
+        {% endif %}
         <li class=""><a class="" id="dataLink" href="{% url geonode.maps.views.browse_data %}">Data</a></li>
         <li class=""><a class="" id="mapsLink" href="{% url geonode.maps.views.maps %}">Maps</a></li>
     {% if user.is_authenticated %}
