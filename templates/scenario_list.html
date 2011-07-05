@@ -1,0 +1,19 @@
+{% extends "page_layout.html" %}
+{% load i18n %}
+{% block title %} {% trans "Scenario List" %} {% endblock %}
+
+{% block main %}
+<div class="twocol">
+
+<table border = '1'>
+<tr><th>ID</th><th>Name</th><th>Status</th><th>Start Time</th><th>End Time</th></tr>
+{% for scenario in scenarios %}
+
+<tr><td><a href='{% url tsudat.views.scenario_info id=scenario.id %}'>{{ scenario.id }}</a></td><td>{{ scenario.name }}</td><td>{{ scenario.anuga_status }}</td><td>{{ scenario.tsudat_start_timestamp }}</td><td>{{ scenario.tsudat_end_timestamp }}</td></tr>
+
+{% endfor %}
+</table>
+
+</div>
+{% endblock %}
+

@@ -1,0 +1,38 @@
+{% extends "page_layout.html" %}
+{% load i18n %}
+{% block title %} {% trans "Scenario Info" %} - {{ scenario.name }} {% endblock %}
+
+{% block main %}
+<div class="twocol">
+
+<h3>{{ scenario.name }}</h3>
+
+<table border = "1">
+<tr><td><b>Status:</b></td><td>{{ scenario.anuga_status }}</td></tr>
+<tr><td><b>Project:</b></td><td>{{ scenario.project }}</td></tr>
+<tr><td><b>Hazard Point:</b></td><td>{{ scenario.hazard_point }}</td></tr>
+<tr><td><b>Source Zone:</b></td><td>{{ scenario.source_zone }}</td></tr>
+<tr><td><b>Return Period:</b></td><td>{{ scenario.return_period }}</td></tr>
+<tr><td><b>Wave Height:</b></td><td>{{ scenario.wave_height }}</td></tr>
+<tr><td><b>Event:</b></td><td>{{ scenario.event }}</td></tr>
+<tr><td><b>Start Time:</b></td><td>{{ scenario.start_time }}</td></tr>
+<tr><td><b>End Time:</b></td><td>{{ scenario.end_time }}</td></tr>
+<tr><td><b>Initial Tidal Stage:</b></td><td>{{ scenario.initial_tidal_stage }}</td></tr>
+<tr><td><b>Smoothing Param:</b></td><td>{{ scenario.smoothing_param }}</td></tr>
+<tr><td><b>Default Friction Value:</b></td><td>{{ scenario.default_friction_value }}</td></tr>
+<tr><td><b>Model Setup:</b></td><td>{{ scenario.model_setup }}</td></tr>
+<tr><td><b>Raster Resolution:</b></td><td>{{ scenario.raster_resolution}}</td></tr>
+<tr><td><b>Output Max:</b></td><td>{{ scenario.output_max }}</td></tr>
+<tr><td><b>Use AOI:</b></td><td>{{ scenario.use_aoi }}</td></tr>
+</table>
+
+<a href="{{ SITEURL }}{{ scenario.map.get_absolute_url }}">Map</a>
+
+{% for gauge in gauges %}
+
+<div><img src = '{{ gauge }}'></div>
+
+{% endfor %}
+
+</div>
+{% endblock %}
