@@ -4,7 +4,7 @@ import simplejson as json
 import geojson
 import datetime
 
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render_to_response, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.core import serializers
 from django.views.decorators.csrf import csrf_exempt, csrf_response_exempt
@@ -36,7 +36,7 @@ def disclaimer(request):
     return render_to_response("disclaimer.html", RequestContext(request, {
         "GEOSERVER_BASE_URL": settings.GEOSERVER_BASE_URL,
         "GEONETWORK_BASE_URL": settings.GEONETWORK_BASE_URL,
-        "site": settings.SITEURL
+        "STATIC_URL": settings.SITEURL
     }))
 
 
@@ -598,6 +598,30 @@ def scenario(request, id=None):
         except:
             data = {'status': 'failure', 'msg': 'Scenario Get Failed', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
+
+def scenario_list(request):
+    if(request.user.is_superuser):
+        scenarios = Scenario.objects.all().order_by('-tsudat_start_timestamp')
+    else: 
+        scenarios = Scenario.objects.filter(project__user = request.user).order_by('-tsudat_start_timestamp')
+    return render_to_response("scenario_list.html", RequestContext(request, {
+        "scenarios": scenarios,
+    }))
+
+def scenario_info(request, id=None):
+    s = get_object_or_404(Scenario, pk=id)
+    apl = s.anuga_payload
+    gauges = []
+    if(apl):
+        payload = apl.replace('u\'', '\'')
+        payload = payload.replace('\'', '\"')
+        pl = json.loads(payload)
+        for gauge in pl['timeseries_plot']:
+            gauges.append(gauge.replace('/data', '/tsudat-media'))
+    return render_to_response("scenario_info.html", RequestContext(request, {
+        "scenario": s, 
+        "gauges": gauges,
+    }))
 
 @csrf_exempt
 def data_set(request, id=None):
