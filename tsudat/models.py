@@ -269,28 +269,32 @@ class Scenario(models.Model):
                 except ValueError:
                     return None, "Invalid Start Time"
             else:
-                return None, "Start Time is Required"
+                #return None, "Start Time is Required"
+                self.start_time = 0
             if("end_time" in data):
                 try:
                     self.end_time = int(data['end_time'])
                 except ValueError:
                     return None, "Invalid End Time"
             else:
-                return None, "End Time is Required"
+                #return None, "End Time is Required"
+                self.end_time = 3600
             if("initial_tidal_stage" in data):
                 try:
                     self.initial_tidal_stage = float(data['initial_tidal_stage'])
                 except ValueError:
                     return None, "Invalid Initial Tidal Stage"
             else:
-                return None, "Initial Tidal Stage is required"
+                #return None, "Initial Tidal Stage is required"
+                self.initial_tidal_stage = 0
             if("smoothing_param" in data):
                 try:
                     self.smoothing_param = float(data['smoothing_param'])
                 except ValueError:
                     return None, "Invalid Smoothing Param"
             else:
-                return None, "Smoothing Param Required"
+                #return None, "Smoothing Param Required"
+                self.smoothing_param = 0.1
             if("default_friction_value" in data):
                 try:
                     self.default_friction_value = float(data['default_friction_value'])
@@ -304,7 +308,8 @@ class Scenario(models.Model):
                 else:
                     return None, "Invalid Model Setup"
             else:
-                return None, "Model Setup Required"
+                #return None, "Model Setup Required"
+                self.model_setup = "T"
             if("raster_resolution" in data):
                 try:
                     self.raster_resolution = int(data["raster_resolution"])
@@ -445,7 +450,11 @@ class InternalPolygon(models.Model):
             if(xip.count() > 0):
                 for ip in xip:
                     if(self.geom.contains(ip.geom) == False and self.geom.within(ip.geom) == False):
-                        return None, 'Error Creating Geometry: Polygon Intersects other Polygons'
+                        if(ip.type == 3 or self.type == 3):
+                            if(self.type == 3 and ip.type == 3):
+                                return None, 'Error Creating Geometry: AOI Polygons cannot intersect other AOIs' 
+                        else:
+                            return None, 'Error Creating Geometry: Polygon Intersects other Polygons'
             if("value" in  data.__dict__['properties']):
                 try:
                     self.value = float(data.__dict__['properties']['value'])
