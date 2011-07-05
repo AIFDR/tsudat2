@@ -68,7 +68,7 @@ def process_finished_simulation(scenario):
             'siteurl': settings.SITEURL,
             'scenario_name': scenario.name,
         }
-        #notification.send([user], "scenario_complete", data)
+        notification.send([user], "scenario_complete", data)
     logger.debug("notification sent")
             
     scenario.anuga_status = "DONE"
