@@ -625,10 +625,36 @@ def scenario_info(request, id=None):
         "gauges": gauges,
     }))
 
+def refresh_ds_from_geonode():
+    #Update from GeoNode Database
+    coverage_layers = Layer.objects.filter(storeType="coverageStore")
+    for layer in coverage_layers:
+        try:
+            ds = DataSet.objects.get(typename=layer.typename)
+            #update existing?
+        except ObjectDoesNotExist:
+            ds = DataSet()
+            ds.geonode_layer_uuid = layer.uuid
+            ds.typename = layer.typename
+            ds.data_type = 'U'
+            ds.resolution = 0
+            geom_wkt = layer.geographic_bounding_box
+            if(geom_wkt.find('EPSG') != -1):
+                epsg = (geom_wkt.split(';')[0].split('=')[1])
+                geom = GEOSGeometry(geom_wkt.split(';')[1])
+                srs = SpatialReference(epsg)
+                geom.set_srid(srs.srid)
+                geom.transform(4326)
+                ds.geom = geom
+            else:
+                ds.geom = GEOSGeometry(geom_wkt)
+            ds.save()
+
 @csrf_exempt
 def data_set(request, id=None):
     if("project_id" in request.GET):
         try:
+            refresh_ds_from_geonode()
             project = Project.objects.get(id=int(request.GET.get('project_id')))
             project_geom = project.geom
             ds = DataSet.objects.filter(geom__intersects=project_geom)
@@ -637,6 +663,7 @@ def data_set(request, id=None):
             return HttpResponse('Unexpected Error', status=500)
     elif id != None and id != "all":
         try:
+            refresh_ds_from_geonode()
             data_set = DataSet.objects.get(pk=id)
             return HttpResponse(serializers.serialize("json", [data_set]))
         except ObjectDoesNotExist:
@@ -644,29 +671,7 @@ def data_set(request, id=None):
         except:
             return HttpResponse('Unexpected Error', status=500)
     else:
-        #Update from GeoNode Database
-        coverage_layers = Layer.objects.filter(storeType="coverageStore")
-        for layer in coverage_layers:
-            try:
-                ds = DataSet.objects.get(geonode_layer_uuid=layer.uuid)
-                #update existing?
-            except ObjectDoesNotExist:
-                ds = DataSet()
-                ds.geonode_layer_uuid = layer.uuid
-                ds.typename = layer.typename
-                ds.data_type = 'U'
-                ds.resolution = 0
-                geom_wkt = layer.geographic_bounding_box
-                if(geom_wkt.find('EPSG') != -1):
-                    epsg = (geom_wkt.split(';')[0].split('=')[1])
-                    geom = GEOSGeometry(geom_wkt.split(';')[1])
-                    srs = SpatialReference(epsg)
-                    geom.set_srid(srs.srid)
-                    geom.transform(4326)
-                    ds.geom = geom
-                else:
-                    ds.geom = GEOSGeometry(geom_wkt)
-                ds.save()
+        refresh_ds_from_geonode()
         data_sets = DataSet.objects.all()
         return HttpResponse(serializers.serialize("json", data_sets))
 
