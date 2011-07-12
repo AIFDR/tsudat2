@@ -26,8 +26,10 @@
 <tr><td><b>Use AOI:</b></td><td>{{ scenario.use_aoi }}</td></tr>
 </table>
 
-<h3>
-<a href="{{ SITEURL }}{{ scenario.map.get_absolute_url }}">Map</a></h3>
+<h3>Map</h3>
+<a href="{{ SITEURL }}{{ scenario.map.get_absolute_url }}">Info</a> | 
+<a href="{{ SITEURL }}{{ scenario.map.get_absolute_url }}/view/">View/Edit</a>
+<div><iframe style="border: none;" height="400" width="600" src="http://tsudat.nci.org.au/maps/{{ scenario.map.pk }}/embed"></iframe></div>
 
 
 <h3>Gauge Points</h3>
