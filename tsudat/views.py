@@ -619,13 +619,10 @@ def scenario_info(request, id=None):
         pl = json.loads(payload)
         for gauge in pl['timeseries_plot']:
             val = gauge.replace('/data', '/tsudat-media')
-            gauges.append({'image': val, 'csv': val.replace('.png', '.csv'})
-        for gauge_csv in pl['hpgauges']:
-            gauges_csv.append(gauge.replace('/data', '/tsudat-media'))
+            gauges.append({'png': val, 'csv': val.replace('.png', '.csv')})
     return render_to_response("scenario_info.html", RequestContext(request, {
         "scenario": s, 
         "gauges": gauges,
-        "gauges_csv": gauges_csv,
     }))
 
 @csrf_exempt

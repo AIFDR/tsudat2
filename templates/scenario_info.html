@@ -26,22 +26,20 @@
 <tr><td><b>Use AOI:</b></td><td>{{ scenario.use_aoi }}</td></tr>
 </table>
 
-<a href="{{ SITEURL }}{{ scenario.map.get_absolute_url }}">Map</a>
+<h3>
+<a href="{{ SITEURL }}{{ scenario.map.get_absolute_url }}">Map</a></h3>
 
-{% for gauge in gauges %}
 
-<div><img src = '{{ gauge }}'></div>
-
-{% endfor %}
-
-{% if gauges_csv %}
-<ul>
-{% for gauge_csv in gauges_csv %}
-
-<li><a href='{{ gauge_csv }}'>{{ gauge_csv }}</a></li>
-
-{% endfor %}
-</ul>
+<h3>Gauge Points</h3>
+{% for dict in gauges %}
+{% for key,value in dict.items %}
+{% if key == 'png' %}
+<div><img src = '{{ value }}'></div>
+{% else %}
+<div><a href='{{ value }}'>Download Gauge CSV</a></div>
 {% endif %}
+{% endfor %}
+{% endfor %}
+
 </div>
 {% endblock %}
