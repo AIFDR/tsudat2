@@ -213,6 +213,7 @@ def run_tsudat_simulation(user, scenario_id):
         prj_file.write('Xshift        500000\n')
         prj_file.write('Yshift        10000000\n')
         prj_file.write('Parameters\n')
+        prj_file.write('NODATA_value  -9999')
         prj_file.close()        
 
         RawElevationFiles.append(asc_file_path)
