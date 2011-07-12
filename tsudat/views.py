@@ -639,16 +639,19 @@ def refresh_ds_from_geonode():
             ds.data_type = 'U'
             ds.resolution = 0
             geom_wkt = layer.geographic_bounding_box
-            if(geom_wkt.find('EPSG') != -1):
-                epsg = (geom_wkt.split(';')[0].split('=')[1])
-                geom = GEOSGeometry(geom_wkt.split(';')[1])
-                srs = SpatialReference(epsg)
-                geom.set_srid(srs.srid)
-                geom.transform(4326)
-                ds.geom = geom
+            if(len(geom_wkt) < 1):
+                pass # Not sure what to do here
             else:
-                ds.geom = GEOSGeometry(geom_wkt)
-            ds.save()
+                if(geom_wkt.find('EPSG') != -1):
+                    epsg = (geom_wkt.split(';')[0].split('=')[1])
+                    geom = GEOSGeometry(geom_wkt.split(';')[1])
+                    srs = SpatialReference(epsg)
+                    geom.set_srid(srs.srid)
+                    geom.transform(4326)
+                    ds.geom = geom
+                else:
+                    ds.geom = GEOSGeometry(geom_wkt)
+                ds.save()
 
 @csrf_exempt
 def data_set(request, id=None):
