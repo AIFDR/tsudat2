@@ -618,7 +618,8 @@ def scenario_info(request, id=None):
         payload = payload.replace('\'', '\"')
         pl = json.loads(payload)
         for gauge in pl['timeseries_plot']:
-            gauges.append(gauge.replace('/data', '/tsudat-media'))
+            val = gauge.replace('/data', '/tsudat-media')
+            gauges.append({'image': val, 'csv': val.replace('.png', '.csv'})
         for gauge_csv in pl['hpgauges']:
             gauges_csv.append(gauge.replace('/data', '/tsudat-media'))
     return render_to_response("scenario_info.html", RequestContext(request, {
