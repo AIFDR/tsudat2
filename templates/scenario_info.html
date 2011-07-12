@@ -41,5 +41,13 @@
 {% endfor %}
 {% endfor %}
 
+<h3>Boundary Tide Gauges</h3>
+<ul>
+{% for dict in gauges_csv %}
+{% for key,value in dict.items %}
+<li><a href='{{ value }}'>{{ key }}</a>
+{% endfor %}
+{% endfor %}
+
 </div>
 {% endblock %}
