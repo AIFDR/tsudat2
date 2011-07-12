@@ -612,15 +612,19 @@ def scenario_info(request, id=None):
     s = get_object_or_404(Scenario, pk=id)
     apl = s.anuga_payload
     gauges = []
+    gauges_csv = []
     if(apl):
         payload = apl.replace('u\'', '\'')
         payload = payload.replace('\'', '\"')
         pl = json.loads(payload)
         for gauge in pl['timeseries_plot']:
             gauges.append(gauge.replace('/data', '/tsudat-media'))
+        for gauge_csv in pl['hpgauges']:
+            gauges_csv.append(gauge.replace('/data', '/tsudat-media'))
     return render_to_response("scenario_info.html", RequestContext(request, {
         "scenario": s, 
         "gauges": gauges,
+        "gauges_csv": gauges_csv,
     }))
 
 @csrf_exempt

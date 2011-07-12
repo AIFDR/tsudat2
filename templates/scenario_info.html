@@ -34,5 +34,14 @@
 
 {% endfor %}
 
+{% if gauges_csv %}
+<ul>
+{% for gauge_csv in gauges_csv %}
+
+<li><a href='{{ gauge_csv }}'>{{ gauge_csv }}</a></li>
+
+{% endfor %}
+</ul>
+{% endif %}
 </div>
 {% endblock %}
