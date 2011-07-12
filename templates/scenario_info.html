@@ -49,5 +49,13 @@
 {% endfor %}
 {% endfor %}
 
+<h3>ANUGA Logs</h3>
+<ul>
+{% for dict in logs %}
+{% for key,value in dict.items %}
+<li><a href='{{ value }}'>{{ key }}</a>
+{% endfor %}
+{% endfor %}
+
 </div>
 {% endblock %}

@@ -613,6 +613,7 @@ def scenario_info(request, id=None):
     apl = s.anuga_payload
     gauges = []
     gauges_csv = []
+    logs = []
     if(apl):
         payload = apl.replace('u\'', '\'')
         payload = payload.replace('\'', '\"')
@@ -624,10 +625,15 @@ def scenario_info(request, id=None):
             val = gauge_csv.replace('/data', '/tsudat-media')
             (head, tail) = os.path.split(val)
             gauges_csv.append({tail: val})
+        for log in pl['log']:
+            val = log.replace('/data', '/tsudat-media')
+            (head, tail) = os.path.split(val)
+            logs.append({tail, val})
     return render_to_response("scenario_info.html", RequestContext(request, {
         "scenario": s, 
         "gauges": gauges,
         "gauges_csv": gauges_csv,
+        "logs": logs,
     }))
 
 def refresh_ds_from_geonode():
