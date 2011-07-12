@@ -628,7 +628,7 @@ def scenario_info(request, id=None):
         for log in pl['log']:
             val = log.replace('/data', '/tsudat-media')
             (head, tail) = os.path.split(val)
-            logs.append({tail, val})
+            logs.append({tail: val})
     return render_to_response("scenario_info.html", RequestContext(request, {
         "scenario": s, 
         "gauges": gauges,
