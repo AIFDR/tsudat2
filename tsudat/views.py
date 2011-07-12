@@ -1,4 +1,4 @@
-import sys
+import os, sys
 import traceback
 import simplejson as json
 import geojson
@@ -620,9 +620,14 @@ def scenario_info(request, id=None):
         for gauge in pl['timeseries_plot']:
             val = gauge.replace('/data', '/tsudat-media')
             gauges.append({'png': val, 'csv': val.replace('.png', '.csv')})
+        for gauge_csv in pl['hpgauges']:
+            val = gauge_csv.replace('/data', '/tsudat-media')
+            (head, tail) = os.path.split(val)
+            gauges_csv.append({'tail', val})
     return render_to_response("scenario_info.html", RequestContext(request, {
         "scenario": s, 
         "gauges": gauges,
+        "gauges_csv": gauges,
     }))
 
 @csrf_exempt
