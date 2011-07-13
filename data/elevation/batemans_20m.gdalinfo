@@ -1,0 +1,48 @@
+ERROR 3: Attempt to read past EOF in batemans_20m/../info/arc.dir.
+ERROR 4: Failed to open table batemans_20m.VAT
+Driver: AIG/Arc/Info Binary Grid
+Files: batemans_20m
+       batemans_20m.aux
+       batemans_20m.rrd
+       batemans_20m/dblbnd.adf
+       batemans_20m/hdr.adf
+       batemans_20m/metadata.xml
+       batemans_20m/prj.adf
+       batemans_20m/sta.adf
+       batemans_20m/w001001.adf
+       batemans_20m/w001001x.adf
+Size is 411, 551
+Coordinate System is:
+PROJCS["unnamed",
+    GEOGCS["GDA94",
+        DATUM["Geocentric_Datum_of_Australia_1994",
+            SPHEROID["GRS 1980",6378137,298.257222101,
+                AUTHORITY["EPSG","7019"]],
+            TOWGS84[0,0,0,0,0,0,0],
+            AUTHORITY["EPSG","6283"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4283"]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["latitude_of_origin",0],
+    PARAMETER["central_meridian",153],
+    PARAMETER["scale_factor",0.9996],
+    PARAMETER["false_easting",500000],
+    PARAMETER["false_northing",10000000],
+    UNIT["METERS",1]]
+Origin = (242781.000000000000000,6050011.000000000000000)
+Pixel Size = (20.000000000000000,-20.000000000000000)
+Corner Coordinates:
+Upper Left  (  242781.000, 6050011.000) (150d 9'30.86"E, 35d39'36.99"S)
+Lower Left  (  242781.000, 6038991.000) (150d 9'18.16"E, 35d45'34.24"S)
+Upper Right (  251001.000, 6050011.000) (150d14'57.41"E, 35d39'44.58"S)
+Lower Right (  251001.000, 6038991.000) (150d14'45.12"E, 35d45'41.86"S)
+Center      (  246891.000, 6044501.000) (150d12' 7.89"E, 35d42'39.45"S)
+Band 1 Block=411x4 Type=Float32, ColorInterp=Undefined
+  Min=-26.710 Max=145.700 
+  NoData Value=-3.4028234663852886e+38
+  Overviews: 103x138, 52x69
+  Metadata:
+    LAYER_TYPE=athematic

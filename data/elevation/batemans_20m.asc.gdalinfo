@@ -1,0 +1,34 @@
+Driver: AAIGrid/Arc/Info ASCII Grid
+Files: batemans_20m.asc
+       batemans_20m.prj
+Size is 411, 551
+Coordinate System is:
+PROJCS["UTM Zone 56, Southern Hemisphere",
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            TOWGS84[0,0,0,0,0,0,0],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9108"]],
+        AUTHORITY["EPSG","4326"]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["latitude_of_origin",0],
+    PARAMETER["central_meridian",153],
+    PARAMETER["scale_factor",0.9996],
+    PARAMETER["false_easting",500000],
+    PARAMETER["false_northing",10000000],
+    UNIT["METERS",1]]
+Origin = (242781.000000000000000,6050011.000000000000000)
+Pixel Size = (20.000000000000000,-20.000000000000000)
+Corner Coordinates:
+Upper Left  (  242781.000, 6050011.000) (150d 9'30.86"E, 35d39'36.99"S)
+Lower Left  (  242781.000, 6038991.000) (150d 9'18.16"E, 35d45'34.24"S)
+Upper Right (  251001.000, 6050011.000) (150d14'57.41"E, 35d39'44.58"S)
+Lower Right (  251001.000, 6038991.000) (150d14'45.12"E, 35d45'41.86"S)
+Center      (  246891.000, 6044501.000) (150d12' 7.89"E, 35d42'39.45"S)
+Band 1 Block=411x1 Type=Float32, ColorInterp=Undefined
+  NoData Value=-9999
