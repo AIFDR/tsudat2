@@ -1,0 +1,26 @@
+Driver: GTiff/GeoTIFF
+Files: batemans_20m.tif
+Size is 484, 521
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (150.155045440483548,-35.660274164158572)
+Pixel Size = (0.000194592999866,-0.000194592999866)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=BAND
+Corner Coordinates:
+Upper Left  ( 150.1550454, -35.6602742) (150d 9'18.16"E, 35d39'36.99"S)
+Lower Left  ( 150.1550454, -35.7616571) (150d 9'18.16"E, 35d45'41.97"S)
+Upper Right ( 150.2492285, -35.6602742) (150d14'57.22"E, 35d39'36.99"S)
+Lower Right ( 150.2492285, -35.7616571) (150d14'57.22"E, 35d45'41.97"S)
+Center      ( 150.2021369, -35.7109656) (150d12' 7.69"E, 35d42'39.48"S)
+Band 1 Block=484x4 Type=Float32, ColorInterp=Gray
+  NoData Value=-9999

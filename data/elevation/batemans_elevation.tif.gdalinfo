@@ -1,0 +1,26 @@
+Driver: GTiff/GeoTIFF
+Files: batemans_elevation.tif
+Size is 174, 130
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (150.119938943741147,-35.654598805296359)
+Pixel Size = (0.001011114155909,-0.001011114155909)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=BAND
+Corner Coordinates:
+Upper Left  ( 150.1199389, -35.6545988) (150d 7'11.78"E, 35d39'16.56"S)
+Lower Left  ( 150.1199389, -35.7860436) (150d 7'11.78"E, 35d47' 9.76"S)
+Upper Right ( 150.2958728, -35.6545988) (150d17'45.14"E, 35d39'16.56"S)
+Lower Right ( 150.2958728, -35.7860436) (150d17'45.14"E, 35d47' 9.76"S)
+Center      ( 150.2079059, -35.7203212) (150d12'28.46"E, 35d43'13.16"S)
+Band 1 Block=174x11 Type=Float32, ColorInterp=Gray
+  NoData Value=-9999
