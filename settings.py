@@ -42,10 +42,10 @@ SERIALIZATION_MODULES = {
 }
 
 GEOSERVER_BASE_URL = SITEURL + "geoserver-geonode-dev/"
-GEOSERVER_CREDENTIALS = "admin", "geoserver" 
+GEOSERVER_CREDENTIALS = "admin", "@dm1n"
 
 GEONETWORK_BASE_URL = SITEURL + "geonetwork/"
-GEONETWORK_CREDENTIALS = "admin", 'admin'
+GEONETWORK_CREDENTIALS = "admin", '@dm1n2'
 
 TSUDAT_BASE_DIR='/data/run_tsudat/'
 TSUDAT_MUX_DIR='/data/Tsu-DAT_Data/earthquake_data'   # *instance* path to mux data

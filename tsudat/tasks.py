@@ -160,7 +160,7 @@ def run_tsudat_simulation(user, scenario_id):
     driver = gdal.GetDriverByName(output_format)
     
     for ds in pds:
-        layer = Layer.objects.get(uuid=ds.dataset.geonode_layer_uuid)
+        layer = Layer.objects.get(typename=ds.dataset.typename)
         elevation_files.append(layer.typename)
         logger.info(wcs.contents)
         metadata = wcs.contents[layer.typename]
