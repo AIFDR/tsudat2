@@ -188,7 +188,7 @@ def run_tsudat_simulation(user, scenario_id):
         out.close()
        
         # Warp to UTM
-        cmd = "/usr/bin/gdalwarp -t_srs EPSG:%d %s %s.tmp" % (srid, tif_file_path, tif_file_path)
+        cmd = "/usr/bin/gdalwarp -srcnodata -9999 -dstnodata -9999 -t_srs EPSG:%d %s %s.tmp" % (srid, tif_file_path, tif_file_path)
         os.system(cmd)
         # Convert to AAIGrid
         cmd = "/usr/bin/gdal_translate -a_nodata -9999 -of %s %s.tmp %s" % (output_format, tif_file_path, asc_file_path)
