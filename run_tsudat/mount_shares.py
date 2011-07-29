@@ -7,6 +7,9 @@ mount the /data share.
 Will not terminate until successful.
 
 This program is run as root from /etc/rc.local.
+
+NOTE: THIS CODE IS NOW OBSOLETE.  THE INSTANCES CAN NOW MOUNT
+      NFS SHARES WITHOUT A PUBLIC IP.
 """
 
 import os
