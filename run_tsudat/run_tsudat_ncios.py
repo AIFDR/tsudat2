@@ -362,14 +362,15 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
 
     cmd = ('. /root/.nova/novarc; /usr/bin/euca-run-instances %s -k %s -t %s -f %s'
            % (ami, key_name, instance_type, userdata_file))
-    log.debug('Doing: %s' % cmd)
     log.debug('user_data: %s' % user_data)
-    print('Doing: %s' % cmd)
+    log.debug('Doing: %s' % cmd)
     print('user_data: %s' % user_data)
+    print('Doing: %s' % cmd)
+
     fd = os.popen(cmd)
     lines = fd.readlines()
     retcode = fd.close()
-    print('lines=%s' % str(lines))
+    print('result=%s' % str(lines))
 
 #    retcode = os.system(cmd)
 
