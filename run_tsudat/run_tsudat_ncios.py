@@ -29,7 +29,7 @@ DefaultBPMaxarea = 250000
 
 # the AMI of the instance to run, and associated metadata
 #DefaultAMI = 'ami-0000004a'     # Ubuntu_10.04_Tsudat_2.0.43 - ensure *.out logs saved to /data
-DefaultAMI = 'ami-0000004d'     # Ubuntu_10.04_Tsudat_2.0.44 - image uses new NFS mount
+DefaultAMI = 'ami-0000004e'     # Ubuntu_10.04_Tsudat_2.0.45 - image uses new NFS mount
 DefaultKeypair = 'testkey'
 DefaultType = 'c1.large'
 
