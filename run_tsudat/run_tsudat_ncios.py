@@ -369,6 +369,7 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     fd = os.popen(cmd)
     lines = fd.readlines()
     retcode = fd.close()
+    print('lines=%s' % str(lines))
 
 #    retcode = os.system(cmd)
 
