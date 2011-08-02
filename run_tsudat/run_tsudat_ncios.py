@@ -360,7 +360,7 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     print('write user_data file: %s' % userdata_file)
     print('user_data=%s' % str(user_data))
 
-    cmd = ('. /root/.nova/novarc; /usr/bin/euca-run-instances %s -k %s -t %s -f %s'
+    cmd = ('. /home/celeryd/.nova/novarc; /usr/bin/euca-run-instances %s -k %s -t %s -f %s'
            % (ami, key_name, instance_type, userdata_file))
     log.debug('user_data: %s' % user_data)
     log.debug('Doing: %s' % cmd)
@@ -371,9 +371,6 @@ def start_ami(ami, key_name=DefaultKeypair, instance_type=DefaultType,
     lines = fd.readlines()
     retcode = fd.close()
     print('result=%s' % str(lines))
-
-#    retcode = os.system(cmd)
-
     log.debug('retcode=%s' % str(retcode))
     print('retcode=%s' % str(retcode))
 
