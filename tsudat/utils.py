@@ -39,8 +39,12 @@ def process_finished_simulation(scenario):
     layer_perm_spec = {"anonymous":"_none","authenticated":"_none","users":[[scenario.project.user.username,"layer_readwrite"]]}
     output_layers = [] 
   
-    payload = scenario.anuga_payload.replace("u'","'").replace("'", "\"")
-    output_json = json.loads(payload)
+    payload = scenario.anuga_payload
+    if isinstance(payload, dict):
+        output_json = payload
+    else:
+        payload = scenario.anuga_payload.replace("u'","'").replace("'", "\"")
+        output_json = json.loads(payload)
  
     for result in output_json['results_max']:
         success = create_scenario_output_layer(result, scenario, srid, keywords, layer_perm_spec, output_layers)
@@ -68,7 +72,7 @@ def process_finished_simulation(scenario):
             'siteurl': settings.SITEURL,
             'scenario_name': scenario.name,
         }
-        notification.send([user], "scenario_complete", data)
+        notification.send([scenario.project.user], "scenario_complete", data)
     logger.debug("notification sent")
             
     scenario.anuga_status = "DONE"

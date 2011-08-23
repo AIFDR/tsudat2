@@ -14,7 +14,7 @@ from django.conf import settings
 from owslib.wcs import WebCoverageService
 
 from tsudat import landward
-from tsudat.utils import create_scenario_output_layer
+from tsudat.utils import process_finished_simulation
 from tsudat.models import *
 
 from celery.task.schedules import crontab
