@@ -329,7 +329,6 @@ def internal_polygon_types(request):
 
 @csrf_exempt
 def internal_polygon(request, id=None):
-    #TODO: GET polygons for project_id and/or type
     if id == None and request.method == "POST":
         if not request.user.is_authenticated():
             return HttpResponse(
@@ -414,17 +413,24 @@ def internal_polygon(request, id=None):
             data = {'status': 'failure', 'msg': 'Unable to retrieve Internal Polygon', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     else:
-        try:
-            ips = InternalPolygon.objects.all()
-            djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
-            return HttpResponse(geoj.encode(djf.decode(ips)))
-        except:
-            data = {'status': 'failure', 'msg': 'Unable to retrieve Internal Polygons', 'reason': 'Unexpected Error'}
-            return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        if "project" in request.GET:
+            try:
+                project = Project.objects.get(pk=int(request.GET.get('project')))
+                ips = InternalPolygon.objects.filter(project=project)
+            except ObjectDoesNotExist:
+                data = {'status': 'failure', 'msg': 'Unable to retrieve Internal Polygons', 'reason': 'Unexpected Error'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        else:
+            try:
+                ips = InternalPolygon.objects.all()
+            except:
+                data = {'status': 'failure', 'msg': 'Unable to retrieve Internal Polygons', 'reason': 'Unexpected Error'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        djf = Django.Django(geodjango="geom", properties=['project_id','type', 'value'])
+        return HttpResponse(geoj.encode(djf.decode(ips)))
 
 @csrf_exempt
 def gauge_point(request, id=None):
-    #TODO: GET gauge points for project_id and/or type
     if id == None and request.method == "POST":
         if not request.user.is_authenticated():
             return HttpResponse(
@@ -507,17 +513,24 @@ def gauge_point(request, id=None):
             data = {'status': 'failure', 'msg': 'Unable to retrieve Gauge Point', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
     else:
-        try:
-            gps = GaugePoint.objects.all()
-            djf = Django.Django(geodjango="geom", properties=['project_id','name'])
-            return HttpResponse(geoj.encode(djf.decode(gps)))
-        except:
-            data = {'status': 'failure', 'msg': 'Unable to retrieve Gauge Point', 'reason': 'Unexpected Error'}
-            return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        if "project" in request.GET:
+            try:
+                project = Project.objects.get(pk=int(request.GET.get('project')))
+                gps = GaugePoint.objects.filter(project=project)
+            except ObjectDoesNotExist:
+                data = {'status': 'failure', 'msg': 'Unable to retrieve Gauge Points', 'reason': 'Unexpected Error'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        else:
+            try:
+                gps = GaugePoint.objects.all()
+            except:
+                data = {'status': 'failure', 'msg': 'Unable to retrieve Gauge Points', 'reason': 'Unexpected Error'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        djf = Django.Django(geodjango="geom", properties=['project_id','name'])
+        return HttpResponse(geoj.encode(djf.decode(gps)))
 
 @csrf_exempt
 def scenario(request, id=None):
-    #TODO: GET scenarios for a project (other params?) 
     if id == None and request.method == "POST":
         if not request.user.is_authenticated():
             return HttpResponse(
@@ -592,11 +605,23 @@ def scenario(request, id=None):
             data = {'status': 'failure', 'msg': 'Scenario Get Failed', 'reason': 'Invalid Scenario'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
     else:
+        if "project" in request.GET:
+            try:
+                project = Project.objects.get(pk=int(request.GET.get('project')))
+                scenarios = Scenario.objects.filter(project=project)
+            except ObjectDoesNotExist:
+                data = {'status': 'failure', 'msg': 'Unable to retrieve Scenarios', 'reason': 'Unexpected Error'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
+        else:
+            try:
+                scenarios = Scenario.objects.all()
+            except:
+                data = {'status': 'failure', 'msg': 'Unable to retrieve Scenarios', 'reason': 'Unexpected Error'}
+                return HttpResponse(json.dumps(data), status=400, mimetype='application/json')
         try:
-            scenarios = Scenario.objects.all()
             return HttpResponse(serializers.serialize("json", scenarios))
         except:
-            data = {'status': 'failure', 'msg': 'Scenario Get Failed', 'reason': 'Unexpected Error'}
+            data = {'status': 'failure', 'msg': 'Unable to retrieve Scenarios', 'reason': 'Unexpected Error'}
             return HttpResponse(json.dumps(data), status=500, mimetype='application/json')
 
 def scenario_list(request):
