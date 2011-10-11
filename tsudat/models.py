@@ -179,7 +179,7 @@ class Scenario(models.Model):
     source_zone = models.ForeignKey(SourceZone)
     return_period = models.IntegerField(choices=RETURN_PERIOD_CHOICES)
     wave_height = models.FloatField() # Min 0, Max 10
-    wave_height_delta = models.PositiveIntegerField()
+    wave_height_delta = models.FloatField()
     event = models.ForeignKey(Event)
     start_time = models.PositiveIntegerField() # In Seconds Default 0 (nearly always 0)
     end_time = models.PositiveIntegerField() # In seconds
