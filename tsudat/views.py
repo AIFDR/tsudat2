@@ -307,7 +307,7 @@ def project(request, id=None):
     elif id != None and id != "all" and request.method == "GET":
         try:
             p = Project.objects.get(pk=id)
-            djf = Django.Django(geodjango="geom", properties=['name'])
+            djf = Django.Django(geodjango="geom", properties=['name', 'max_area'])
             return HttpResponse(geoj.encode(djf.decode([p])))
         except ObjectDoesNotExist:
             data = {'status': 'failure', 'msg': 'Unable to Retrieve Project', 'reason': 'Invalid Project'}
@@ -318,7 +318,7 @@ def project(request, id=None):
     else:
         try:
             projects = Project.objects.all()
-            djf = Django.Django(geodjango="geom", properties=['name'])
+            djf = Django.Django(geodjango="geom", properties=['name', 'max_area'])
             return HttpResponse(geoj.encode(djf.decode(projects)))
         except:
             data = {'status': 'failure', 'msg': 'Unable to Retrieve Projects', 'reason': 'Unexpected Error'}
