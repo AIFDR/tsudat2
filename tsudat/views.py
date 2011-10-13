@@ -626,9 +626,9 @@ def scenario(request, id=None):
 
 def scenario_list(request):
     if(request.user.is_superuser):
-        scenarios = Scenario.objects.all().order_by('-tsudat_start_timestamp')
+        scenarios = Scenario.objects.all().order_by('-pk')
     else: 
-        scenarios = Scenario.objects.filter(project__user = request.user).order_by('-tsudat_start_timestamp')
+        scenarios = Scenario.objects.filter(project__user = request.user).order_by('-pk')
     return render_to_response("scenario_list.html", RequestContext(request, {
         "scenarios": scenarios,
     }))
