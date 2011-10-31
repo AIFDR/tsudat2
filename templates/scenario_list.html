@@ -5,6 +5,8 @@
 {% block main %}
 <div class="twocol">
 
+{% if scenarios %}
+
 <table border = '1'>
 <tr><th>ID</th><th>Name</th><th>Status</th><th>Start Time</th><th>End Time</th><th>Reload</th></tr>
 {% for scenario in scenarios %}
@@ -13,6 +15,14 @@
 
 {% endfor %}
 </table>
+
+{% else %}
+
+<p>
+<center><h3>No Scenarios Found</h3></center>
+</p>
+
+{% endif %}
 
 </div>
 {% endblock %}
