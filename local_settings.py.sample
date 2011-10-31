@@ -6,10 +6,10 @@ MINIFIED_RESOURCES = True
 SERVE_MEDIA=False
 
 SITENAME = "TsuDAT"
-SITEURL = "http://tsudat.org/"
+SITEURL = "http://domain.com/"
 
 ADMINS = (
-    ('Jeffrey Johnson', 'jjohnson@opengeo.org'),
+    ('Your Name', 'your_email@domain.com'),
 )
 
 DATABASE_ENGINE = 'django.contrib.gis.db.backends.postgis'
@@ -41,12 +41,12 @@ DATABASES = {
         }
     }
 
-SECRET_KEY = 'wRlw5bWSfWltUYfjOw'
+SECRET_KEY = 'somethingsecrethere'
 
-GEONETWORK_CREDENTIALS = 'admin', 'admin'
-GEOSERVER_CREDENTIALS = 'geoserver', 'VMNa6pzM'
+GEONETWORK_CREDENTIALS = 'admin', 'secret'
+GEOSERVER_CREDENTIALS = 'geoserver', 'secret'
 
-GOOGLE_API_KEY = "ABQIAAAAcoX_Z5d4BsocQFMReoaL9xQtMYM1wbPau4lKVThVkdSgRUXxNBSYM5nl7vvQLde1V90hi8HNf8VA1Q"
+GOOGLE_API_KEY = ""
 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'mailer@tsudat.org'
