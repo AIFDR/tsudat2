@@ -1,26 +1,30 @@
 from django.conf.urls.defaults import *
 from django.conf import settings
 from staticfiles.urls import staticfiles_urlpatterns
+from geonode.sitemap import LayerSitemap, MapSitemap
+from geonode.proxy.urls import urlpatterns as proxy_urlpatterns
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
 
 js_info_dict = {
-    'packages': ('geonode.maps',),
+    'domain': 'djangojs',
+    'packages': ('geonode',)
+}
+
+sitemaps = {
+    "layer": LayerSitemap,
+    "map": MapSitemap
 }
 
 urlpatterns = patterns('',
-    # Example:
-    # (r'^geonode/', include('geonode.foo.urls')),
     (r'^(?:index/?)?$', 'geonode.views.index'),
     (r'^(?P<page>help)/?$', 'geonode.views.static'),
     (r'^developer/?$', 'geonode.views.developer'),
     url(r'^lang\.js$', 'django.views.generic.simple.direct_to_template',
                {'template': 'lang.js', 'mimetype': 'text/javascript'}, 'lang'),
     (r'^maps/', include('geonode.maps.urls')),
-    (r'^proxy/', 'geonode.proxy.views.proxy'),
-    (r'^geoserver/','geonode.proxy.views.geoserver'),
     url(r'^data/$', 'geonode.maps.views.browse_data', name='data'),
     url(r'^data/acls/?$', 'geonode.maps.views.layer_acls', name='layer_acls'),
     url(r'^data/search/?$', 'geonode.maps.views.search_page', name='search'),
@@ -42,17 +46,13 @@ urlpatterns = patterns('',
     (r'^avatar/', include('avatar.urls')),
     (r'^accounts/', include('registration.urls')),
     (r'^profiles/', include('profiles.urls')),
-    (r'^admin/', include(admin.site.urls)),
+    (r'^sitemap\.xml$', 'django.contrib.sitemaps.views.sitemap', {'sitemaps': sitemaps}),
     (r'^tsudat/', include('tsudat.urls')),
     (r'^notices/', include('notification.urls')),
     )
 
+urlpatterns += proxy_urlpatterns
+
 # Extra static file endpoint for development use
 if settings.SERVE_MEDIA:
     urlpatterns += staticfiles_urlpatterns()
-
-
-def build_pattern(name, action="show"):
-        return url("^%s/(?P<object_id>\d+)/%s$" % (name, action),
-            "%s_%s" % (action, name),
-            name="%s_%s" % (action, name))
