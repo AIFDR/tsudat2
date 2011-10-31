@@ -8,7 +8,7 @@ _ = lambda x: x
 
 DEBUG = True
 SITENAME = "TsuDAT"
-SITEURL = "http://localhost:8000/"
+SITEURL = "http://localhost/"
 TEMPLATE_DEBUG = DEBUG
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -167,12 +167,49 @@ DEFAULT_MAP_CENTER = (133.9017, -23.8067)
 # maximum zoom is between 12 and 15 (for Google Maps, coverage varies by area)
 DEFAULT_MAP_ZOOM = 4
 
+
 DEFAULT_LAYER_SOURCE = {
     "ptype":"gxp_wmscsource",
     "url":"/geoserver/wms",
     "restUrl": "/gs/rest"
 }
 
+MAP_BASELAYERS = [{
+    "source": {"ptype": "gx_olsource"},
+    "type":"OpenLayers.Layer",
+    "args":["No background"],
+    "visibility": False,
+    "fixed": True,
+    "group":"background"
+  },{
+    "source": { "ptype":"gx_olsource"},
+    "type":"OpenLayers.Layer.OSM",
+    "args":["OpenStreetMap"],
+    "visibility": True,
+    "fixed": True,
+    "group":"background"
+  },{
+    "source": {"ptype":"gx_olsource"},
+    "type":"OpenLayers.Layer.WMS",
+    "group":"background",
+    "visibility": False,
+    "fixed": True,
+    "args":[
+      "bluemarble",
+      "http://maps.opengeo.org/geowebcache/service/wms",
+      {
+        "layers":["bluemarble"],
+        "format":"image/png",
+        "tiled": True,
+        "tilesOrigin":[-20037508.34,-20037508.34]
+      },
+      {"buffer":0}
+    ]
+
+}]
+
+
+"""
 MAP_BASELAYERSOURCES = {
     "any": {
         "ptype":"gx_olsource"
@@ -239,6 +276,8 @@ MAP_BASELAYERS = [{
     "visibility": True,
     "fixed": True,
 }]
+"""
+
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -280,6 +319,7 @@ CELERY_IMPORTS = ("tsudat2.tsudat.tasks", )
 CELERY_RESULT_BACKEND = "database"
 CELERY_RESULT_DBURI = "postgresql://tsudat:tsudat@localhost/tsudat"
 CELERYD_LOG_LEVEL = "DEBUG"
+CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
 #CELERY_ALWAYS_EAGER = True
 #CELERY_SEND_EVENTS = True
 

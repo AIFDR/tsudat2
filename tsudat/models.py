@@ -522,7 +522,7 @@ class Land(models.Model):
 
     class Meta:
         db_table = 'land_10m'
-        managed = False
+        #managed = False
 
 class Building(models.Model):
     objectid = models.IntegerField()
