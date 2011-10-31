@@ -43,6 +43,8 @@ DATABASES = {
 
 SECRET_KEY = 'somethingsecrethere'
 
+GEOSERVER_BASE_URL = SITEURL + 'geoserver/'
+GEONETWORK_BASE_URL = SITEURL + 'geonetwork/'
 GEONETWORK_CREDENTIALS = 'admin', 'secret'
 GEOSERVER_CREDENTIALS = 'geoserver', 'secret'
 
