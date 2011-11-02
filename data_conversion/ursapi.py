@@ -22,7 +22,7 @@ class URSData(object):
     TfilesDirName = 'Tfiles'
 
     OAmpGreenFile = os.path.join(HazMapDirName, 'hazard_maps', 'o_amp_green')
-    T00000File = os.path.join(TfilesDirName, 'T-00000')
+    T00000File = os.path.join(TfilesDirName, 'T-0000')
 
 
     def __init__(self, urs_path):
@@ -59,7 +59,7 @@ class URSData(object):
         try:
             fd = open(os.path.join(self.urs_path, self.OAmpGreenFile), 'r')
         except IOError, e:
-            msg = '%s is not a URS dataset directory\n%s' % (urs_path, str(e))
+            msg = '%s is not a URS dataset directory\n%s' % (self.urs_path, str(e))
             raise Exception(msg)
 
         # get single header line
@@ -80,7 +80,7 @@ class URSData(object):
         try:
             fd = open(os.path.join(self.urs_path, self.OAmpGreenFile), 'r')
         except IOError, e:
-            msg = '%s is not a URS dataset directory\n%s' % (urs_path, str(e))
+            msg = '%s is not a URS dataset directory\n%s' % (self.urs_path, str(e))
             raise Exception(msg)
 
         # get data in file, drop single header line

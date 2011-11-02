@@ -34,7 +34,7 @@ def main():
         DataPath = sys.argv[1]
 
     # make path to DP-* directory      
-    input_mask = os.path.join(DataPath, 'earthquake_data', 'hazmap_files', 'deag', 'DP-grn-rp-*')
+    input_mask = os.path.join(DataPath, 'earthquake_data', 'hazmap_files', 'deag', 'D-*')
 
     out_fd = open(OutputFile, 'wb')
 
@@ -42,7 +42,7 @@ def main():
         # get hpID from filename
         basename = os.path.basename(fname)
         print('DP file: %s' % basename)
-        (_, _, _, hpID) = basename.split('-')
+        (_, hpID) = basename.split('-')
         hpID = int(hpID)
 
         # get data from file

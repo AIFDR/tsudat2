@@ -33,7 +33,7 @@ def main():
         DataPath = sys.argv[1]
 
     # make path to single Tfile        
-    input_file = os.path.join(DataPath, 'earthquake_data', 'Tfiles', 'T-00000')
+    input_file = os.path.join(DataPath, 'earthquake_data', 'Tfiles', 'T-0000')
 
     # get data from file, skip header line
     fd = open(input_file, 'r')
@@ -45,7 +45,9 @@ def main():
     # read data lines, writing to output file
     for (id, line) in enumerate(lines):
         line = line.strip()
-        (_, _, _, _, _, subfaults) = SpacesPattern.split(line, 5)
+        #(_, _, _, _, subfaults) = SpacesPattern.split(line, 4)
+	a = SpacesPattern.split(line, 4)
+        subfaults = a[4]	
 
         subfault_list = SpacesPattern.split(subfaults)
 

@@ -41,7 +41,7 @@ def main():
     out_fd = open(OutputFile, 'wb')
 
     for hp_id in xrange(MAX_HP_ID):
-        tfile = 'T-%05d' % hp_id
+        tfile = 'T-%04d' % hp_id
         tfile_path = os.path.join(input_path, tfile)
 #        print('Tfile is %s' % tfile_path)
         print '%d' % hp_id,

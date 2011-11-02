@@ -38,7 +38,7 @@ def main():
 
     # make mask for a points file      
     input_mask = os.path.join(DataPath, 'earthquake_data', 'hazmap_files',
-                              'deag', 'DP-grn-rp-*')
+                              'deag', 'D-*')
 
     # get all files matching mask in the directory
     count = 0
@@ -47,7 +47,7 @@ def main():
 
         # get hpID from filename
         basename = os.path.basename(fname)
-        (_, _, _, hpID) = basename.split('-')
+        (_, hpID) = basename.split('-')
         hpID = int(hpID)
 
         # get data from this file
@@ -59,7 +59,10 @@ def main():
         header = lines[0].strip()
         lines = lines[1:]
 
-        return_periods = SpacesPattern.split(header)[3:]
+	header_rps = os.path.join(DataPath, 'earthquake_data', 'hazmap_files',
+				'hazard_maps', 'o_amp_green')
+        return_periods = SpacesPattern.split(open(header_rps).readline().strip())
+	print return_periods
         return_periods = [int(float(rp)) for rp in return_periods]
 
         # step through data, get subfaultID and contribution for each RP
