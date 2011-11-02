@@ -3,7 +3,7 @@
 """
 Create a file containing a mapping of event ID to subfault IDs.
 
-usage:  make_event_2_subfaults.py [<path to data>]
+usage:  make_event_subfaults.py [<path to data>]
 
 Creates a CSV file: <eventID>,<list of subfaultIDs>.
 
@@ -20,7 +20,7 @@ import re
 DataPath = '/media/537510fd-c89e-442d-8be0-3163f1bbe59b/Tsu-DAT_Data'
 
 # output filename
-OutputFile = './event_2_subfaults.csv'
+OutputFile = './event_subfaults.csv'
 
 # generate 're' pattern for 'any number of spaces'
 SpacesPattern = re.compile(' +')
