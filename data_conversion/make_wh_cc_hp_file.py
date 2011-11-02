@@ -22,7 +22,7 @@ import ursapi
 # default path to data - overridden by sys.argv[1]
 DataPath = '/media/537510fd-c89e-442d-8be0-3163f1bbe59b/Tsu-DAT_Data'
 
-OutputFile = './o_amp_green.cc'
+OutputFile = './wave_heights_color.txt'
 
 
 def main():
