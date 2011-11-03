@@ -11,7 +11,15 @@ from geonode.maps.models import Layer, Map, MapLayer
 import logging
 logger = logging.getLogger("tsudat2.tsudat.models")
 
-RETURN_PERIOD_CHOICES = (
+INDO_RETURN_PERIOD_CHOICES = (
+    (72, '72 Years'),
+    (475, '475 Years'),
+    (975, '975 Years'),
+    (2475, '2475 Years'),
+    (10000, '10000 Years')
+)
+
+AUS_RETURN_PERIOD_CHOICES = (
     (10, '10 years'),
     (25, '25 years'),
     (50, '50 years'),
@@ -35,6 +43,8 @@ RETURN_PERIOD_CHOICES = (
     (75000, '75000 years'),
     (100000, '100000 years'),
 )
+
+RETURN_PERIOD_CHOICES=INDO_RETURN_PERIOD_CHOICES
 
 RETURN_PERIODS = [ rp for (rp, _) in RETURN_PERIOD_CHOICES]
 
