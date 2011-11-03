@@ -301,27 +301,36 @@ INSTALLED_APPS = (
     'geonode',
     'tsudat2.tsudat',
     'djcelery',
-    'djkombu',
+    'djkombu', #Only used if BROKER_TRANSPORT='django'
     'django_extensions',
     'registration',
     'avatar',
     'pagination',
     'timezones',
-
 )
 
 TSUDAT_BASE_DIR='/data/run_tsudat/'
 TSUDAT_MUX_DIR='/data/Tsu-DAT_Data/earthquake_data'   # *instance* path to mux data
 
-# Celery Settings
-CARROT_BACKEND = "django"
+# Celery Settings http://ask.github.com/celery/configuration.html
 CELERY_IMPORTS = ("tsudat2.tsudat.tasks", )
-CELERY_RESULT_BACKEND = "database"
-CELERY_RESULT_DBURI = "postgresql://tsudat:tsudat@localhost/tsudat"
+CELERY_SEND_TASK_ERROR_EMAILS = True
+CELERY_SEND_EVENTS = True
 CELERYD_LOG_LEVEL = "DEBUG"
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"
-#CELERY_ALWAYS_EAGER = True
-#CELERY_SEND_EVENTS = True
+#CELERY_RESULT_BACKEND = "database"
+#CELERY_RESULT_DBURI = "postgresql://tsudat:tsudat@localhost/tsudat"
+
+BROKER_TRANSPORT = "amqplib"
+BROKER_HOST = "localhost"
+BROKER_PORT = 5672
+BROKER_VHOST = "/"
+BROKER_USER = "guest"
+BROKER_PASSWORD = "guest"
+
+# If Django is used as the Broker Transport
+# djkombu is required in INSTALLED_APPS
+#BROKER_TRANSPORT = "django"
 
 import djcelery
 djcelery.setup_loader()
