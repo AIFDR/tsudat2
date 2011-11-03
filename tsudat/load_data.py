@@ -15,8 +15,10 @@ from django.contrib.gis.utils import LayerMapping
 
 from tsudat2.tsudat.models import *
 
+DataPath = "../data/"
+
 def load_hazard_points():
-    hp_file = open('../data/hazard.points', 'r')
+    hp_file = open(os.path.join(DataPath, 'hazard_points.txt'), 'r')
     for line in hp_file.readlines():
         parts = line.strip().split(' ')
         lon = float(parts[0])
@@ -28,7 +30,7 @@ def load_hazard_points():
         hp.save()
 
 def load_source_zones():
-    sz_file = open('../data/zone_subfault.txt')
+    sz_file = open(os.path.join(DataPath, 'zone_subfault.txt'), 'r')
     for line in sz_file.readlines():
         parts = line.strip().split(' ')
         name = parts[0]
@@ -38,7 +40,7 @@ def load_source_zones():
         sz.save()
 
 def load_subfaults():
-    sf_file = open('../data/subfaults.txt')
+    sf_file = open(os.path.join(DataPath, 'subfaults.txt'), 'r')
     for line in sf_file.readlines():
         parts = line.strip().split(' ') 
         lon = float(parts[0])
@@ -65,7 +67,7 @@ def load_sz_geom():
         sz.save()
 
 def load_events():
-    events_file = open('../data/event_list.csv') 
+    events_file = open(os.path.join(DataPath, 'event_list.csv'), 'r')
     count = 0
     for line in events_file.readlines():
         if(count != 0):
@@ -86,7 +88,7 @@ def load_events():
         count += 1
 
 def load_event_subfaults():
-    event_sub_fault_file = open('../data/event_subfaults.csv')
+    event_sub_fault_file = open(os.path.join(DataPath, 'event_subfaults.csv'), 'r')
     for line in event_sub_fault_file.readlines():
         print line.strip()
         parts = line.strip().split(',')
@@ -99,7 +101,7 @@ def load_event_subfaults():
 
 @transaction.commit_manually
 def load_subfault_detail():
-    subfault_detail_file = open('../data/hp_rp_fid_cc.csv')
+    subfault_detail_file = open(os.path.join(DataPath, 'hp_rp_fid_cc.csv'), 'r')
     counter = index = count = 0
     finished_hps = []
     thinned_hps = []
@@ -157,7 +159,7 @@ def load_subfault_detail():
 
 @transaction.commit_manually
 def load_event_wave_heights():
-    event_wave_heights_file = open('../data/event_hp_wh.csv')
+    event_wave_heights_file = open(os.path.join(DataPath, 'event_hp_wh.csv'), 'r')
     counter = index = count = 0
     finished_hps = []
     thinned_hps = []
@@ -211,9 +213,9 @@ def load_event_wave_heights():
 
 def load_wave_heights(file):
     if(file == 'color'):
-        wave_heights_file = open('../data/wave_heights_color.txt')
+        wave_heights_file = open(os.path.join(DataPath, 'wave_heights_color.txt'), 'r')
     elif(file == 'values'):
-        wave_heights_file = open('../data/wave_heights_values.txt')
+        wave_heights_file = open(os.path.join(DataPath, 'wave_heights_values.txt'), 'r')
     else:
         print "Invalid file type"
         return
@@ -222,13 +224,16 @@ def load_wave_heights(file):
     for line in wave_heights_file.readlines():
         if(count != 0):
             parts = SpacesPattern.split(line.strip()) 
+            print parts
             lon = float(parts[0])
             lat = float(parts[1])
         count += 1
         try:
             hp = HazardPoint.objects.get(tsudat_id = count-2)
-            assert(lon == hp.geom.coords[0])
-            assert(lat == hp.geom.coords[1])
+            #print hp.geom.coords[0], lon
+            #assert(lon == hp.geom.coords[0])
+            #print hp.geom.coords[1], lat
+            #assert(lat == hp.geom.coords[1])
             print hp.tsudat_id, lon, lat, hp.geom.coords[0], hp.geom.coords[1]
             index = 3
             for rp in RETURN_PERIOD_CHOICES:
@@ -304,15 +309,23 @@ def load_buildings():
     lm = LayerMapping(Building, '/var/www/tsudat2/data/nexis/nexis_batemans.shp', mapping)
     lm.save(verbose=True)
 
-#load_hazard_points()
-#load_source_zones()
-#load_subfaults()
-#load_sz_geom()
-#load_events()
-#load_event_subfaults()
-#load_wave_heights('values')
-#load_wave_heights('color')
-#load_event_wave_heights()
-#load_subfault_detail()
-#rename_wh_rp_graphs()
-load_buildings()
+def main():
+    if len(sys.argv) > 1:
+        global DataPath
+        DataPath = sys.argv[1]
+
+    #load_hazard_points()
+    #load_source_zones()
+    #load_subfaults()
+    #load_sz_geom()
+    #load_events()
+    #load_event_subfaults()
+    #load_wave_heights('values')
+    #load_wave_heights('color')
+    #load_event_wave_heights()
+    #load_subfault_detail()
+    #rename_wh_rp_graphs()
+    #load_buildings()
+    
+if __name__ == '__main__':
+    main()
