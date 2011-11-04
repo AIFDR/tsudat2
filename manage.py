@@ -2,10 +2,6 @@
 import sys
 from django.core.management import execute_manager
 
-sys.path.append('/var/www/geonode/wsgi/geonode/src/gsconfig.py/src/')
-sys.path.append('/var/www/geonode/wsgi/geonode/src/owslib/')
-sys.path.append('/var/www/geonode/wsgi/geonode/lib/python2.6/site-packages/')
-
 try:
     import settings # Assumed to be in the same directory.
 except ImportError:
