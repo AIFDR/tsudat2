@@ -74,6 +74,9 @@ def hazard_point_style(request):
         results = HazardPointDetail.objects.filter(return_period=rp).aggregate(Min('wave_height'),  Max('wave_height'))
         min = results['wave_height__min']
         max = results['wave_height__max']
+        if min is None and max is None:
+            min = 0
+            max = 0
         interval = ((max - min) / 5)
         return render_to_response("hp_rp.xml", RequestContext(request, {
             "max": max,
