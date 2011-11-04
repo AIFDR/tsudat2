@@ -9,7 +9,7 @@
 #
 
 # put your name here - you'll need to enter your password below
-USERNAME=wilsor
+USERNAME=graydu
 
 # where to create fake_ui data
 TARGET=fake_ui_files.BatemansBay
@@ -34,15 +34,15 @@ mkdir -p $TARGET/topographies
 mkdir -p $TARGET/raw_elevations
 
 # copy required files from alamba
-rsync $USERNAME@alamba:$SOURCE/boundaries/landward_boundary.csv $TARGET/boundaries
-rsync $USERNAME@alamba:$SOURCE/boundaries/urs_order.csv $TARGET/boundaries
-rsync $USERNAME@alamba:$SOURCE/boundaries/58348/batemans_bay.sts $TARGET/boundaries/BatemansBay.sts
-rsync $USERNAME@alamba:$SOURCE/gauges/gauges.csv $TARGET/gauges
-rsync $USERNAME@alamba:$SOURCE/polygons/area_of_interest.csv $TARGET/polygons
-rsync $USERNAME@alamba:$SOURCE/polygons/area_of_significance.csv $TARGET/polygons
-rsync $USERNAME@alamba:$SOURCE/polygons/bounding_polygon.csv $TARGET/polygons
-rsync $USERNAME@alamba:$SOURCE/polygons/shallow_water.csv $TARGET/polygons
-rsync $USERNAME@alamba:$SOURCE/topographies/batemans_bay_combined_elevation.pts $TARGET/topographies/combined_elevation.pts
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/boundaries/landward_boundary.csv $TARGET/boundaries
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/boundaries/urs_order.csv $TARGET/boundaries
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/boundaries/58348/batemans_bay.sts $TARGET/boundaries/BatemansBay.sts
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/gauges/gauges.csv $TARGET/gauges
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/polygons/area_of_interest.csv $TARGET/polygons
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/polygons/area_of_significance.csv $TARGET/polygons
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/polygons/bounding_polygon.csv $TARGET/polygons
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/polygons/shallow_water.csv $TARGET/polygons
+rsync $USERNAME@alamba.aifdr.org:$SOURCE/topographies/batemans_bay_combined_elevation.pts $TARGET/topographies/combined_elevation.pts
 
 # patch original data with changed files here
 cp $PATCHDIR/interior_hp.csv $TARGET/boundaries
