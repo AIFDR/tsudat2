@@ -19,7 +19,7 @@ from vectorformats.Formats import Django, GeoJSON
 from geonode.maps.models import *
 
 from tsudat.models import *
-from tsudat.tasks import run_tsudat_simulation
+from tsudat.tasks import run_tsudat_simulation, download_tsunami_waveform
 
 import logging
 logger = logging.getLogger("tsudat2.tsudat.views")
@@ -837,10 +837,13 @@ def layer(request, uuid=None):
 
 @csrf_exempt
 def download_scenario(request):
-    # Call build_urs_boundary
-    # http://203.77.224.69/tsudat/download/?project=23&event_id=6270
-    data = {'status': 'success', 'msg': 'Project download not queued', 'reason': 'Not (Yet) Implemented'}
-    return HttpResponse(json.dumps(data), status=200, mimetype='text/html') 
+    try:
+        download_tsunami_waveform.delay(request.user, request.GET.get('project_id'))    
+        data = {'status': 'success', 'msg': 'Scenario Download queued for processing'}
+        return HttpResponse(json.dumps(data), mimetype='application/json')
+    except:
+        data = {'status': 'failure', 'msg': 'Failed queuing Scenario Download for processing', 'error': str(sys.exc_info()[0])}
+        return HttpResponse(json.dumps(data),mimetype='application/json')
 
 @csrf_exempt
 def run_scenario(request, scenario_id):

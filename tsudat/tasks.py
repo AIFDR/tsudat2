@@ -25,12 +25,13 @@ from geonode.maps.utils import *
 from geonode.maps.views import *
 
 from osgeo import gdal
-from gdalconst import *
-import osr
+#from gdalconst import *
+from osgeo import osr
 
 from util.LatLongUTMconversion import LLtoUTM 
 
 from run_tsudat import run_tsudat_ncios as run_tsudat
+#from run_tsudat import run_tsudat_local as run_tsudat
 from run_tsudat import messaging_amqp
 
 import re
@@ -58,6 +59,11 @@ def _slugify(value):
     value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore')
     value = unicode(_slugify_strip_re.sub('', value).strip().lower())
     return _slugify_hyphenate_re.sub('-', value)
+
+@task
+def download_tsunami_waveform(user, project_id):
+    # Call build_urs_boundary here
+    pass
 
 @task
 def run_tsudat_simulation(user, scenario_id):
