@@ -63,7 +63,7 @@ def return_period(request):
         except ValueError:
             return HttpResponse('Invalid Wave Height or Wave Height Delta', status=400)
         except:
-            return HttpResponse('Unexpected Error', status=500)
+            return HttpResponse(('Unexpected Error %s' % ( str(sys.exc_info()))), status=500)
 
 def return_periods(request):
     return HttpResponse(json.dumps(RETURN_PERIOD_CHOICES), mimetype='application/json')
@@ -209,7 +209,7 @@ def wave_height(request):
             hpd = HazardPointDetail.objects.get(hazard_point=hp, return_period=rp)
             return HttpResponse(serializers.serialize("json", [hpd]))
         except:
-            return HttpResponse('Unexpected Error', status=500)
+            return HttpResponse('Unexpected Error %s' %  str(sys.exc_info()), status=500)
 
 @csrf_exempt
 def polygon_from_csv(request):
@@ -834,6 +834,13 @@ def layer(request, uuid=None):
 	else:
 		coverage_layers = Layer.objects.filter(storeType="coverageStore")
 		return HttpResponse(serializers.serialize("json", coverage_layers))
+
+@csrf_exempt
+def download_scenario(request):
+    # Call build_urs_boundary
+    # http://203.77.224.69/tsudat/download/?project=23&event_id=6270
+    data = {'status': 'success', 'msg': 'Project download not queued', 'reason': 'Not (Yet) Implemented'}
+    return HttpResponse(json.dumps(data), status=200, mimetype='text/html') 
 
 @csrf_exempt
 def run_scenario(request, scenario_id):
