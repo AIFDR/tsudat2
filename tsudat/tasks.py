@@ -60,10 +60,168 @@ def _slugify(value):
     value = unicode(_slugify_strip_re.sub('', value).strip().lower())
     return _slugify_hyphenate_re.sub('-', value)
 
+
+def run_create_sim_boundary(user, project_id):
+    """
+    Create create sts and csv files for the user, based on the event
+    that they selected and the polygon they drew.
+    
+    """
+    # This function shoudl be focused on getting the database info out and passing it on.
+
+    # Get the scenario object from the Database
+    scenario = Scenario.objects.get(id=scenario_id)
+    
+    # the base of the TsuDAT user directory structures from settings.py 
+    TsuDATBase = settings.TSUDAT_BASE_DIR
+    TsuDATMux = settings.TSUDAT_MUX_DIR
+
+    #actual_setup - remove this variable
+    
+    # QU Do we need this?
+    # can scenario.project.name be None?
+    # fake a project name                                  ##?
+    if not scenario.project.name:                         ##?
+        scenario.project.name = _slugify(scenario.name)   ##?
+        # scenario.project.save() Needed?
+        
+                
+    # create the user working directory
+    (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
+     topographies, user_dir) = run_tsudat.make_tsudat_dir(
+        TsuDATBase, user.username,
+        _slugify(scenario.project.name),
+        _slugify(scenario.name),
+        actual_setup,
+        scenario.event.tsudat_id)
+     # Later these directories will be written to.
+
+    project_geom = scenario.project.geom
+    project_extent = scenario.project.geom.extent
+    centroid = project_geom.centroid
+    
+    
+    # This somewhat naively assumes that the whole bounding polygon is
+    # in the same zone
+    (UTMZone, UTMEasting, UTMNorthing) = LLtoUTM(23, centroid.coords[1],
+                                                 centroid.coords[0])
+    if(len(UTMZone) == 3):
+        utm_zone = int(UTMZone[0:2])
+    else:
+        utm_zone = int(UTMZone[0:1])
+    if(centroid.coords[1] > 0):
+        srid_base = 32600
+    else:
+        srid_base = 32700
+    srid = srid_base + utm_zone
+    scenario.project.srid = srid # QU why add to the data base?
+    scenario.project.save()
+
+    project_geom.transform(srid) # QU what does this do? update DB?
+    
+    # DSG - check how the polygon info gets to the boundary maker
+    # Polygons
+    #  Write out the bounding_polygon.csv to a file
+    print polygons
+    bounding_polygon_file = open(os.path.join(
+            polygons, 'bounding_polygon.csv'), 'w')
+    for coord in project_geom.coords[0][:-1]:
+        bounding_polygon_file.write('%f,%f\n' % (coord[0], coord[1]))
+    bounding_polygon_file.close()
+    
+    # skipping Internal Polygons
+    # skipping Raw Elevation Files
+    
+    # Landward Boundary 
+    #Iterate over the in the project geometry and
+    # add a l or s flag and call landward.landward with them
+    points_list = []
+    for coord in project_geom.coords[0][:-1]:
+        pnt_wkt = 'SRID=%s;POINT(%f %f)' % (srid, coord[0], coord[1])
+        land = Land.objects.filter(the_geom__intersects=pnt_wkt)
+        if(land.count() > 0):
+            points_list.append((coord[0], coord[1], "l")) 
+        else:
+            points_list.append((coord[0], coord[1], "s")) 
+    print('points_list=%s' % str(points_list))
+    landward_points = landward.landward(points_list)
+    print('landward_points=%s' % str(landward_points))
+    
+    # Write out the landward points to a file
+    landward_boundary_file = open(os.path.join(boundaries, 'landward_boundary.csv'), 'w')
+    for pt in landward_points:
+        landward_boundary_file.write('%f,%f\n' % (pt[0], pt[1]))
+    landward_boundary_file.close()
+
+    # Write out the Interior Hazard Points File
+    interior_hazard_points_file = open(os.path.join(boundaries, 
+                                                    'interior_hazard_points.csv'), 'w')
+    hps = HazardPoint.objects.filter(geom__intersects=project_geom).order_by('tsudat_id')
+    for hp in hps:
+        the_geom = hp.geom
+        latitude=the_geom.coords[1]
+        longitude=the_geom.coords[0]
+        the_geom.transform(srid)
+        interior_hazard_points_file.write('%d,%f,%f,%f,%f\n' % (
+                hp.tsudat_id,longitude,latitude,the_geom.coords[0], the_geom.coords[1]))
+    interior_hazard_points_file.close()
+    
+     # Skipping Gauges
+     # Skipping Layers 
+    
+    # build the simulation boundary json data file
+    date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
+    json_file = os.path.join(work_dir, '%s.%s.json' % (_slugify(scenario.name), 
+                                                       date_time))
+
+    json_dict_sim_boundary = {
+        'user': user.username,
+        'user_directory': user_dir,
+        'project': _slugify(scenario.project.name),
+        'project_id': scenario.project.id,
+        'scenario': _slugify(scenario.name),
+        'scenario_id': scenario.id,
+        'event_number': scenario.event.tsudat_id,
+        'working_directory': TsuDATBase,
+        'mux_directory': TsuDATMux,
+        'initial_tide': scenario.initial_tidal_stage,
+        'start_time': scenario.start_time,
+        'end_time': scenario.end_time,
+        'bounding_polygon_file': bounding_polygon_file.name,
+        'interior_hazard_points_file': interior_hazard_points_file.name, 
+        'landward_boundary_file': landward_boundary_file.name,
+        'zone_number': utm_zone,
+        #'setup': actual_setup,
+        #'smoothing': scenario.smoothing_param,
+        #'raw_elevation_directory': raw_elevations,
+        #'elevation_data_list': RawElevationFiles,
+        #'mesh_friction': scenario.default_friction_value,
+        #'raster_resolution': scenario.raster_resolution,
+        #'export_area': "AOI" if scenario.use_aoi == True else "ALL",
+        #'gauge_file': gauge_file.name,
+        #'bounding_polygon_maxarea': scenario.project.max_area,
+        #'interior_regions_list': InteriorRegions,
+        #'layers_list': layers, 
+        #'get_results_max': True,
+        #'get_timeseries': True 
+        }
+
+    with open(json_file, 'w') as fd:
+        json.dump(json_dict_sim_boundary, fd, indent=2, separators=(',', ':'))
+        
+    scenario.tsudat_payload = json.dumps(json_dict_sim_boundary) 
+    scenario.save()
+    
+    # now run the simulation
+    run_tsudat.run_tsudat(json_file)
+    scenario.anuga_status = "QUEUE"
+    scenario.save()
+    return True
+    
 @task
 def download_tsunami_waveform(user, project_id):
     # Call build_urs_boundary here
-    # Testing git
+    run_create_sim_boundary(user, project_id)
     pass
 
 @task
