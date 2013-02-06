@@ -63,7 +63,7 @@ def _slugify(value):
 
 def run_create_sim_boundary(user, project_id):
     """
-    Create create sts and csv files for the user, based on the event
+    Create  sts and csv files for the user, based on the event
     that they selected and the polygon they drew.
     
     """
