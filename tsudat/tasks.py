@@ -219,10 +219,47 @@ def run_create_sim_boundary(user, project_id):
     scenario.save()
     return True
     
+def run_small(user, project_id):
+    """
+    Create  sts and csv files for the user, based on the event
+    that they selected and the polygon they drew.
+    
+    """
+    # This function should be focused on getting the database info out
+    # and passing it on.
+
+    # Get the scenario object from the Database
+    scenario = Scenario.objects.get(id=scenario_id)
+    
+    # the base of the TsuDAT user directory structures from settings.py 
+    TsuDATBase = settings.TSUDAT_BASE_DIR
+    TsuDATMux = settings.TSUDAT_MUX_DIR
+
+    #actual_setup - remove this variable
+    
+    # QU Do we need this?
+    # can scenario.project.name be None?
+    # fake a project name                                  ##?
+    if not scenario.project.name:                         ##?
+        scenario.project.name = _slugify(scenario.name)   ##?
+        # scenario.project.save() Needed?
+        
+                
+    # create the user working directory
+    (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
+     topographies, user_dir) = run_tsudat.make_tsudat_dir(
+        TsuDATBase, user.username,
+        _slugify(scenario.project.name),
+        _slugify(scenario.name),
+        actual_setup,
+        scenario.event.tsudat_id)
+     # Later these directories will be written to.
+         
 @task
 def download_tsunami_waveform(user, project_id):
     # Call build_urs_boundary here
-    run_create_sim_boundary(user, project_id)
+    #run_create_sim_boundary(user, project_id)
+    #run_small(user, project_id)
     pass
 
 @task
