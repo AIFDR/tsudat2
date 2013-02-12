@@ -67,7 +67,8 @@ def run_create_sim_boundary(user, project_id):
     that they selected and the polygon they drew.
     
     """
-    # This function shoudl be focused on getting the database info out and passing it on.
+    # This function should be focused on getting the database info out
+    # and passing it on.
 
     # Get the scenario object from the Database
     scenario = Scenario.objects.get(id=scenario_id)
