@@ -277,7 +277,7 @@ def run_tsudat_simulation(user, scenario_id):
     for running the simulation. Generate a json run file and call run_tsudat.
     Notes here: https://github.com/AIFDR/tsudat2/wiki/Create-anuga-run-script
     """
-
+    create_dir()
     # Get the scenario object from the Database
     scenario = Scenario.objects.get(id=scenario_id)
     
