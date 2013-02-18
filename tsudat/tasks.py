@@ -254,13 +254,20 @@ def run_small(user, project_id):
         actual_setup,
         scenario.event.tsudat_id)
      # Later these directories will be written to.
-         
+
+def create_dir(path='/data/task_test'):
+    """
+    Create a directory for testing 
+    """
+    os.makedirs(path)
+              
 @task
 def download_tsunami_waveform(user, project_id):
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
-    run_small(user, project_id)
-    return True    
+    create_dir()
+
+
 
 @task
 def run_tsudat_simulation(user, scenario_id):
@@ -570,3 +577,7 @@ def process_anuga_message():
             process_finished_simulation(scenario)
         elif output_json['status'] == "IDLE":
             pass
+            
+#-------------------------------------------------------------
+if __name__ == "__main__":
+    create_dir()
