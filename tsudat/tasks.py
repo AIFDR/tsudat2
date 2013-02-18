@@ -577,7 +577,4 @@ def process_anuga_message():
             process_finished_simulation(scenario)
         elif output_json['status'] == "IDLE":
             pass
-            
-#-------------------------------------------------------------
-if __name__ == "__main__":
-    create_dir()
+        
