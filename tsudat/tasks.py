@@ -74,8 +74,8 @@ def run_create_sim_boundary(user, project_id):
     scenario = Scenario.objects.get(id=scenario_id)
     
     # the base of the TsuDAT user directory structures from settings.py 
-    TsuDATBase = settings.TSUDAT_BASE_DIR
-    TsuDATMux = settings.TSUDAT_MUX_DIR
+    TsuDATBase = settings.TSUDAT_BASE_DIR # '/data/run_tsudat/'
+    TsuDATMux = settings.TSUDAT_MUX_DIR # '/data/Tsu-DAT_Data/earthquake_data'
 
     #actual_setup - remove this variable
     
