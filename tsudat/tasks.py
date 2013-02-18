@@ -255,7 +255,7 @@ def run_small(user, project_id):
         scenario.event.tsudat_id)
      # Later these directories will be written to.
 
-def create_dir(path='/data/task_test'):
+def create_dir(path='/test/task_test'):
     """
     Create a directory for testing 
     """
