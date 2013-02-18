@@ -259,8 +259,8 @@ def run_small(user, project_id):
 def download_tsunami_waveform(user, project_id):
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
-    #run_small(user, project_id)
-    pass
+    run_small(user, project_id)
+    return True    
 
 @task
 def run_tsudat_simulation(user, scenario_id):
