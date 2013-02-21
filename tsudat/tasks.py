@@ -228,9 +228,9 @@ def run_small(user, project_id):
     # This function should be focused on getting the database info out
     # and passing it on.
 
-    # Get the scenario object from the Database
-    scenario = Scenario.objects.get(id=scenario_id)
-    
+    # Get the project  object from the Database
+    project = Project.objects.get(id=project_id)
+    print "I got to here"
     # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR # '/data/run_tsudat/'
     TsuDATMux = settings.TSUDAT_MUX_DIR # '/data/Tsu-DAT_Data/earthquake_data'
@@ -262,6 +262,7 @@ def run_small(user, project_id):
 
 @task
 def download_tsunami_waveform(user, project_id):
+    print "In download_tsunami_waveform"
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
     run_small(user, project_id)
