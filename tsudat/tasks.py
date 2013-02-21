@@ -268,9 +268,13 @@ def download_tsunami_waveform(user, project_id):
     print "yeah"
     return True
 
-
 @task
 def run_tsudat_simulation(user, scenario_id):
+    #run_small(user, project_id)
+    run_tsudat_simulation_func(user, scenario_id)
+
+
+def run_tsudat_simulation_func(user, scenario_id):
     """
     Generate a working directory for running ANUGA
     Create/Copy all of the files to that directory that are necessary
