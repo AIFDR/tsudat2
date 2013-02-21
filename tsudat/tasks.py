@@ -229,44 +229,29 @@ def run_small(user, project_id):
     # and passing it on.
 
     # Get the scenario object from the Database
-    scenario = Scenario.objects.get(id=scenario_id)
-    
-    # the base of the TsuDAT user directory structures from settings.py 
-    TsuDATBase = settings.TSUDAT_BASE_DIR
-    TsuDATMux = settings.TSUDAT_MUX_DIR
 
-    #actual_setup - remove this variable
-    
-    # QU Do we need this?
-    # can scenario.project.name be None?
-    # fake a project name                                  ##?
-    if not scenario.project.name:                         ##?
-        scenario.project.name = _slugify(scenario.name)   ##?
-        # scenario.project.save() Needed?
-        
-                
+    # the base of the TsuDAT user directory structures from settings.py 
+    TsuDATBase = settings.TSUDAT_BASE_DIR # '/data/run_tsudat/'
+    TsuDATMux = settings.TSUDAT_MUX_DIR # '/data/Tsu-DAT_Data/earthquake_data'
+
     # create the user working directory
     (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
      topographies, user_dir) = run_tsudat.make_tsudat_dir(
         TsuDATBase, user.username,
-        _slugify(scenario.project.name),
-        _slugify(scenario.name),
-        actual_setup,
+        'boundary',
+        'scenario1',
+        'dir_not_needed',
         scenario.event.tsudat_id)
      # Later these directories will be written to.
 
-def create_dir(path='/test/task_test'):
-    """
-    Create a directory for testing 
-    """
-    os.makedirs(path)
-              
+
 @task
 def download_tsunami_waveform(user, project_id):
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
-    create_dir()
-
+    run_small(user, project_id)
+    print "yeah"
+    return True
 
 
 @task
