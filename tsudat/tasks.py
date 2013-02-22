@@ -265,9 +265,7 @@ def run_small(user, project_id, event_id):
     else:
         srid_base = 32700
     srid = srid_base + utm_zone
-    scenario.project.srid = srid # QU why add to the data base?
-    scenario.project.save()
-
+    
     project_geom.transform(srid) # QU what does this do? update DB?
     
     # DSG - check how the polygon info gets to the boundary maker
@@ -322,26 +320,24 @@ def run_small(user, project_id, event_id):
     
     # build the simulation boundary json data file
     date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
-    json_file = os.path.join(work_dir, '%s.%s.json' % (_slugify(scenario.name), 
+    json_file = os.path.join(work_dir, '%s.%s.json' % (project_id, 
                                                        date_time))
 
     json_dict_sim_boundary = {
         'user': user.username,
         'user_directory': user_dir,
-        'project': _slugify(scenario.project.name),
-        'project_id': scenario.project.id,
-        'scenario': _slugify(scenario.name),
-        'scenario_id': scenario.id,
-        'event_number': scenario.event.tsudat_id,
+        'project': _slugify(project.name),
+        'project_id': project_id,
+        'event_number': event_id,
         'working_directory': TsuDATBase,
         'mux_directory': TsuDATMux,
-        'initial_tide': scenario.initial_tidal_stage,
-        'start_time': scenario.start_time,
-        'end_time': scenario.end_time,
         'bounding_polygon_file': bounding_polygon_file.name,
         'interior_hazard_points_file': interior_hazard_points_file.name, 
         'landward_boundary_file': landward_boundary_file.name,
         'zone_number': utm_zone,
+        #'initial_tide': scenario.initial_tidal_stage,
+        #'start_time': scenario.start_time,
+        #'end_time': scenario.end_time,
         #'setup': actual_setup,
         #'smoothing': scenario.smoothing_param,
         #'raw_elevation_directory': raw_elevations,
