@@ -251,15 +251,30 @@ def run_small(user, project_id, event_id):
     project_geom = project.geom
     project_extent = project.geom.extent
     centroid = project_geom.centroid
+    
+     # This somewhat naively assumes that the whole bounding polygon is
+    # in the same zone
+    (UTMZone, UTMEasting, UTMNorthing) = LLtoUTM(23, centroid.coords[1],
+                                                 centroid.coords[0])
+    if(len(UTMZone) == 3):
+        utm_zone = int(UTMZone[0:2])
+    else:
+        utm_zone = int(UTMZone[0:1])
+    if(centroid.coords[1] > 0):
+        srid_base = 32600
+    else:
+        srid_base = 32700
+    srid = srid_base + utm_zone
 
 
 @task
-def download_tsunami_waveform(user, listy): #project_id, event_id):
+def download_tsunami_waveform(user, data_list): #project_id, event_id):
     print "In download_tsunami_waveform"
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
-    run_small(user, listy[0], listy[1])
-    #run_small(user, project_id, event_id)
+    project_id = data_list[0]
+    event_id = data_list[1]
+    run_small(user, project_id, event_id)
     print "yeah"
     return True
 
