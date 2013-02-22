@@ -265,6 +265,98 @@ def run_small(user, project_id, event_id):
     else:
         srid_base = 32700
     srid = srid_base + utm_zone
+    scenario.project.srid = srid # QU why add to the data base?
+    scenario.project.save()
+
+    project_geom.transform(srid) # QU what does this do? update DB?
+    
+    # DSG - check how the polygon info gets to the boundary maker
+    # Polygons
+    #  Write out the bounding_polygon.csv to a file
+    print polygons
+    bounding_polygon_file = open(os.path.join(
+            polygons, 'bounding_polygon.csv'), 'w')
+    for coord in project_geom.coords[0][:-1]:
+        bounding_polygon_file.write('%f,%f\n' % (coord[0], coord[1]))
+    bounding_polygon_file.close()
+    
+    # skipping Internal Polygons
+    # skipping Raw Elevation Files
+    
+    # Landward Boundary 
+    #Iterate over the in the project geometry and
+    # add a l or s flag and call landward.landward with them
+    points_list = []
+    for coord in project_geom.coords[0][:-1]:
+        pnt_wkt = 'SRID=%s;POINT(%f %f)' % (srid, coord[0], coord[1])
+        land = Land.objects.filter(the_geom__intersects=pnt_wkt)
+        if(land.count() > 0):
+            points_list.append((coord[0], coord[1], "l")) 
+        else:
+            points_list.append((coord[0], coord[1], "s")) 
+    print('points_list=%s' % str(points_list))
+    landward_points = landward.landward(points_list)
+    print('landward_points=%s' % str(landward_points))
+    
+    # Write out the landward points to a file
+    landward_boundary_file = open(os.path.join(boundaries, 'landward_boundary.csv'), 'w')
+    for pt in landward_points:
+        landward_boundary_file.write('%f,%f\n' % (pt[0], pt[1]))
+    landward_boundary_file.close()
+
+    # Write out the Interior Hazard Points File
+    interior_hazard_points_file = open(os.path.join(boundaries, 
+                                                    'interior_hazard_points.csv'), 'w')
+    hps = HazardPoint.objects.filter(geom__intersects=project_geom).order_by('tsudat_id')
+    for hp in hps:
+        the_geom = hp.geom
+        latitude=the_geom.coords[1]
+        longitude=the_geom.coords[0]
+        the_geom.transform(srid)
+        interior_hazard_points_file.write('%d,%f,%f,%f,%f\n' % (
+                hp.tsudat_id,longitude,latitude,the_geom.coords[0], the_geom.coords[1]))
+    interior_hazard_points_file.close()
+    
+     # Skipping Gauges
+     # Skipping Layers 
+    
+    # build the simulation boundary json data file
+    date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
+    json_file = os.path.join(work_dir, '%s.%s.json' % (_slugify(scenario.name), 
+                                                       date_time))
+
+    json_dict_sim_boundary = {
+        'user': user.username,
+        'user_directory': user_dir,
+        'project': _slugify(scenario.project.name),
+        'project_id': scenario.project.id,
+        'scenario': _slugify(scenario.name),
+        'scenario_id': scenario.id,
+        'event_number': scenario.event.tsudat_id,
+        'working_directory': TsuDATBase,
+        'mux_directory': TsuDATMux,
+        'initial_tide': scenario.initial_tidal_stage,
+        'start_time': scenario.start_time,
+        'end_time': scenario.end_time,
+        'bounding_polygon_file': bounding_polygon_file.name,
+        'interior_hazard_points_file': interior_hazard_points_file.name, 
+        'landward_boundary_file': landward_boundary_file.name,
+        'zone_number': utm_zone,
+        #'setup': actual_setup,
+        #'smoothing': scenario.smoothing_param,
+        #'raw_elevation_directory': raw_elevations,
+        #'elevation_data_list': RawElevationFiles,
+        #'mesh_friction': scenario.default_friction_value,
+        #'raster_resolution': scenario.raster_resolution,
+        #'export_area': "AOI" if scenario.use_aoi == True else "ALL",
+        #'gauge_file': gauge_file.name,
+        #'bounding_polygon_maxarea': scenario.project.max_area,
+        #'interior_regions_list': InteriorRegions,
+        #'layers_list': layers, 
+        #'get_results_max': True,
+        #'get_timeseries': True 
+        }
+
 
 
 @task
