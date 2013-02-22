@@ -838,7 +838,7 @@ def layer(request, uuid=None):
 @csrf_exempt
 def download_scenario(request):
     try:
-        download_tsunami_waveform.delay(request.user, request.GET.get('project_id'), request.GET.get('event_id'))    
+        download_tsunami_waveform.delay(request.user, [request.GET.get('project_id'), request.GET.get('event_id')])    
         data = {'status': 'success', 'msg': 'Scenario Download queued for processing'}
         return HttpResponse(json.dumps(data), mimetype='application/json')
     except:
