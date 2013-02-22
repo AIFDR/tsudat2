@@ -254,10 +254,11 @@ def run_small(user, project_id, event_id):
 
 
 @task
-def download_tsunami_waveform(user, project_id, event_id):
+def download_tsunami_waveform(user, listy): #project_id, event_id):
     print "In download_tsunami_waveform"
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
+    run_small(user, listy[0], listy[1])
     run_small(user, project_id, event_id)
     print "yeah"
     return True
