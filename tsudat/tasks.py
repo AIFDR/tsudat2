@@ -259,7 +259,7 @@ def download_tsunami_waveform(user, listy): #project_id, event_id):
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
     run_small(user, listy[0], listy[1])
-    run_small(user, project_id, event_id)
+    #run_small(user, project_id, event_id)
     print "yeah"
     return True
 
