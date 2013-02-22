@@ -219,7 +219,7 @@ def run_create_sim_boundary(user, project_id):
     scenario.save()
     return True
     
-def run_small(user, project_id):
+def run_small(user, project_id, event_id):
     """
     Create  sts and csv files for the user, based on the event
     that they selected and the polygon they drew.
@@ -245,7 +245,7 @@ def run_small(user, project_id):
         'project_boundary',
         'scenario_boundary',
         'dud_dir',
-        scenario.event.tsudat_id)
+        event_id)
      # Later these directories will be written to.
 
     project_geom = project.geom
@@ -254,11 +254,11 @@ def run_small(user, project_id):
 
 
 @task
-def download_tsunami_waveform(user, project_id):
+def download_tsunami_waveform(user, project_id, event_id):
     print "In download_tsunami_waveform"
     # Call build_urs_boundary here
     #run_create_sim_boundary(user, project_id)
-    run_small(user, project_id)
+    run_small(user, project_id, event_id)
     print "yeah"
     return True
 
