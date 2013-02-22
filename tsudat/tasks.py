@@ -236,28 +236,20 @@ def run_small(user, project_id):
     TsuDATBase = settings.TSUDAT_BASE_DIR # '/data/run_tsudat/'
     TsuDATMux = settings.TSUDAT_MUX_DIR # '/data/Tsu-DAT_Data/earthquake_data'
 
-    #actual_setup - remove this variable
-    
-    # QU Do we need this?
-    # can scenario.project.name be None?
-    # fake a project name                                  ##?
-    if not scenario.project.name:                         ##?
-        scenario.project.name = _slugify(scenario.name)   ##?
-        # scenario.project.save() Needed?
         
                 
     # create the user working directory
     (work_dir, raw_elevations, boundaries, meshes, polygons, gauges,
      topographies, user_dir) = run_tsudat.make_tsudat_dir(
         TsuDATBase, user.username,
-        _slugify(scenario.project.name),
-        _slugify(scenario.name),
+        'project_boundary',
+        'scenario_boundary',
         'dud_dir',
         scenario.event.tsudat_id)
      # Later these directories will be written to.
 
-    project_geom = scenario.project.geom
-    project_extent = scenario.project.geom.extent
+    project_geom = project.geom
+    project_extent = project.geom.extent
     centroid = project_geom.centroid
 
 
