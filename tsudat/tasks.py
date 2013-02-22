@@ -227,7 +227,8 @@ def run_small(user, project_id):
     """
     # This function should be focused on getting the database info out
     # and passing it on.
-
+    print "project_id", project_id
+    print "user", user
     # Get the project  object from the Database
     project = Project.objects.get(id=project_id)
     print "I got to here"
