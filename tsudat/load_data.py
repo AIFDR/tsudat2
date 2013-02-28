@@ -14,8 +14,8 @@ from django.db import connection, transaction
 from django.contrib.gis.utils import LayerMapping
 
 from tsudat2.tsudat.models import *
-
-DataPath = "../data/"
+#DataPath = "/home/tsudatkvm/tsudat2/data/sulawesi/" 
+DataPath = "/var/tsudat"
 
 def load_hazard_points():
     hp_file = open(os.path.join(DataPath, 'hazard_points.txt'), 'r')
@@ -43,6 +43,7 @@ def load_subfaults():
     sf_file = open(os.path.join(DataPath, 'subfaults.txt'), 'r')
     for line in sf_file.readlines():
         parts = line.strip().split(' ') 
+	print parts
         lon = float(parts[0])
         if(lon > 180):
             lon = lon - 260
@@ -99,7 +100,8 @@ def load_event_subfaults():
             event.sub_faults.add(sf)
         event.save()
 
-@transaction.commit_manually
+#@transaction.commit_manually
+@transaction.commit_on_success()
 def load_subfault_detail():
     subfault_detail_file = open(os.path.join(DataPath, 'hp_rp_fid_cc.csv'), 'r')
     counter = index = count = 0
@@ -122,7 +124,7 @@ def load_subfault_detail():
 
     for line in subfault_detail_file.xreadlines():
         parts = line.strip().split(',')
-        #print parts
+        print parts
         try:
             hp_tsudat_id = int(parts[0])
             if not hp_tsudat_id in thinned_hps and not hp_tsudat_id in finished_hps:
@@ -157,7 +159,8 @@ def load_subfault_detail():
             print "%s (%s)" % (index, count)
             counter = 0
 
-@transaction.commit_manually
+#@transaction.commit_manually
+@transaction.commit_on_success()
 def load_event_wave_heights():
     event_wave_heights_file = open(os.path.join(DataPath, 'event_hp_wh.csv'), 'r')
     counter = index = count = 0
@@ -219,6 +222,14 @@ def load_wave_heights(file):
     else:
         print "Invalid file type"
         return
+
+    hps = []
+    hp_file = open(os.path.join(DataPath, 'hazard_points.txt'), 'r')
+    for line in hp_file.readlines():
+        parts = line.strip().split(' ')
+        hp_id = int(parts[2])
+        hps.append(hp_id)
+
     SpacesPattern = re.compile(' +')
     count = 0
     for line in wave_heights_file.readlines():
@@ -229,7 +240,8 @@ def load_wave_heights(file):
             lat = float(parts[1])
         count += 1
         try:
-            hp = HazardPoint.objects.get(tsudat_id = count-2)
+            hp = HazardPoint.objects.get(tsudat_id = hps[count-2])
+            #hp = HazardPoint.objects.get(tsudat_id = hps[count-1])
             #print hp.geom.coords[0], lon
             #assert(lon == hp.geom.coords[0])
             #print hp.geom.coords[1], lat
@@ -258,7 +270,7 @@ def load_wave_heights(file):
             pass
 
 def rename_wh_rp_graphs():
-    base_dir = '/var/www/tsudat2/media/wh_rp_hazard_graphs'
+    base_dir = '/var/www/tsudat2-media/wh_rp_hazard_graphs'
     list = dircache.listdir(base_dir)
     for x in list:
         print x
@@ -314,16 +326,16 @@ def main():
         global DataPath
         DataPath = sys.argv[1]
 
-    #load_hazard_points()
-    #load_source_zones()
-    #load_subfaults()
-    #load_sz_geom()
-    #load_events()
-    #load_event_subfaults()
-    #load_wave_heights('values')
-    #load_wave_heights('color')
-    #load_event_wave_heights()
-    #load_subfault_detail()
+    load_hazard_points()
+    load_source_zones()
+    load_subfaults()
+    load_sz_geom()
+    load_events()
+    load_event_subfaults()
+    load_wave_heights('values')
+    load_wave_heights('color')
+    load_event_wave_heights()
+    load_subfault_detail()
     #rename_wh_rp_graphs()
     #load_buildings()
     

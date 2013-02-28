@@ -143,7 +143,7 @@ def run_create_sim_boundary(user, project_id):
         print "srid", srid
         print "coord",coord
         #print "",
-        land = Land.objects.filter(the_geom__intersects=pnt_wkt)
+        land = Land.objects.filter(wkb_geometry__intersects=pnt_wkt)
         if(land.count() > 0):
             points_list.append((coord[0], coord[1], "l")) 
         else:
@@ -291,7 +291,7 @@ def run_small(user, project_id, event_id):
     points_list = []
     for coord in project_geom.coords[0][:-1]:
         pnt_wkt = 'SRID=%s;POINT(%f %f)' % (srid, coord[0], coord[1])
-        land = Land.objects.filter(the_geom__intersects=pnt_wkt)
+        land = Land.objects.filter(wkb_geometry__intersects=pnt_wkt)
         if(land.count() > 0):
             points_list.append((coord[0], coord[1], "l")) 
         else:

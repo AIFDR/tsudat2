@@ -1,7 +1,7 @@
 import sys, traceback
 import geojson
 from django.contrib.gis.geos import GEOSGeometry, LinearRing, LineString
-from django.contrib.gis.gdal import SpatialReference
+from django.contrib.gis.gdal.srs import SpatialReference
 from django.contrib.gis.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
@@ -12,11 +12,10 @@ import logging
 logger = logging.getLogger("tsudat2.tsudat.models")
 
 INDO_RETURN_PERIOD_CHOICES = (
-    (72, '72 Years'),
-    (475, '475 Years'),
-    (975, '975 Years'),
-    (2475, '2475 Years'),
-    (10000, '10000 Years')
+    (100, '100 Years'),
+    (500, '500 Years'),
+    (1000, '1000 Years'),
+    (2500, '2500 Years'),
 )
 
 AUS_RETURN_PERIOD_CHOICES = (
@@ -38,10 +37,10 @@ AUS_RETURN_PERIOD_CHOICES = (
     (5000, '5000 years'),
     (7500, '7500 years'),
     (10000, '10000 years'),
-    (25000, '25000 years'),
-    (50000, '50000 years'),
-    (75000, '75000 years'),
-    (100000, '100000 years'),
+#    (25000, '25000 years'),
+#    (50000, '50000 years'),
+#    (75000, '75000 years'),
+#    (100000, '100000 years'),
 )
 
 RETURN_PERIOD_CHOICES=INDO_RETURN_PERIOD_CHOICES
@@ -88,7 +87,7 @@ class HazardPointDetail(models.Model):
     hazard_point = models.ForeignKey(HazardPoint)
     return_period = models.IntegerField(choices=RETURN_PERIOD_CHOICES)
     wave_height = models.FloatField(null=True, blank=True) # Min 0, Max 10
-    color = models.CharField(max_length=8, null=True, blank=True)
+    color = models.CharField(max_length=12, null=True, blank=True)
 
     def __unicode__(self):
         return str(self.pk)
@@ -524,11 +523,20 @@ class ProjectDataSet(models.Model):
             return None, "Unexpected Error" 
 
 class Land(models.Model):
-    scalerank = models.IntegerField()
-    featurecla = models.CharField(max_length=32)
-    note = models.CharField(max_length=32)
-    the_geom = models.MultiPolygonField(srid=4326)
+    ogc_fid = models.IntegerField(primary_key=True)
+    gadmid = models.IntegerField()
+    wkb_geometry = models.MultiPolygonField(srid=4326)
     objects = models.GeoManager()
 
     class Meta:
-        db_table = 'land_10m'
+        db_table = 'indo_land_merged'
+
+#class Land(models.Model):
+#    scalerank = models.IntegerField()
+#    featurecla = models.CharField(max_length=32)
+#    note = models.CharField(max_length=32)
+#    the_geom = models.MultiPolygonField(srid=4326)
+#    objects = models.GeoManager()
+#
+#    class Meta:
+#        db_table = 'land_10m'

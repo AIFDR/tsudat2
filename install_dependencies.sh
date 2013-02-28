@@ -1,4 +1,3 @@
- source /var/lib/geonode/bin/activate
 export PATH=$PATH:/usr/pgsql-9.0/bin/
 pip install django-celery
 pip install -e git+git://github.com/jtauber/django-notification.git#egg=django_notification

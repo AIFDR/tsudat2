@@ -11,8 +11,8 @@ from geonode.maps.utils import *
 from geonode.maps.views import *
 
 from osgeo import gdal
-from gdalconst import *
-import osr
+#from gdalconst import *
+from osgeo import osr
 
 try:
     from notification import models as notification
