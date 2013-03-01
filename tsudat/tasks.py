@@ -223,19 +223,18 @@ def run_create_sim_boundary(user, project_id):
     scenario.save()
     return True
     
-def run_small(user, project_id, event_id):
+def create_internal_boundary_files(user, project_id, event_id):
     """
-    Create  sts and csv files for the user, based on the event
-    that they selected and the polygon they drew.
+    Create bounding_polygon_file, interior_hazard_points_file and
+    landward_boundary_file. Get info needed from the database.
     
     """
     # This function should be focused on getting the database info out
     # and passing it on.
-    print "project_id", project_id
-    print "user", user
     # Get the project  object from the Database
+    
     project = Project.objects.get(id=project_id)
-    print "I got to here"
+    
     # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR # '/data/run_tsudat/'
     TsuDATMux = settings.TSUDAT_MUX_DIR # '/data/Tsu-DAT_Data/earthquake_data'
@@ -248,7 +247,7 @@ def run_small(user, project_id, event_id):
         TsuDATBase, user.username,
         'project_boundary',
         'scenario_boundary',
-        'dud_dir',
+        'another_dir',
         event_id)
      # Later these directories will be written to.
 
@@ -319,8 +318,6 @@ def run_small(user, project_id, event_id):
                 hp.tsudat_id,longitude,latitude,the_geom.coords[0], the_geom.coords[1]))
     interior_hazard_points_file.close()
     
-     # Skipping Gauges
-     # Skipping Layers 
     
     # build the simulation boundary json data file
     date_time = strftime("%Y%m%d%H%M%S", gmtime()) 
@@ -338,35 +335,17 @@ def run_small(user, project_id, event_id):
         'bounding_polygon_file': bounding_polygon_file.name,
         'interior_hazard_points_file': interior_hazard_points_file.name, 
         'landward_boundary_file': landward_boundary_file.name,
-        'zone_number': utm_zone,
-        #'initial_tide': scenario.initial_tidal_stage,
-        #'start_time': scenario.start_time,
-        #'end_time': scenario.end_time,
-        #'setup': actual_setup,
-        #'smoothing': scenario.smoothing_param,
-        #'raw_elevation_directory': raw_elevations,
-        #'elevation_data_list': RawElevationFiles,
-        #'mesh_friction': scenario.default_friction_value,
-        #'raster_resolution': scenario.raster_resolution,
-        #'export_area': "AOI" if scenario.use_aoi == True else "ALL",
-        #'gauge_file': gauge_file.name,
-        #'bounding_polygon_maxarea': scenario.project.max_area,
-        #'interior_regions_list': InteriorRegions,
-        #'layers_list': layers, 
-        #'get_results_max': True,
-        #'get_timeseries': True 
+        'zone_number': utm_zone
         }
 
 
 
 @task
-def download_tsunami_waveform(user, data_list): #project_id, event_id):
-    print "In download_tsunami_waveform"
-    # Call build_urs_boundary here
-    #run_create_sim_boundary(user, project_id)
+def download_tsunami_waveform(user, data_list): 
+
     project_id = data_list[0]
     event_id = data_list[1]
-    run_small(user, project_id, event_id)
+    create_internal_boundary_files(user, project_id, event_id)
     print "yeah"
     return True
 
