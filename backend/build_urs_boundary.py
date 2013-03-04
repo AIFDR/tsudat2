@@ -5,10 +5,13 @@ Build the urs boundary.
 import sys
 import os
 import anuga
+import re
 
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
 
+# match any number of spaces between fields
+SpacesPattern = re.compile(' +')
 
 
 def create_urs_order(landward_boundary_path, interior_hazard_points_path,
@@ -146,7 +149,7 @@ def get_multimux(event, multimux_dir, output_file):
 
     event         event ID
     multimux_dir  path to the multimux files
-    output_file   path to file to write
+    output_file   The event file
     """
 
     # get data
@@ -187,14 +190,16 @@ def get_multimux(event, multimux_dir, output_file):
         while True:
             # get number of subfaults, EOF means finished
             try:
-                nsubfault = infd.readline()
+                event_info_raw = infd.readline()
             except IOError:
                 raise Exception("Error reading file %s: EOF reading event"
                                 % mmx_filename)
 
-            if not nsubfault:
+            if not event_info_raw:
                 break
-            nsubfault = int(nsubfault)
+            #nsubfault = int(nsubfault)
+            event_info = SpacesPattern.split(event_info_raw, maxsplit=4)
+            nsubfault = int(event_info[1])
 
             nquake += 1
             if nquake == event:
@@ -216,3 +221,103 @@ def get_multimux(event, multimux_dir, output_file):
 
         infd.close()
     outfd.close()
+
+    
+def build_urs_boundary(mux_event_file, sts_outputfile, urs_order_file, 
+                       mux_data_folder):
+    """Build a boundary STS file from a set of MUX files.
+
+    mux_event_file  name of mux meta-file or single mux stem or event file
+    output_dir  directory to write STS data to
+    urs_order_file: The urs order file
+    mux_data_folder: The directory where the mux data is
+
+    Returns a list of generated 'sts_gauge' files.
+    """
+
+    # Assuming EventSelection multi-mux file
+    #the mux+weight data from the meta-file (in <boundaries>)
+    try:
+        fd = open(mux_event_file, 'r')
+        mux_data = fd.readlines()
+        fd.close()
+    except IOError, e:
+        msg = 'File %s cannot be read: %s' % (mux_event_file, str(e))
+        raise Exception(msg)
+    except:
+        raise
+
+    # first line of file is # filenames+weight in rest of file
+    num_lines = int(mux_data[0].strip())
+    mux_data = mux_data[1:]
+
+    # quick sanity check on input mux meta-file
+    if num_lines != len(mux_data):
+        msg = ('Bad file %s: %d data lines, but line 1 count is %d'
+               % (event_file, len(mux_data), num_lines))
+        raise Exception(msg)
+
+    # Create filename and weights lists.
+    # Must chop GRD filename just after '*.grd'.
+    mux_filenames = []
+    for line in mux_data:
+        muxname_long = line.strip().split()[0]
+        muxbasename = muxname_long.split('-z-mux2')[0]
+        #print "muxbasename",muxbasename 
+        #split_index = muxname.index('.grd')
+        #muxname = muxname[:split_index+len('.grd')]
+        muxname = os.path.join(mux_data_folder, muxbasename)
+        mux_filenames.append(muxname)
+
+    mux_weights = [float(line.strip().split()[1]) for line in mux_data]
+
+    # Call legacy function to create STS file.
+    anuga.urs2sts(mux_filenames, basename_out=sts_outputfile,
+                  ordering_filename=urs_order_file,
+                  weights=mux_weights, verbose=False)
+                  
+
+    #(quantities, elevation,
+    # time, gen_files) = get_sts_gauge_data(sts_file, verbose=False)
+    #log.debug('%d %d' % (len(elevation), len(quantities['stage'][0,:])))
+
+    #return gen_files
+    
+
+def build_boundary_deformation(landward_boundary_path, 
+                               interior_hazard_points_path,
+                               event, 
+                               sts_outputfile,
+                               mux_data_folder, 
+                               deformation_folder, 
+                               deformation_ouput_stem):
+    """
+    Given data files written from the tsudat database, create the sts
+    and deformation files.
+    """
+    # create temp files
+    # urs_order
+    f = tempfile.NamedTemporaryFile(suffix='.txt', 
+                                        prefix='urs_order_path',
+                                        delete=False)
+    f.close()
+    urs_order_path = f.name
+    
+    # event_file
+    f = tempfile.NamedTemporaryFile(suffix='.txt', 
+                                        prefix='event_file',
+                                        delete=False)
+    f.close()
+    event_file = f.name
+    
+    create_urs_order(landward_boundary_path, interior_hazard_points_path,
+                     urs_order_path)
+    get_multimux(event, mux_data_folder, event_file)     
+    build_urs_boundary(event_file, sts_outputfile, urs_order_path, 
+                       mux_data_folder) 
+    deformation_file = get_deformation(event_file, 
+                                       deformation_folder, 
+                                       deformation_ouput_stem)
+    
+    os.remove(urs_order_path)
+    os.remove(event_file)
