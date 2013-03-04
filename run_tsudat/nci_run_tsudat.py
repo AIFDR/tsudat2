@@ -609,7 +609,7 @@ def build_urs_boundary(event_file, output_dir):
         anuga.urs2sts(mux_filenames, basename_out=output_dir,
                       ordering_filename=project.urs_order_file,
                       weights=mux_weights, verbose=False)
-    else:                           # a single mux stem file, assume 1.0 weight
+    else: # a single mux stem file, assume 1.0 weight
         log.info('using single-mux file %s' % mux_file)
 
         mux_file = os.path.join(project.event_folder, event_file)
@@ -621,6 +621,7 @@ def build_urs_boundary(event_file, output_dir):
         order_filename = project.urs_order_file
 
         # Create ordered sts file
+        #  from anuga.file_conversion.urs2sts import urs2sts
         anuga.urs2sts(mux_filenames, basename_out=output_dir,
                       ordering_filename=order_filename,
                       weights=mux_weights, verbose=False)
