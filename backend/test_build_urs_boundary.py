@@ -58,8 +58,31 @@ class TestBuildURS(unittest.TestCase):
         os.remove(ihp_handle.name)
         os.remove(urs_order.name)
         
-        pass
 
+    def test_get_deformation(self):
+        # Write a test landward boundary file
+        f = tempfile.NamedTemporaryFile(suffix='.csv', 
+                                        prefix='test_build_urs_boundary',
+                                        delete=False)
+        f.write('3\n')
+        f.write('flores-0000_waveheight-z-mux2 10.5\n')
+        f.write('flores-0001_waveheight-z-mux2 10.5\n')
+        f.write('flores-0002_waveheight-z-mux2 10.5\n')
+        f.close()
+        mux_event_file = f
+        
+        def_test_dir = os.path.join('.', 'deformation_test')
+        deformation_folder = os.path.join(def_test_dir,
+                                          'deformation_files')
+        ouput_stem = os.path.join(def_test_dir, 'deformation')
+        
+        build_urs_boundary.get_deformation(mux_event_file.name, 
+                                            deformation_folder, ouput_stem)
+        
+        # Results should be tested. 
+        # To do this though the answer has to be known
+        
+        os.remove(mux_event_file.name)
 
 #-------------------------------------------------------------
 if __name__ == "__main__":

@@ -67,3 +67,73 @@ def create_urs_order(landward_boundary_path, interior_hazard_points_path,
         for (_, _, hp_id, lon, lat) in hp_data:
             fp.write('%d,%f,%f\n' % (hp_id, lon, lat))
 
+
+def get_deformation(mux_event_file, deformation_folder, ouput_stem):
+    
+    """
+    Function to take list of mux files and generate a txt file of
+    surface deformation for input into build_deformation
+
+    Input: event.lst file
+    Output: path to deformation txt file
+    """
+
+    try:
+        fd = open(mux_event_file, 'r')
+        mux_data = fd.readlines()
+        fd.close()
+    except IOError, e:
+        msg = 'File %s cannot be read: %s' % (mux_event_file, str(e))
+        raise Exception(msg)
+    except:
+        raise
+
+    # first line of file is # filenames+weight in rest of file
+    num_lines = int(mux_data[0].strip())
+    mux_data = mux_data[1:]
+
+    # quick sanity check on input mux meta-file
+    if num_lines != len(mux_data):
+        msg = ('Bad file %s: %d data lines, but line 1 count is %d'
+               % (event_file, len(mux_data), num_lines))
+        raise Exception(msg) 
+
+    def_ext = '-180c.grd' # extension of deformation file
+    def_filenames = []
+    for line in mux_data:
+        muxname = line.strip().split()[0]
+        sf_name = muxname.split('_')[0]
+        defname = sf_name + def_ext
+        defname = os.path.join(deformation_folder, defname)
+        def_filenames.append(defname)
+
+    slip_weights = [float(line.strip().split()[1]) for line in mux_data]
+
+    grd_file = ouput_stem + ".grd"
+    txt_file = ouput_stem + ".txt"
+
+    # create GMT call
+    if len(def_filenames) == 1:
+        gmtcmd = "grdmath " + def_filenames[0] + " " + str(slip_weights[0]) \
+            + " MUL = " + grd_file
+    else:
+        gmtcmd = "grdmath " + def_filenames[0] + " " + str(slip_weights[0]) \
+            + " MUL "
+        for i in range(1,len(def_filenames)):
+            gmtcmd = gmtcmd + def_filenames[i] + " " + str(slip_weights[i]) \
+                + " MUL ADD "
+
+        gmtcmd = gmtcmd + " = " + grd_file
+
+    # convert from grd to xyz
+    gmtcmd2 = 'grd2xyz %s > %s' % (grd_file,txt_file)
+
+    print '----GMT GRDMATHD---------'
+    print gmtcmd
+    print '----GMT GRD2XYZ----------'
+    os.system(gmtcmd)
+    print gmtcmd2
+    os.system(gmtcmd2)  
+
+    return txt_file
+
