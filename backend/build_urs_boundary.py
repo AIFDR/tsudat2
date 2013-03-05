@@ -6,6 +6,9 @@ import sys
 import os
 import anuga
 import re
+import tempfile
+import zipfile
+import ntpath
 
 # name of the fault name file (in multimux directory)
 FaultNameFilename = 'fault_list.txt'
@@ -75,7 +78,7 @@ def create_urs_order(landward_boundary_path, interior_hazard_points_path,
             fp.write('%d,%f,%f\n' % (hp_id, lon, lat))
 
 
-def get_deformation(mux_event_file, deformation_folder, ouput_stem):
+def get_deformation(mux_event_file, deformation_folder, ouput_file):
     
     """
     Function to take list of mux files and generate a txt file of
@@ -116,8 +119,12 @@ def get_deformation(mux_event_file, deformation_folder, ouput_stem):
 
     slip_weights = [float(line.strip().split()[1]) for line in mux_data]
 
-    grd_file = ouput_stem + ".grd"
-    txt_file = ouput_stem + ".txt"
+    f = tempfile.NamedTemporaryFile(suffix='.grd', 
+                                    prefix='bldurs_get_deformation',
+                                    delete=False)
+    f.close()
+    grd_file = f.name
+    
 
     # create GMT call
     if len(def_filenames) == 1:
@@ -133,7 +140,7 @@ def get_deformation(mux_event_file, deformation_folder, ouput_stem):
         gmtcmd = gmtcmd + " = " + grd_file
 
     # convert from grd to xyz
-    gmtcmd2 = 'grd2xyz %s > %s' % (grd_file,txt_file)
+    gmtcmd2 = 'grd2xyz %s > %s' % (grd_file, ouput_file)
 
     print '----GMT GRDMATHD---------'
     print gmtcmd
@@ -141,8 +148,10 @@ def get_deformation(mux_event_file, deformation_folder, ouput_stem):
     os.system(gmtcmd)
     print gmtcmd2
     os.system(gmtcmd2)  
+    
+    os.remove(grd_file)
 
-    return txt_file
+    return ouput_file
 
 def get_multimux(event, multimux_dir, output_file):
     """Does exactly what David Burbidge's 'get_multimux' program does.
@@ -287,10 +296,8 @@ def build_urs_boundary(mux_event_file, sts_outputfile, urs_order_file,
 def build_boundary_deformation(landward_boundary_path, 
                                interior_hazard_points_path,
                                event, 
-                               sts_outputfile,
                                mux_data_folder, 
-                               deformation_folder, 
-                               deformation_ouput_stem):
+                               deformation_folder):
     """
     Given data files written from the tsudat database, create the sts
     and deformation files.
@@ -310,14 +317,52 @@ def build_boundary_deformation(landward_boundary_path,
     f.close()
     event_file = f.name
     
+    # sts_file
+    f = tempfile.NamedTemporaryFile(suffix='.sts', 
+                                        prefix='sts_file_',
+                                        delete=False)
+    f.close()
+    sts_outputfile = f.name
+    
+    # deformation_ouput_file
+    f = tempfile.NamedTemporaryFile(suffix='.txt', 
+                                        prefix='def_file_stem',
+                                        delete=False)
+    f.close()
+    deformation_ouput_file = f.name
+    
+    
     create_urs_order(landward_boundary_path, interior_hazard_points_path,
                      urs_order_path)
-    get_multimux(event, mux_data_folder, event_file)     
-    build_urs_boundary(event_file, sts_outputfile, urs_order_path, 
-                       mux_data_folder) 
-    deformation_file = get_deformation(event_file, 
-                                       deformation_folder, 
-                                       deformation_ouput_stem)
+    get_multimux(event, mux_data_folder, event_file)  
+       
+    #build_urs_boundary(event_file, sts_outputfile, urs_order_path, 
+     #                  mux_data_folder) 
+     
+    get_deformation(event_file, 
+                    deformation_folder, 
+                    deformation_ouput_file)
+    
+    zfilename = 'test.zip'
+    archive_list = [sts_outputfile, deformation_ouput_file]
+    arcname_list = ['boundary.sts','deformation.txt']
+    print "arcname_list",arcname_list 
+    zip_files(archive_list, arcname_list, zfilename)
     
     os.remove(urs_order_path)
     os.remove(event_file)
+    os.remove(sts_outputfile)
+    os.remove(deformation_ouput_file)
+    
+
+def zip_files(archive_list=[], arcname_list=None, zfilename='default.zip'):
+    if arcname_list == None:
+        arcname_list = archive_list
+        
+    #print zfilename
+    zout = zipfile.ZipFile(zfilename, "w", zipfile.ZIP_DEFLATED)
+    for fname, arcname  in zip(archive_list, arcname_list):
+        print "writing: ", fname
+        print "writing: ", arcname
+        zout.write(fname, arcname)
+    zout.close()
