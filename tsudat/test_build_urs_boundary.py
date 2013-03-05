@@ -13,7 +13,24 @@ class TestBuildURS(unittest.TestCase):
     Test the config module
     """  
 
+    def write_mux_file(self):
+     # Write a test mux_event  file
+        f = tempfile.NamedTemporaryFile(suffix='.txt', 
+                                        prefix='test_build_urs_boundary',
+                                        delete=False)
+        f.write('3\n')
+        f.write('flores-0000_waveheight-z-mux2 10.5\n')
+        f.write('flores-0001_waveheight-z-mux2 10.5\n')
+        f.write('flores-0002_waveheight-z-mux2 10.5\n')
+        f.close()
+        mux_event_file = f.name
+        return mux_event_file
+        
+        
     def test_create_urs_order(self):
+    
+        mux_event_file = self.write_mux_file()
+        
         # Write a test landward boundary file
         f = tempfile.NamedTemporaryFile(suffix='.csv', 
                                         prefix='test_build_urs_boundary',
@@ -48,31 +65,23 @@ class TestBuildURS(unittest.TestCase):
         #print "urs_order.name", urs_order.name
         os.remove(urs_order.name)
         
-
+        
     def test_get_deformation(self):
-        # Write a test mux_event  file
-        f = tempfile.NamedTemporaryFile(suffix='.txt', 
-                                        prefix='test_build_urs_boundary',
-                                        delete=False)
-        f.write('3\n')
-        f.write('flores-0000-z-mux2 10.5\n')
-        f.write('flores-0001-z-mux2 10.5\n')
-        f.write('flores-0002-z-mux2 10.5\n')
-        f.close()
-        mux_event_file = f
+       
+        mux_event_file = self.write_mux_file()
         
         def_test_dir = os.path.join('.', 'deformation_test')
         deformation_folder = os.path.join(def_test_dir,
                                           'deformation_files')
         ouput_file = os.path.join(def_test_dir, 'output_deformation.txt')
         
-        build_urs_boundary.get_deformation(mux_event_file.name, 
+        build_urs_boundary.get_deformation(mux_event_file, 
                                             deformation_folder, ouput_file)
         
         # Results should be tested. 
         # To do this though the answer has to be known
         
-        os.remove(mux_event_file.name)
+        os.remove(mux_event_file)
         
         
     def test_get_multimux(self):
@@ -86,17 +95,9 @@ class TestBuildURS(unittest.TestCase):
         # To do this though the answer has to be known
 
         
-    def test_build_urs_boundary(self):        
-        # Write a test mux_event file
-        f = tempfile.NamedTemporaryFile(suffix='.txt', 
-                                        prefix='test_build_urs_boundary',
-                                        delete=False)
-        f.write('3\n')
-        f.write('flores-0000-z-mux2 10.5\n')
-        f.write('flores-0001-z-mux2 10.5\n')
-        f.write('flores-0002-z-mux2 10.5\n')
-        f.close()
-        mux_event_file = f.name
+    def test_build_urs_boundary(self):   
+    
+        mux_event_file = self.write_mux_file()
                
         # Write a test urs order file
         f = tempfile.NamedTemporaryFile(suffix='.txt', 
