@@ -129,6 +129,10 @@ class TestBuildURS(unittest.TestCase):
         # Results should be tested. 
         # To do this though the answer has to be known
         
+        os.remove(mux_event_file)
+        os.remove(urs_order_file)
+        os.remove(sts_outputfile)
+        
     def test_build_boundary_deformation(self):  
         # Write a test landward boundary file
         f = tempfile.NamedTemporaryFile(suffix='.csv', 
