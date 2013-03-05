@@ -297,7 +297,8 @@ def build_boundary_deformation(landward_boundary_path,
                                interior_hazard_points_path,
                                event, 
                                mux_data_folder, 
-                               deformation_folder):
+                               deformation_folder, 
+                               zip_filename):
     """
     Given data files written from the tsudat database, create the sts
     and deformation files.
@@ -343,11 +344,10 @@ def build_boundary_deformation(landward_boundary_path,
                     deformation_folder, 
                     deformation_ouput_file)
     
-    zfilename = 'test.zip'
     archive_list = [sts_outputfile, deformation_ouput_file]
-    arcname_list = ['boundary.sts','deformation.txt']
-    print "arcname_list",arcname_list 
-    zip_files(archive_list, arcname_list, zfilename)
+    arcname_list = ['boundary_' + str(event) + '.sts',
+    'deformation_' + str(event) + '.txt']
+    zip_files(archive_list, arcname_list, zip_filename)
     
     os.remove(urs_order_path)
     os.remove(event_file)

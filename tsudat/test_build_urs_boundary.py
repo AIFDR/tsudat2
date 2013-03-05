@@ -156,13 +156,15 @@ class TestBuildURS(unittest.TestCase):
         
         deformation_folder = os.path.join('.', 'deformation_test',
                                           'deformation_files')
+        zip_filename = os.path.join('.', 'muxfiles_test', 'out_sts_and_def.zip')
                                           
         build_urs_boundary.build_boundary_deformation(
             lb_handle.name,
             ihp_handle.name,
             event,
             mux_data_folder, 
-            deformation_folder)
+            deformation_folder, 
+            zip_filename)
             
         # Since I don't know what this file looks like I aren't testing it
         os.remove(lb_handle.name)
