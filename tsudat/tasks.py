@@ -16,6 +16,7 @@ from owslib.wcs import WebCoverageService
 from tsudat import landward
 from tsudat.utils import process_finished_simulation
 from tsudat.models import *
+from tsudat.build_urs_boundary import build_boundary_deformation
 
 from celery.task.schedules import crontab
 from celery.decorators import task, periodic_task
@@ -237,7 +238,6 @@ def create_internal_boundary_files(user, project_id, event_id):
     
     # the base of the TsuDAT user directory structures from settings.py 
     TsuDATBase = settings.TSUDAT_BASE_DIR # '/data/run_tsudat/'
-    TsuDATMux = settings.TSUDAT_MUX_DIR # '/data/Tsu-DAT_Data/earthquake_data'
 
         
                 
@@ -324,19 +324,19 @@ def create_internal_boundary_files(user, project_id, event_id):
     json_file = os.path.join(work_dir, '%s.%s.json' % (project_id, 
                                                        date_time))
 
-    json_dict_sim_boundary = {
+    int_boundary_dic = {
         'user': user.username,
         'user_directory': user_dir,
         'project': _slugify(project.name),
         'project_id': project_id,
         'event_number': event_id,
         'working_directory': TsuDATBase,
-        'mux_directory': TsuDATMux,
         'bounding_polygon_file': bounding_polygon_file.name,
         'interior_hazard_points_file': interior_hazard_points_file.name, 
         'landward_boundary_file': landward_boundary_file.name,
         'zone_number': utm_zone
         }
+    return int_boundary_dic
 
 
 
@@ -345,9 +345,25 @@ def download_tsunami_waveform(user, data_list):
 
     project_id = data_list[0]
     event_id = data_list[1]
-    create_internal_boundary_files(user, project_id, event_id)
+    int_boundary_dic = create_internal_boundary_files(
+        user, project_id, event_id)
+    landward_boundary_path = int_boundary_dic['landward_boundary_file']
+    interior_hazard_points_path = \
+        int_boundary_dic['interior_hazard_points_file']
+    event = int_boundary_dic['event']
+    mux_data_folder = settings.TSUDAT_MUX_DIR
+    deformation_folder  = settings.TSUDAT_DEF_DIR
+    zip_filename = os.path.join(
+        int_boundary_dic['working_directory'],
+        'sts_and_deformation.zip')
+    build_boundary_deformation(landward_boundary_path, 
+                               interior_hazard_points_path,
+                               event, 
+                               mux_data_folder, 
+                               deformation_folder, 
+                               zip_filename)
     print "yeah"
-    return True
+    return zip_filename
 
 @task
 def run_tsudat_simulation(user, scenario_id):
