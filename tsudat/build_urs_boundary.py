@@ -337,8 +337,8 @@ def build_boundary_deformation(landward_boundary_path,
                      urs_order_path)
     get_multimux(event, mux_data_folder, event_file)  
        
-    #build_urs_boundary(event_file, sts_outputfile, urs_order_path, 
-     #                  mux_data_folder) 
+    build_urs_boundary(event_file, sts_outputfile, urs_order_path, 
+                       mux_data_folder) 
      
     get_deformation(event_file, 
                     deformation_folder, 
