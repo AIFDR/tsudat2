@@ -362,7 +362,5 @@ def zip_files(archive_list=[], arcname_list=None, zfilename='default.zip'):
     #print zfilename
     zout = zipfile.ZipFile(zfilename, "w", zipfile.ZIP_DEFLATED)
     for fname, arcname  in zip(archive_list, arcname_list):
-        print "writing: ", fname
-        print "writing: ", arcname
         zout.write(fname, arcname)
     zout.close()

@@ -92,9 +92,9 @@ class TestBuildURS(unittest.TestCase):
                                         prefix='test_build_urs_boundary',
                                         delete=False)
         f.write('3\n')
-        f.write('flores-0000_waveheight-z-mux2 10.5\n')
-        f.write('flores-0001_waveheight-z-mux2 10.5\n')
-        f.write('flores-0002_waveheight-z-mux2 10.5\n')
+        f.write('flores-0000-z-mux2 10.5\n')
+        f.write('flores-0001-z-mux2 10.5\n')
+        f.write('flores-0002-z-mux2 10.5\n')
         f.close()
         mux_event_file = f.name
                
