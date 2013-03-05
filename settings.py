@@ -377,7 +377,10 @@ INSTALLED_APPS = (
 )
 
 TSUDAT_BASE_DIR='/data/run_tsudat/'
-TSUDAT_MUX_DIR='/data/Tsu-DAT_Data/earthquake_data'   # *instance* path to mux data
+#TSUDAT_MUX_DIR='/data/Tsu-DAT_Data/earthquake_data'   # *instance* path to mux data
+TSUDAT_MUX_DIR='/var/tsudat/muxfiles'
+TSUDAT_DEF_DIR='/var/tsudat/deffiles'
+
 
 # Celery Settings http://ask.github.com/celery/configuration.html
 CELERY_IMPORTS = ("tsudat.tasks", )
