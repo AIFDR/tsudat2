@@ -836,7 +836,7 @@ def layer(request, uuid=None):
 		return HttpResponse(serializers.serialize("json", coverage_layers))
 
 @csrf_exempt
-def download_scenario(request):
+def download_waveform(request):
     try:
         download_tsunami_waveform.delay(request.user, [request.GET.get('project_id'), request.GET.get('event_id')])    
         data = {'status': 'success', 'msg': 'Scenario Download queued for processing'}
@@ -846,12 +846,23 @@ def download_scenario(request):
         return HttpResponse(json.dumps(data),mimetype='application/json')
 
 @csrf_exempt
-def run_scenario(request, scenario_id):
+def download_scenario(request, scenario_id):
     try:
-        #logger.debug("Calling run_tsudat_simulation asynchronously")
-        run_tsudat_simulation.delay(request.user, scenario_id)
-        data = {'status': 'success', 'msg': 'Scenario queued for processing'}
+        
+        download_scenario.delay(request.user, scenario_id)    
+        data = {'status': 'success', 'msg': 'Scenario Download queued for processing'}
         return HttpResponse(json.dumps(data), mimetype='application/json')
     except:
-        data = {'status': 'failure', 'msg': 'Failed queuing Scenario for processing', 'error': str(sys.exc_info()[0])}
+        data = {'status': 'failure', 'msg': 'Failed queuing Scenario Download for processing', 'error': str(sys.exc_info()[0])}
         return HttpResponse(json.dumps(data),mimetype='application/json')
+
+# @csrf_exempt
+# def run_scenario(request, scenario_id):
+#     try:
+#         #logger.debug("Calling run_tsudat_simulation asynchronously")
+#         run_tsudat_simulation.delay(request.user, scenario_id)
+#         data = {'status': 'success', 'msg': 'Scenario queued for processing'}
+#         return HttpResponse(json.dumps(data), mimetype='application/json')
+#     except:
+#         data = {'status': 'failure', 'msg': 'Failed queuing Scenario for processing', 'error': str(sys.exc_info()[0])}
+#         return HttpResponse(json.dumps(data),mimetype='application/json')
