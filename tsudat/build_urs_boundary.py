@@ -160,12 +160,15 @@ def get_multimux(event, multimux_dir, output_file):
     multimux_dir  path to the multimux files
     output_file   The event file
     """
+    print "event", event
+    print "mux-dir", multimux_dir
 
     # get data
     filename = os.path.join(multimux_dir, FaultNameFilename)
     try:
         fd = open(filename, "r")
         fault_names = [ fn.strip() for fn in fd.readlines() ]
+        print "fault names", fault_names
         fd.close()
     except IOError, msg:
         raise RuntimeError(1, "Error reading file: %s" % msg)
@@ -209,9 +212,15 @@ def get_multimux(event, multimux_dir, output_file):
             #nsubfault = int(nsubfault)
             event_info = SpacesPattern.split(event_info_raw, maxsplit=4)
             nsubfault = int(event_info[1])
-
+            if nsubfault < 3:
+                #print "nsubfault", nsubfault 
+                pass
             nquake += 1
+            if nquake < 5:
+                print 'nquake', nquake
+                print 'event', event
             if nquake == event:
+                print "########### in #############"
                 outfd.write(' %d\n' % nsubfault)
                 for i in range(nsubfault):
                     line = infd.readline()
@@ -220,6 +229,7 @@ def get_multimux(event, multimux_dir, output_file):
                     subfaultname = subfaultname.strip()
                     slip = float(slip)
                     outfd.write(" %s %g\n" % (subfaultname, slip))
+                break
             else:
                 for i in range(nsubfault):
                     try:

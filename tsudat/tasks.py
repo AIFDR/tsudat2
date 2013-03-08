@@ -344,7 +344,7 @@ def create_internal_boundary_files(user, project_id, event_id):
 def download_tsunami_waveform(user, data_list): 
 
     project_id = data_list[0]
-    event_id = data_list[1]
+    event_id = int(data_list[1])
     int_boundary_dic = create_internal_boundary_files(
         user, project_id, event_id)
     landward_boundary_path = int_boundary_dic['landward_boundary_file']
