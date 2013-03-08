@@ -94,6 +94,22 @@ class TestBuildURS(unittest.TestCase):
         # Results should be tested. 
         # To do this though the answer has to be known
 
+    def test_get_multimuxII(self):
+        multimux_test_dir = os.path.join('.', 'muxfiles_test')
+        if os.environ['LOGNAME'] == '=tsudatkvm':
+            # Assume we are on tsudat indo
+             multimux_dir = os.path.join('var', 'tsudat', 'muxfiles')
+             f_name = 'local_mux_files_generated_event_file.txt'
+        else:
+             multimux_dir = os.path.join(multimux_test_dir, 'muxfiles')
+             f_name = 'test_mux_files_generated_event_file.txt'
+        
+        output_file = os.path.join(multimux_test_dir, f_name)
+        event = 1
+        build_urs_boundary.get_multimux(event, multimux_dir, output_file)
+        # Results should be tested. 
+        # To do this though the answer has to be known
+
         
     def test_build_urs_boundary(self):   
     
