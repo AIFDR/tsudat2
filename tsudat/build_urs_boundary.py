@@ -257,6 +257,7 @@ def build_urs_boundary(mux_event_file, sts_outputfile, urs_order_file,
         raise
 
     # first line of file is # filenames+weight in rest of file
+    print "mux_event_file", mux_event_file
     num_lines = int(mux_data[0].strip())
     mux_data = mux_data[1:]
 
@@ -281,9 +282,9 @@ def build_urs_boundary(mux_event_file, sts_outputfile, urs_order_file,
     mux_weights = [float(line.strip().split()[1]) for line in mux_data]
 
     # Call legacy function to create STS file.
-    anuga.urs2sts(mux_filenames, basename_out=sts_outputfile,
-                  ordering_filename=urs_order_file,
-                  weights=mux_weights, verbose=False)
+    urs2sts(mux_filenames, basename_out=sts_outputfile,
+            ordering_filename=urs_order_file,
+            weights=mux_weights, verbose=False)
                   
 
     #(quantities, elevation,
