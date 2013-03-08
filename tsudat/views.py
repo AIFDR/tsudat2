@@ -856,13 +856,13 @@ def download_scenario(request, scenario_id):
         data = {'status': 'failure', 'msg': 'Failed queuing Scenario Download for processing', 'error': str(sys.exc_info()[0])}
         return HttpResponse(json.dumps(data),mimetype='application/json')
 
-# @csrf_exempt
-# def run_scenario(request, scenario_id):
-#     try:
-#         #logger.debug("Calling run_tsudat_simulation asynchronously")
-#         run_tsudat_simulation.delay(request.user, scenario_id)
-#         data = {'status': 'success', 'msg': 'Scenario queued for processing'}
-#         return HttpResponse(json.dumps(data), mimetype='application/json')
-#     except:
-#         data = {'status': 'failure', 'msg': 'Failed queuing Scenario for processing', 'error': str(sys.exc_info()[0])}
-#         return HttpResponse(json.dumps(data),mimetype='application/json')
+@csrf_exempt
+def run_scenario(request, scenario_id):
+    try:
+        #logger.debug("Calling run_tsudat_simulation asynchronously")
+        run_tsudat_simulation.delay(request.user, scenario_id)
+        data = {'status': 'success', 'msg': 'Scenario queued for processing'}
+        return HttpResponse(json.dumps(data), mimetype='application/json')
+    except:
+        data = {'status': 'failure', 'msg': 'Failed queuing Scenario for processing', 'error': str(sys.exc_info()[0])}
+        return HttpResponse(json.dumps(data),mimetype='application/json')

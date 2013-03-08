@@ -4,7 +4,7 @@ Build the urs boundary.
 
 import sys
 import os
-import anuga
+from anuga.file_conversion.urs2sts import urs2sts
 import re
 import tempfile
 import zipfile
