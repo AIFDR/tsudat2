@@ -96,7 +96,7 @@ class TestBuildURS(unittest.TestCase):
 
     def test_get_multimuxII(self):
         multimux_test_dir = os.path.join('.', 'muxfiles_test')
-        if os.environ['LOGNAME'] == '=tsudatkvm':
+        if os.environ['LOGNAME'] == 'tsudatkvm':
             # Assume we are on tsudat indo
              multimux_dir = os.path.join('var', 'tsudat', 'muxfiles')
              f_name = 'local_mux_files_generated_event_file.txt'
