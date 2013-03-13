@@ -4,7 +4,7 @@ Build the urs boundary.
 
 import sys
 import os
-from anuga.file_conversion.urs2sts import urs2sts
+
 import re
 import tempfile
 import zipfile
@@ -253,6 +253,7 @@ def build_urs_boundary(mux_event_file, sts_outputfile, urs_order_file,
 
     Returns a list of generated 'sts_gauge' files.
     """
+    from anuga.file_conversion.urs2sts import urs2sts
 
     # Assuming EventSelection multi-mux file
     #the mux+weight data from the meta-file (in <boundaries>)
