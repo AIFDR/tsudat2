@@ -352,7 +352,7 @@ def download_tsunami_waveform(user, data_list):
         int_boundary_dic['interior_hazard_points_file']
     mux_data_folder = settings.TSUDAT_MUX_DIR
     deformation_folder  = settings.TSUDAT_DEF_DIR
-    zip_filename = os.path.join(
+    zip_filename = os.path.join('/',
         'download',
         'sts_and_deformation.zip')
     build_boundary_deformation(landward_boundary_path, 
